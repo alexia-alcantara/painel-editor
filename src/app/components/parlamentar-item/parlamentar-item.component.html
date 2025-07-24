@@ -1,0 +1,7 @@
+<div class="text-sm">
+  <h4>Parlamentar Item</h4>
+  <strong>{{ dados.nome }}</strong> - {{ dados.partido }}
+  <span [ngClass]="{ 'text-green-500': dados.voto === 'S', 'text-red-500': dados.voto === 'N' }">
+    ({{ dados.voto }})
+  </span>
+</div>
