@@ -1,0 +1,34 @@
+<div class="editor-wrapper relative w-full h-screen bg-gray-100">
+  @for (item of componentes(); track item.id) {
+    <div
+      class="componente-box absolute bg-white shadow-md rounded cursor-grab"
+      [style.left.px]="item.x"
+      [style.top.px]="item.y"
+      [style.width.px]="item.width"
+      [style.height.px]="item.height"
+      cdkDrag
+      cdkDragBoundary=".editor-wrapper"
+      (cdkDragEnded)="onDragEnd($event, item)"
+    >
+      @switch(item.tipo) {
+        @case('parlamentar') {
+          <app-parlamentar-item [dados]="item.dados"></app-parlamentar-item>
+        }
+        @case('totalizadores') {
+          <app-votacao-total [dados]="item.dados"></app-votacao-total>
+        }
+        @case('timer') {
+          <app-timer></app-timer>
+        }
+        @case('imagem') {
+          <app-imagem-reuniao></app-imagem-reuniao>
+        }
+        @case('cabecalho') {
+          <app-header-reuniao></app-header-reuniao>
+        }
+      }
+    </div>
+  }
+
+  <button (click)="salvar()">Salvar Layout</button>
+</div>
