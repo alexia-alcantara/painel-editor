@@ -1,16 +1,17 @@
+import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
 
 @Component({
   selector: 'app-votacao-total',
   standalone: true,
-  imports: [],
+  imports: [CommonModule],
   templateUrl: './votacao-total.component.html',
   styleUrl: './votacao-total.component.css',
 })
 export class VotacaoTotalComponent {
-  @Input() dados: { sim: number; nao: number; absten: number } = {
-    sim: 0,
-    nao: 0,
-    absten: 0,
-  };
+  @Input() dados?: { sim: number; nao: number; abstencao: number };
+
+  get votos() {
+    return this.dados || { sim: 15, nao: 6, abstencao: 0 }; // Mock
+  }
 }

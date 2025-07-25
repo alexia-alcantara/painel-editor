@@ -1,5 +1,14 @@
-<div class="text-sm">
-  ✅ Sim: {{ dados?.sim }}<br />
-  ❌ Não: {{ dados?.nao }}<br />
-  ⚪ Abstenção: {{ dados?.absten }}
+<div class="bg-[#384349] rounded-md p-3 w-[223px] h-[135px] text-sm font-medium text-white space-y-2">
+  <div class="flex justify-between items-center">
+    <span class="text-green-400 font-bold uppercase">Sim</span>
+    <span class="text-green-400 font-semibold">{{ votos.sim | number: '2.0' }}</span>
+  </div>
+  <div class="flex justify-between items-center">
+    <span class="text-red-400 font-bold uppercase">Não</span>
+    <span class="text-red-400 font-semibold">{{ votos.nao | number: '2.0' }}</span>
+  </div>
+  <div class="flex justify-between items-center">
+    <span class="text-yellow-300 font-bold uppercase">Abstenção</span>
+    <span class="text-yellow-300 font-semibold">{{ votos.abstencao | number: '2.0' }}</span>
+  </div>
 </div>
