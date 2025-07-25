@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
+import { Parlamentar } from '../lista-votacao/lista-votacao.component';
 
 @Component({
   selector: 'app-parlamentar-item',
@@ -11,6 +12,8 @@ import { Component, Input } from '@angular/core';
   styleUrl: './parlamentar-item.component.css'
 })
 export class ParlamentarItemComponent {
-  @Input() dados: any;
+  @Input() parlamentar!: Parlamentar;
+  @Input() height = 135;
+  @Input() width = 223;
 
 }
