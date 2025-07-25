@@ -5,11 +5,13 @@ import { CommonModule } from '@angular/common';
 import { HeaderReuniaoComponent } from '../header-reuniao/header-reuniao.component';
 import { Router } from '@angular/router';
 
-import {CdkDragEnd, DragDropModule} from '@angular/cdk/drag-drop';
+import { CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { ImagemReuniaoComponent } from '../imagem-reuniao/imagem-reuniao.component';
 import { ParlamentarItemComponent } from '../parlamentar-item/parlamentar-item.component';
 import { VotacaoTotalComponent } from '../votacao-total/votacao-total.component';
 import { TimerComponent } from '../timer/timer.component';
+import { StatusReuniaoComponent } from '../status-reuniao/status-reuniao.component';
+import { TemporizadorItemComponent } from '../temporizador-item/temporizador-item.component';
 
 @Component({
   selector: 'app-editor',
@@ -21,13 +23,14 @@ import { TimerComponent } from '../timer/timer.component';
     ImagemReuniaoComponent,
     ParlamentarItemComponent,
     VotacaoTotalComponent,
-    TimerComponent
+    TimerComponent,
+    TemporizadorItemComponent,
+    StatusReuniaoComponent,
   ],
   templateUrl: './editor.component.html',
-  styleUrl: './editor.component.css'
+  styleUrl: './editor.component.css',
 })
 export class EditorComponent {
-
   modoEditor = false;
   router = inject(Router);
 
@@ -57,20 +60,23 @@ export class EditorComponent {
       tipo: 'imagem',
       x: 750,
       y: 20,
-      width: 200,
-      height: 200,
+      width: 750,
+      height: 421,
     },
     {
       id: 'parlamentar',
       tipo: 'parlamentar',
       x: 50,
       y: 150,
-      width: 200,
-      height: 100,
+      width: 608,
+      height: 39,
       dados: {
-        nome: 'Fulano',
+        nome: 'Arlene McCoy',
+        partido: 'PARTIDO', 
+        voto: 'S',
       },
     },
+
     {
       id: 'totalizadores',
       tipo: 'totalizadores',
@@ -78,47 +84,100 @@ export class EditorComponent {
       y: 150,
       width: 150,
       height: 100,
+      dados: {
+        sim: 15,
+        nao: 6,
+        absten: 0,
+      },
     },
     {
-      id: 'timer',
-      tipo: 'timer',
-      x: 600,
-      y: 150,
-      width: 100,
-      height: 60,
+      id: 'status-reuniao',
+      tipo: 'status-reuniao',
+      x: 300,
+      y: 170,
+      width: 223,
+      height: 135,
+    },
+    {
+      id: 'temporizador-1',
+      tipo: 'temporizador-item',
+      x: 10,
+      y: 250,
+      width: 70,
+      height: 32,
+      props: {
+        tempo: '00:00',
+        icon: false,
+      },
+    },
+    {
+      id: 'temporizador-2',
+      tipo: 'temporizador-item',
+      x: 90,
+      y: 250,
+      width: 70,
+      height: 32,
+      props: {
+        tempo: '00:00',
+        icon: false,
+      },
+    },
+    {
+      id: 'temporizador-3',
+      tipo: 'temporizador-item',
+      x: 170,
+      y: 250,
+      width: 110,
+      height: 32,
+      props: {
+        tempo: '08:45:10',
+        icon: true,
+      },
     },
   ]);
 
-   constructor(
-    private layoutService: LayoutService
-  ) {
+  constructor(private layoutService: LayoutService) {
     this.router.events.subscribe(() => {
       this.modoEditor = this.router.url.includes('/editor');
     });
 
     console.log('[DEBUG] Componentes:', this.componentes());
   }
-
   onDragEnd(event: CdkDragEnd, item: ComponenteEditor) {
-    const element = event.source.element.nativeElement as HTMLElement;
-
-    const novoX = element.offsetLeft;
-    const novoY = element.offsetTop;
+    const position = event.source.getFreeDragPosition();
 
     const index = this.componentes().findIndex((c) => c.id === item.id);
     if (index !== -1) {
       const atualizados = [...this.componentes()];
       atualizados[index] = {
         ...atualizados[index],
-        x: novoX,
-        y: novoY,
+        x: Math.round(position.x),
+        y: Math.round(position.y),
       };
       this.componentes.set(atualizados);
     }
   }
 
+  // onDragEnd(event: CdkDragEnd, item: ComponenteEditor) {
+  //   const element = event.source.element.nativeElement as HTMLElement;
+
+  //   const novoX = element.offsetLeft;
+  //   const novoY = element.offsetTop;
+
+  //   const index = this.componentes().findIndex((c) => c.id === item.id);
+  //   if (index !== -1) {
+  //     const atualizados = [...this.componentes()];
+  //     atualizados[index] = {
+  //       ...atualizados[index],
+  //       x: novoX,
+  //       y: novoY,
+  //     };
+  //     this.componentes.set(atualizados);
+  //   }
+  // }
+
   salvar() {
+    console.log('[DEBUG] Salvando layout:', this.componentes());
     this.layoutService.salvarLayout(this.componentes());
-    console.log('[DEBUG] Layout salvo:', this.componentes());
   }
 }
