@@ -3,12 +3,12 @@ import { ComponenteEditor } from "../models/components.model";
 
 @Injectable({ providedIn: 'root' })
 export class LayoutService {
-  salvarLayout(layout: ComponenteEditor[]) {
-    localStorage.setItem('layout', JSON.stringify(layout));
-  }
+ salvarLayout(layout: any[]) {
+  localStorage.setItem('layout_editor', JSON.stringify(layout));
+}
 
-  carregarLayout(): ComponenteEditor[] | null {
-    const layout = localStorage.getItem('layout');
-    return layout ? JSON.parse(layout) : null;
-  }
+carregarLayout(): any[] {
+  const layoutString = localStorage.getItem('layout_editor');
+  return layoutString ? JSON.parse(layoutString) : [];
+}
 }

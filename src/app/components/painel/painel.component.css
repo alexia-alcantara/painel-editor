@@ -8,4 +8,6 @@
 .painel-wrapper {
   overflow: hidden;
   position: relative;
+  padding: 40px;
+
 }

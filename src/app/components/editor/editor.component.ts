@@ -33,6 +33,7 @@ import { TemporizadorItemComponent } from '../temporizador-item/temporizador-ite
 export class EditorComponent {
   modoEditor = false;
   router = inject(Router);
+  layout: ComponenteEditor[] = [];
 
   parlamentarMock = {
     nome: 'Fulano',
@@ -72,7 +73,7 @@ export class EditorComponent {
       height: 39,
       dados: {
         nome: 'Arlene McCoy',
-        partido: 'PARTIDO', 
+        partido: 'PARTIDO',
         voto: 'S',
       },
     },
@@ -143,6 +144,14 @@ export class EditorComponent {
 
     console.log('[DEBUG] Componentes:', this.componentes());
   }
+
+  ngOnInit() {
+    const layoutSalvo = this.layoutService.carregarLayout();
+    if (layoutSalvo.length) {
+      this.componentes.set(layoutSalvo);
+    }
+  }
+
   onDragEnd(event: CdkDragEnd, item: ComponenteEditor) {
     const position = event.source.getFreeDragPosition();
 
@@ -155,7 +164,13 @@ export class EditorComponent {
         y: Math.round(position.y),
       };
       this.componentes.set(atualizados);
+
+      this.layoutService.salvarLayout(atualizados);
     }
+  }
+
+  onItemChange() {
+    this.layoutService.salvarLayout(this.layout);
   }
 
   // onDragEnd(event: CdkDragEnd, item: ComponenteEditor) {
