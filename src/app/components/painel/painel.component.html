@@ -1,1 +1,37 @@
-<p>painel works!</p>
+<div class="painel-wrapper relative w-full h-screen bg-[#18262D]">
+  @for (item of layout(); track item.id) {
+    @if (item) {
+      <ng-container>
+        <div class="componente-box absolute"
+             [style.left.px]="item.x"
+             [style.top.px]="item.y"
+             [style.width.px]="item.width"
+             [style.height.px]="item.height">
+          @switch(item.tipo) {
+            @case('parlamentar') {
+              <app-parlamentar-item [parlamentar]="item.dados"></app-parlamentar-item>
+            }
+            @case('totalizadores') {
+              <app-votacao-total [dados]="item.dados"></app-votacao-total>
+            }
+            @case('imagem') {
+              <app-imagem-reuniao></app-imagem-reuniao>
+            }
+            @case('cabecalho') {
+              <app-header-reuniao></app-header-reuniao>
+            }
+            @case('status-reuniao') {
+              <app-status-reuniao [presentes]="26" [votos]="21"></app-status-reuniao>
+            }
+            @case('temporizador-item') {
+              <app-temporizador-item
+                [tempo]="item.props?.tempo ?? '00:00'"
+                [icon]="item.props?.icon ?? false">
+              </app-temporizador-item>
+            }
+          }
+        </div>
+      </ng-container>
+    }
+  }
+</div>
