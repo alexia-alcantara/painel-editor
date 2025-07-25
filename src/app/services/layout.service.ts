@@ -1,14 +1,14 @@
-import { Injectable } from '@angular/core';
+import { Injectable } from "@angular/core";
+import { ComponenteEditor } from "../models/components.model";
 
 @Injectable({ providedIn: 'root' })
 export class LayoutService {
-  private key = 'layout-editor';
-
-  salvarLayout(layout: any[]) {
-    localStorage.setItem(this.key, JSON.stringify(layout));
+  salvarLayout(layout: ComponenteEditor[]) {
+    localStorage.setItem('layout', JSON.stringify(layout));
   }
 
-  carregarLayout(): any[] {
-    return JSON.parse(localStorage.getItem(this.key) || '[]');
+  carregarLayout(): ComponenteEditor[] | null {
+    const layout = localStorage.getItem('layout');
+    return layout ? JSON.parse(layout) : null;
   }
 }
