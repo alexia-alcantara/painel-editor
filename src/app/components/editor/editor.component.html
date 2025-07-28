@@ -1,8 +1,8 @@
-<div class="editor-wrapper relative w-full h-screen bg-[#18262D]">
+<div class="editor-wrapper relative w-full min-h-screen bg-[#18262D] overflow-y-auto">
   @for (item of componentes(); track item.id) {
   @if (item) {
   <ng-container>
-    <div class="componente-box absolute rounded cursor-grab"
+    <div class="componente-box absolute rounded cursor-grab "
     cdkDrag
      [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }"
      (cdkDragEnded)="onDragEnd($event, item)"
@@ -41,42 +41,3 @@
 
   <button (click)="salvar()" class="text-white absolute bottom-4 left-4">Salvar Layout</button>
 </div>
-
-<!-- <div class="editor-wrapper relative w-full h-screen bg-[#18262D]">
- @for (item of componentesFiltrados; track item.id) {
-  <div class="componente-box absolute bg-white shadow-md rounded cursor-grab"
-    [style.left.px]="item.x"
-    [style.top.px]="item.y"
-    [style.width.px]="item.width"
-    [style.height.px]="item.height"
-    cdkDrag
-    cdkDragBoundary=".editor-wrapper"
-    (cdkDragEnded)="onDragEnd($event, item)">
-    
-    @switch(item.tipo) {
-      @case('parlamentar') {
-        <app-parlamentar-item [dados]="item.dados"></app-parlamentar-item>
-      }
-      @case('totalizadores') {
-        <app-votacao-total [dados]="item.dados"></app-votacao-total>
-      }
-      @case('imagem') {
-        <app-imagem-reuniao></app-imagem-reuniao>
-      }
-      @case('cabecalho') {
-        <app-header-reuniao></app-header-reuniao>
-      }
-      @case('status-reuniao') {
-        <app-status-reuniao [presentes]="26" [votos]="21"></app-status-reuniao>
-      }
-      @case('temporizador-item') {
-        <app-temporizador-item [tempo]="item.props?.tempo ?? '00:00'"
-          [icon]="item.props?.icon ?? false"></app-temporizador-item>
-      }
-    }
-  </div>
-}
-
-
-  <button (click)="salvar()" class="text-white absolute bottom-4 left-4">Salvar Layout</button>
-</div> -->
