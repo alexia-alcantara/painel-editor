@@ -18,11 +18,11 @@ export interface Parlamentar {
 export class ListaVotacaoComponent {
   @Input() parlamentares: Parlamentar[] = [];
 
-  colunas = computed(() => {
+  get colunas() {
     const metade = Math.ceil(this.parlamentares.length / 2);
     return [
       this.parlamentares.slice(0, metade),
       this.parlamentares.slice(metade),
     ];
-  });
+  }
 }

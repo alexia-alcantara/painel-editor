@@ -1,5 +1,5 @@
 <div class="grid grid-cols-2 gap-6">
-  @for (coluna of colunas(); track $index) {
+  @for (coluna of colunas; track $index) {
     <div class="space-y-2">
       @for (parlamentar of coluna; track parlamentar.nome) {
         <app-parlamentar-item [parlamentar]="parlamentar"></app-parlamentar-item>
