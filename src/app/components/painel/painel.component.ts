@@ -9,11 +9,14 @@ import { ParlamentarItemComponent } from "../parlamentar-item/parlamentar-item.c
 import { VotacaoTotalComponent } from "../votacao-total/votacao-total.component";
 import { StatusReuniaoComponent } from "../status-reuniao/status-reuniao.component";
 import { TemporizadorItemComponent } from "../temporizador-item/temporizador-item.component";
+import { DescricaoReuniaoComponent } from "../descricao-reuniao/descricao-reuniao.component";
+import { TituloReuniaoComponent } from "../titulo-reuniao/titulo-reuniao.component";
+import { SubtituloReuniaoComponent } from "../subtitulo-reuniao/subtitulo-reuniao.component";
 
 @Component({
   selector: 'app-painel',
   standalone: true,
-  imports: [HeaderReuniaoComponent, ImagemReuniaoComponent, PainelParlamentaresComponent, CronometroComponent, ParlamentarItemComponent, VotacaoTotalComponent, StatusReuniaoComponent, TemporizadorItemComponent],
+  imports: [HeaderReuniaoComponent, ImagemReuniaoComponent, PainelParlamentaresComponent, CronometroComponent, ParlamentarItemComponent, VotacaoTotalComponent, StatusReuniaoComponent, TemporizadorItemComponent, DescricaoReuniaoComponent, TituloReuniaoComponent, SubtituloReuniaoComponent],
   templateUrl: './painel.component.html',
   styleUrl: './painel.component.css'
 })
@@ -25,12 +28,5 @@ export class PainelComponent {
     if (carregado) this.layout.set(carregado);
   }
 
-
-  // ngOnInit() {
-  //   const layoutSalvo = this.layoutService.carregarLayout();
-  //   if (layoutSalvo) {
-  //     this.componentes.set(layoutSalvo);
-  //   }
-  // }
 
 }
