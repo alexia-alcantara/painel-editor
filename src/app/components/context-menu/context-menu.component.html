@@ -1,0 +1,9 @@
+@if (visible) {
+ <div #menuRef class="context-menu"  [style.left.px]="x" [style.top.px]="y">
+  <button mat-menu-item (click)="onClick('Parlamentar')">Parlamentar</button>
+  <button mat-menu-item (click)="onClick('Campos')">Campos</button>
+  <button mat-menu-item (click)="onClick('Mensagem')">Mensagem</button>
+  <button mat-menu-item (click)="onClick('Multimídia')">Multimídia</button>
+  <button mat-menu-item (click)="onClick('Configurar Tela')">Configurar Tela</button>
+ </div>
+}
