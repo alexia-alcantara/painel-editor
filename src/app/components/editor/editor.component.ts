@@ -13,6 +13,9 @@ import { TimerComponent } from '../timer/timer.component';
 import { StatusReuniaoComponent } from '../status-reuniao/status-reuniao.component';
 import { TemporizadorItemComponent } from '../temporizador-item/temporizador-item.component';
 import { ListaVotacaoComponent, Parlamentar } from '../lista-votacao/lista-votacao.component';
+import { DescricaoReuniaoComponent } from "../descricao-reuniao/descricao-reuniao.component";
+import { TituloReuniaoComponent } from "../titulo-reuniao/titulo-reuniao.component";
+import { SubtituloReuniaoComponent } from "../subtitulo-reuniao/subtitulo-reuniao.component";
 
 @Component({
   selector: 'app-editor',
@@ -27,8 +30,11 @@ import { ListaVotacaoComponent, Parlamentar } from '../lista-votacao/lista-votac
     TimerComponent,
     TemporizadorItemComponent,
     StatusReuniaoComponent,
-    ListaVotacaoComponent
-  ],
+    ListaVotacaoComponent,
+    DescricaoReuniaoComponent,
+    TituloReuniaoComponent,
+    SubtituloReuniaoComponent
+],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
 })
@@ -87,6 +93,30 @@ constructor(private layoutService: LayoutService) {
             y: 20,
             width: 400,
             height: 58,
+          },
+          {
+            id: 'descricao',
+            tipo: 'descricao',
+            x: 20,
+            y: 90,
+            width: 430,
+            height: 130,
+          },
+          {
+            id: 'titulo',
+            tipo: 'titulo',
+            x: 20,
+            y: 230,
+            width: 430,
+            height: 40,
+          },
+          {
+            id: 'subtitulo',
+            tipo: 'subtitulo',
+            x: 20,
+            y: 270,
+            width: 430,
+            height: 30,
           },
           {
             id: 'imagem',

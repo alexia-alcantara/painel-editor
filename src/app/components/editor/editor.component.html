@@ -22,6 +22,15 @@
       @case('cabecalho') {
       <app-header-reuniao></app-header-reuniao>
       }
+      @case('descricao') {
+      <app-descricao-reuniao></app-descricao-reuniao>
+    }
+      @case('titulo') {
+      <app-titulo-reuniao></app-titulo-reuniao>
+      }
+      @case('subtitulo') {
+      <app-subtitulo-reuniao></app-subtitulo-reuniao>
+      }
       @case('status-reuniao') {
       <app-status-reuniao [presentes]="26" [votos]="21"></app-status-reuniao>
       }
