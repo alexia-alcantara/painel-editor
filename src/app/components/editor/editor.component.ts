@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ViewChild } from '@angular/core';
 import { ComponenteEditor } from '../../models/components.model';
 import { LayoutService } from '../../services/layout.service';
 import { CommonModule } from '@angular/common';
@@ -16,6 +16,7 @@ import { ListaVotacaoComponent, Parlamentar } from '../lista-votacao/lista-votac
 import { DescricaoReuniaoComponent } from "../descricao-reuniao/descricao-reuniao.component";
 import { TituloReuniaoComponent } from "../titulo-reuniao/titulo-reuniao.component";
 import { SubtituloReuniaoComponent } from "../subtitulo-reuniao/subtitulo-reuniao.component";
+import { ContextMenuComponent } from "../context-menu/context-menu.component";
 
 @Component({
   selector: 'app-editor',
@@ -33,12 +34,16 @@ import { SubtituloReuniaoComponent } from "../subtitulo-reuniao/subtitulo-reunia
     ListaVotacaoComponent,
     DescricaoReuniaoComponent,
     TituloReuniaoComponent,
-    SubtituloReuniaoComponent
+    SubtituloReuniaoComponent,
+    ContextMenuComponent
 ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
 })
 export class EditorComponent {
+  @ViewChild(ContextMenuComponent)
+  contextMenu!: ContextMenuComponent;
+
   modoEditor = false;
   router = inject(Router);
   layout: ComponenteEditor[] = [];
