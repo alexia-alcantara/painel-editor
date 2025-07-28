@@ -13,7 +13,7 @@ import { Parlamentar } from '../lista-votacao/lista-votacao.component';
 })
 export class ParlamentarItemComponent {
   @Input() parlamentar!: Parlamentar;
-  @Input() height = 135;
-  @Input() width = 223;
+  @Input() height = 608;
+  @Input() width = 38;
 
 }
