@@ -90,118 +90,167 @@ constructor(private layoutService: LayoutService) {
       if (layoutSalvo.length) {
         this.componentes.set(layoutSalvo);
       } else {
-        this.componentes.set([
-          {
-            id: 'cabecalho',
-            tipo: 'cabecalho',
-            x: 20,
-            y: 20,
-            width: 400,
-            height: 58,
-          },
-          {
-            id: 'descricao',
-            tipo: 'descricao',
-            x: 20,
-            y: 90,
-            width: 430,
-            height: 130,
-          },
-          {
-            id: 'titulo',
-            tipo: 'titulo',
-            x: 20,
-            y: 230,
-            width: 430,
-            height: 40,
-          },
-          {
-            id: 'subtitulo',
-            tipo: 'subtitulo',
-            x: 20,
-            y: 270,
-            width: 430,
-            height: 30,
-          },
-          {
-            id: 'imagem',
-            tipo: 'imagem',
-            x: 750,
-            y: 20,
-            width: 750,
-            height: 421,
-          },
-          {
-            id: 'totalizadores',
-            tipo: 'totalizadores',
-            x: 300,
-            y: 150,
-            width: 172,
-            height: 50,
-            dados: this.votacaoMock,
-          },
-          {
-            id: 'status-reuniao',
-            tipo: 'status-reuniao',
-            x: 500,
-            y: 170,
-            width: 223,
-            height: 135,
-          },
-          {
-            id: 'temporizador-1',
-            tipo: 'temporizador-item',
-            x: 10,
-            y: 250,
-            width: 127,
-            height: 41,
-            props: {
-              tempo: '00:00',
-              icon: false,
-            },
-          },
-          {
-            id: 'temporizador-2',
-            tipo: 'temporizador-item',
-            x: 90,
-            y: 250,
-            width: 127,
-            height: 41,
-            props: {
-              tempo: '00:00',
-              icon: false,
-            },
-          },
-          {
-            id: 'temporizador-3',
-            tipo: 'temporizador-item',
-            x: 170,
-            y: 250,
-            width: 172,
-            height: 45,
-            props: {
-              tempo: '08:45:10',
-              icon: true,
-            },
-        },
-          ...this.montarComponentesParlamentares(),
-        ]);
+        this.componentes.set(this.montarLayoutInicial());
       }
     }
   });
 }
 
+private montarLayoutInicial(): ComponenteEditor[] {
+
+  const larguraImagem = 750;
+  const alturaImagem = 421;
+  const xImagem = 750;
+  const yImagem = 70;
+
+  const espacamentoVertical = 20;
+  const espacamentoHorizontal = 85;
+
+  // Base para os blocos à esquerda da imagem 
+  const xBase = 235;
+  let yAtual = yImagem; // começa no topo da imagem
+
+  // Imagem da reunião
+  const imagem: ComponenteEditor = {
+    id: 'imagem-reuniao',
+    tipo: 'imagem',
+    x: xImagem,
+    y: yImagem,
+    width: larguraImagem,
+    height: alturaImagem,
+  };
+
+  // Cabeçalho
+  const cabecalho: ComponenteEditor = {
+    id: 'cabecalho',
+    tipo: 'cabecalho',
+    x: xBase,
+    y: yAtual,
+    width: xImagem - espacamentoHorizontal, // alinhado ao início da imagem
+    height: 58,
+  };
+  yAtual += cabecalho.height + espacamentoVertical;
+
+  // Título
+  const titulo: ComponenteEditor = {
+    id: 'titulo',
+    tipo: 'titulo',
+    x: xBase,
+    y: yAtual,
+    width: xImagem - espacamentoHorizontal,
+    height: 40,
+  };
+  yAtual += titulo.height + 5;
+
+  //Subtítulo
+  const subtitulo: ComponenteEditor = {
+    id: 'subtitulo',
+    tipo: 'subtitulo',
+    x: xBase,
+    y: yAtual,
+    width: xImagem - espacamentoHorizontal,
+    height: 30,
+  };
+  yAtual += subtitulo.height + espacamentoVertical;
+
+  // Descrição
+  const descricao: ComponenteEditor = {
+    id: 'descricao',
+    tipo: 'descricao',
+    x: xBase,
+    y: yAtual,
+    width: xImagem - espacamentoHorizontal,
+    height: 130,
+  };
+  yAtual += descricao.height + espacamentoVertical;
+
+  //  Blocos Totalizadores 
+  const totalizadores: ComponenteEditor = {
+    id: 'totalizadores',
+    tipo: 'totalizadores',
+    x: xBase,
+    y: yAtual,
+    width: 172,
+    height: 50,
+    dados: this.votacaoMock,
+  };
+
+   const votacaoTotal: ComponenteEditor = {
+    id: 'votacao-total',
+    tipo: 'votacao-total',
+    x: xBase + totalizadores.width + espacamentoHorizontal,
+    y: yAtual - 0, 
+    width: 250,
+    height: 135,
+  };
+
+  const statusReuniao: ComponenteEditor = {
+    id: 'status-reuniao',
+    tipo: 'status-reuniao',
+    x: xBase + totalizadores.width + espacamentoHorizontal,
+    y: yAtual - 0, 
+    width: 223,
+    height: 135,
+  };
+  yAtual += statusReuniao.height + espacamentoVertical;
+
+  //Temporizadores 
+  const temporizadores: ComponenteEditor[] = [
+    {
+      id: 'temporizador-1',
+      tipo: 'temporizador-item',
+      x: xBase,
+      y: yAtual,
+      width: 127,
+      height: 41,
+      props: { tempo: '00:00', icon: false },
+    },
+    {
+      id: 'temporizador-2',
+      tipo: 'temporizador-item',
+      x: xBase + 140,
+      y: yAtual,
+      width: 127,
+      height: 41,
+      props: { tempo: '00:00', icon: false },
+    },
+    {
+      id: 'temporizador-3',
+      tipo: 'temporizador-item',
+      x: xBase + 280,
+      y: yAtual,
+      width: 172,
+      height: 45,
+      props: { tempo: '08:45:10', icon: true },
+    },
+  ];
+
+  // Parlamentares 
+  const parlamentares = this.montarComponentesParlamentares(yAtual + 60);
+
+  return [
+    imagem,
+    cabecalho,
+    titulo,
+    subtitulo,
+    descricao,
+    totalizadores,
+    votacaoTotal,
+    statusReuniao,
+    ...temporizadores,
+    ...parlamentares,
+  ];
+}
 
 
 
-private montarComponentesParlamentares(): ComponenteEditor[] {
+private montarComponentesParlamentares(yBase: number = 480): ComponenteEditor[] {
   const larguraItem = 608;
   const alturaItem = 39; 
   const larguraColuna = 300;
   const espacamentoHorizontal = 50;
   const espacamentoVertical = 45;
-  const xBase = 50;
-  const yBase = 460;
+  const xBase = 234;
 
   return this.parlamentaresMock.map((parlamentar, i) => {
     const coluna = i % 2;
