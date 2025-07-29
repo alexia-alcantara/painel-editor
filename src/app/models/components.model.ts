@@ -1,6 +1,6 @@
 export interface ComponenteEditor {
-  id: string;
-  tipo: 'parlamentar' | 'status-reuniao' | 'totalizadores' | 'imagem' | 'cabecalho' | 'descricao' | 'titulo' | 'subtitulo' |'temporizador-item';
+  id: string | number;
+  tipo: 'parlamentar' | 'votacao-total' | 'status-reuniao' | 'totalizadores' | 'imagem' | 'cabecalho' | 'descricao' | 'titulo' | 'subtitulo' |'temporizador-item';
   dados?: any;
   x: number;
   y: number;
