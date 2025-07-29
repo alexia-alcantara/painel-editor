@@ -11,6 +11,9 @@ import { Component, Input } from '@angular/core';
 export class VotacaoTotalComponent {
   @Input() dados?: { sim: number; nao: number; abstencao: number };
 
+  @Input() height = 135;
+  @Input() width = 240;
+  
   get votos() {
     return this.dados || { sim: 15, nao: 6, abstencao: 0 }; // Mock
   }

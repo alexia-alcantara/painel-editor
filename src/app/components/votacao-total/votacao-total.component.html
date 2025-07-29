@@ -1,14 +1,15 @@
-<div class="bg-[#384349] rounded-md p-3 w-[223px] h-[135px] text-sm font-medium text-white space-y-2">
-  <div class="flex justify-between items-center">
-    <span class="text-green-400 font-bold uppercase">Sim</span>
-    <span class="text-green-400 font-semibold">{{ votos.sim | number: '2.0' }}</span>
+<div class="bg-[#384349] rounded-lg px-4 py-4 text-sm font-medium text-white space-y-2"
+[style.height.px]="height" [style.width.px]="width">
+  <div class="flex justify-between items-center mb-0">
+    <span class="text-green-400 font-semibold uppercase mb-2 text-lg">Sim</span>
+    <span class="text-green-400 font-semibold mb-2 text-lg">{{ votos.sim | number: '2.0' }}</span>
   </div>
-  <div class="flex justify-between items-center">
-    <span class="text-red-400 font-bold uppercase">Não</span>
-    <span class="text-red-400 font-semibold">{{ votos.nao | number: '2.0' }}</span>
+  <div class="flex justify-between items-center mb-0">
+    <span class="text-red-400 font-semibold uppercase mb-2 text-lg">Não</span>
+    <span class="text-red-400 font-semibold mb-2 text-lg">{{ votos.nao | number: '2.0' }}</span>
   </div>
-  <div class="flex justify-between items-center">
-    <span class="text-yellow-300 font-bold uppercase">Abstenção</span>
-    <span class="text-yellow-300 font-semibold">{{ votos.abstencao | number: '2.0' }}</span>
+  <div class="flex justify-between items-center mb-0">
+    <span class="text-yellow-300 font-semibold uppercase mb-2 text-lg">Abstenção</span>
+    <span class="text-yellow-300 font-semibold mb-2 text-lg">{{ votos.abstencao | number: '2.0' }}</span>
   </div>
 </div>
