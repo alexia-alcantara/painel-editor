@@ -1,14 +1,14 @@
 <div
-  class="bg-gray-600 w-auto rounded-lg px-4 py-2 text-white text-sm leading-tight font-inter"
-  [style.height.px]="height"
+  class="bg-gray-600 w-auto rounded-lg px-4 py-4 text-white text-sm leading-tight font-inter "
+  [style.height.px]="height" [style.width.px]="width"
 >
-  <div class="flex justify-between">
-    <span class="font-semibold">PRESENTES</span>
-    <span>{{ presentes }}</span>
+  <div class="flex justify-between items-center">
+    <span class="font-semibold mb-2 text-lg">PRESENTES</span>
+    <span class="text-lg font-semibold">{{ presentes }}</span>
   </div>
-  <div class="flex justify-between mt-1">
-    <span class="font-semibold">VOTOS</span>
-    <span>{{ votos }}</span>
+  <div class="flex justify-between items-center mt-1">
+    <span class="font-semibold mb-2 text-lg">VOTOS</span>
+    <span class="text-lg font-semibold">{{ votos }}</span>
   </div>
   <div class="flex justify-center mt-1">
     <span class="font-semibold">{{ andamento }}</span>
