@@ -8,3 +8,12 @@ h2, h3, span{
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+::ng-deep .cdk-overlay-pane.custom-dialog {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important; /* remove deslocamento */
+  inset: auto !important;
+}
