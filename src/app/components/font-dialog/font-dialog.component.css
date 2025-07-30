@@ -1,0 +1,54 @@
+::ng-deep .cdk-overlay-pane.custom-dialog {
+  width: auto !important;
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+::ng-deep .custom-dialog .mat-mdc-dialog-container {
+  padding: 6px;
+  background: #ffffff57;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+::ng-deep .custom-dialog h2 {
+  margin-bottom: 15px;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+::ng-deep .custom-dialog .mat-mdc-form-field {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.font-dialog {
+  font-family: "Inter", sans-serif;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.font-dialog select {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.font-dialog select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.font-dialog select option {
+  padding: 2px 4px;
+}
