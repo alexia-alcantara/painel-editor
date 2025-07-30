@@ -7,6 +7,8 @@ import {
 } from '@angular/core';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
+import { FontDialogComponent } from '../font-dialog/font-dialog.component';
 
 @Component({
   selector: 'app-context-menu',
@@ -22,6 +24,33 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
 
   @ViewChild('menuRef') menuRef!: ElementRef;
 
+  constructor(private dialog: MatDialog) {}
+
+onClick(op: string) {
+  console.log('Opção selecionada:', op);
+
+  if (op === 'Configurar Tela') {
+    const dialogRef = this.dialog.open(FontDialogComponent, {
+      width: '400px',
+      panelClass: 'custom-dialog',
+      autoFocus: false,
+      restoreFocus: false,
+      hasBackdrop: true,
+      disableClose: false
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('Fonte escolhida:', result);
+        // aplica a fonte ao componente selecionado
+      }
+    });
+  }
+
+  this.close();
+}
+
+
   open(event: MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
@@ -34,10 +63,6 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
     this.visible = false;
   }
 
-  onClick(op: string) {
-    console.log('Opção selecionada:', op);
-    this.close();
-  }
 
   ngOnInit(): void {
     document.addEventListener('click', this.onDocumentClick);
