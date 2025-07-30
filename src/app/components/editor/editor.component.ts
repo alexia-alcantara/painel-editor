@@ -96,19 +96,26 @@ constructor(private layoutService: LayoutService) {
   });
 }
 
+// metodo que monta a posiçao inicial dos componentes
 private montarLayoutInicial(): ComponenteEditor[] {
-
   const larguraImagem = 750;
   const alturaImagem = 421;
   const xImagem = 750;
   const yImagem = 70;
 
-  const espacamentoVertical = 20;
   const espacamentoHorizontal = 85;
-
-  // Base para os blocos à esquerda da imagem 
+  const espacamentoTemporizador = 42;
   const xBase = 235;
-  let yAtual = yImagem; // começa no topo da imagem
+
+  // Alturas fixas dos blocos
+  const cabecalhoHeight = 50;
+  const tituloHeight = 25;
+  const subtituloHeight = 20;
+  const descricaoHeight = 90;
+  const totalizadoresHeight = 25;
+  const statusReuniaoHeight = 135;
+
+  let yAtual = yImagem;
 
   // Imagem da reunião
   const imagem: ComponenteEditor = {
@@ -126,10 +133,10 @@ private montarLayoutInicial(): ComponenteEditor[] {
     tipo: 'cabecalho',
     x: xBase,
     y: yAtual,
-    width: xImagem - espacamentoHorizontal, // alinhado ao início da imagem
-    height: 58,
+    width: xImagem - espacamentoHorizontal,
+    height: cabecalhoHeight,
   };
-  yAtual += cabecalho.height + espacamentoVertical;
+  yAtual += cabecalho.height + 12;
 
   // Título
   const titulo: ComponenteEditor = {
@@ -138,95 +145,92 @@ private montarLayoutInicial(): ComponenteEditor[] {
     x: xBase,
     y: yAtual,
     width: xImagem - espacamentoHorizontal,
-    height: 40,
+    height: tituloHeight,
   };
-  yAtual += titulo.height + 5;
+  yAtual += titulo.height + 12;
 
-  //Subtítulo
+  // Subtítulo
   const subtitulo: ComponenteEditor = {
     id: 'subtitulo',
     tipo: 'subtitulo',
     x: xBase,
     y: yAtual,
     width: xImagem - espacamentoHorizontal,
-    height: 30,
+    height: subtituloHeight,
   };
-  yAtual += subtitulo.height + espacamentoVertical;
+  yAtual += subtitulo.height + 12;
 
   // Descrição
   const descricao: ComponenteEditor = {
     id: 'descricao',
     tipo: 'descricao',
-    x: xBase,
+    x: cabecalho.x,
     y: yAtual,
-    width: xImagem - espacamentoHorizontal,
-    height: 130,
+    width: cabecalho.width,
+    height: descricaoHeight,
   };
-  yAtual += descricao.height + espacamentoVertical;
+  yAtual += descricao.height + 12;
 
-  //  Blocos Totalizadores 
+  // Blocos Totalizadores
   const totalizadores: ComponenteEditor = {
     id: 'totalizadores',
     tipo: 'totalizadores',
     x: xBase,
     y: yAtual,
     width: 172,
-    height: 50,
+    height: totalizadoresHeight,
     dados: this.votacaoMock,
   };
 
-   const votacaoTotal: ComponenteEditor = {
+  const votacaoTotal: ComponenteEditor = {
     id: 'votacao-total',
     tipo: 'votacao-total',
     x: xBase + totalizadores.width + espacamentoHorizontal,
-    y: yAtual - 0, 
+    y: yAtual,
     width: 250,
-    height: 135,
+    height: statusReuniaoHeight,
   };
 
   const statusReuniao: ComponenteEditor = {
     id: 'status-reuniao',
     tipo: 'status-reuniao',
     x: xBase + totalizadores.width + espacamentoHorizontal,
-    y: yAtual - 0, 
+    y: yAtual,
     width: 223,
-    height: 135,
+    height: statusReuniaoHeight,
   };
-  yAtual += statusReuniao.height + espacamentoVertical;
 
-  //Temporizadores 
-  const temporizadores: ComponenteEditor[] = [
-    {
-      id: 'temporizador-1',
-      tipo: 'temporizador-item',
-      x: xBase,
-      y: yAtual,
-      width: 127,
-      height: 41,
-      props: { tempo: '00:00', icon: false },
-    },
-    {
-      id: 'temporizador-2',
-      tipo: 'temporizador-item',
-      x: xBase + 140,
-      y: yAtual,
-      width: 127,
-      height: 41,
-      props: { tempo: '00:00', icon: false },
-    },
-    {
-      id: 'temporizador-3',
-      tipo: 'temporizador-item',
-      x: xBase + 280,
-      y: yAtual,
-      width: 172,
-      height: 45,
-      props: { tempo: '08:45:10', icon: true },
-    },
+  // Temporizadores alinhados ao final da imagem
+  const temporizadoresBase = [
+    { id: 'temporizador-1', width: 127, height: 20, tempo: '00:00', icon: false },
+    { id: 'temporizador-2', width: 127, height: 20, tempo: '00:00', icon: false },
+    { id: 'temporizador-3', width: 172, height: 35, tempo: '08:45:10', icon: true },
   ];
 
-  // Parlamentares 
-  const parlamentares = this.montarComponentesParlamentares(yAtual + 60);
+  const alturaTemporizadores = Math.max(...temporizadoresBase.map(t => t.height));
+  const yTemporizadores = yImagem + alturaImagem - alturaTemporizadores;
+
+  const temporizadores: ComponenteEditor[] = temporizadoresBase.map((item, index) => {
+    const x = xBase + temporizadoresBase
+      .slice(0, index)
+      .reduce((acc, prev) => acc + prev.width + espacamentoTemporizador, 0);
+
+    return {
+      id: item.id,
+      tipo: 'temporizador-item',
+      x,
+      y: yTemporizadores,
+      width: item.width,
+      height: item.height,
+      props: { tempo: item.tempo, icon: item.icon },
+    };
+  });
+
+  // Parlamentares começam abaixo da imagem com uma margem
+  const margemParlamentares = 45;
+  const yParlamentares = yImagem + alturaImagem + margemParlamentares;
+
+  const parlamentares = this.montarComponentesParlamentares(yParlamentares);
 
   return [
     imagem,
@@ -289,7 +293,7 @@ private montarComponentesParlamentares(yBase: number = 480): ComponenteEditor[] 
   }
 
   salvar() {
-    console.log('[DEBUG] Salvando layout:', this.componentes());
+    console.log('Salvando layout:', this.componentes());
     this.layoutService.salvarLayout(this.componentes());
   }
 }
