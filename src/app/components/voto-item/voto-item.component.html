@@ -1,0 +1,7 @@
+<!-- voto-item.component.html -->
+<div class="flex justify-between items-center voto-item"
+     [style.width.px]="width"
+     [style.height.px]="height">
+  <span class="font-semibold uppercase text-lg" [style.color]="cor">{{ label }}</span>
+  <span class="font-semibold text-lg" [style.color]="cor">{{ valor | number:'2.0' }}</span>
+</div>

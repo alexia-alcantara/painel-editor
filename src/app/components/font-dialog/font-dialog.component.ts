@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, Inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { FontConfig } from '../../models/components.model';
 @Component({
   selector: 'app-font-dialog',
   standalone: true,
@@ -25,34 +26,21 @@ export class FontDialogComponent {
   selectedFont = 'Tahoma';
   selectedStyle = 'Regular';
   selectedSize = 12;
+  selectedColor = '#FFFFFF';
 
   constructor(
     public dialogRef: MatDialogRef<FontDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
 
-  close() {
-    this.dialogRef.close({
-      font: this.selectedFont,
-      style: this.selectedStyle,
-      size: this.selectedSize,
-    });
-    const fontConfig = {
-      font: this.selectedFont,
-      style: this.selectedStyle,
-      size: this.selectedSize,
-    };
+ close() {
+  const fontConfig: FontConfig = {
+    family: this.selectedFont,
+    size: this.selectedSize,
+    weight: this.selectedStyle.includes('Bold') ? 'bold' : 'normal',
+    color: this.selectedColor || '#FFFFFF',
+  };
 
-    // Aplica globalmente no body
-    document.body.style.fontFamily = fontConfig.font;
-    document.body.style.fontSize = fontConfig.size + 'px';
-    document.body.style.fontWeight = fontConfig.style.includes('Bold')
-      ? 'bold'
-      : 'normal';
-    document.body.style.fontStyle = fontConfig.style.includes('Italic')
-      ? 'italic'
-      : 'normal';
-
-    this.dialogRef.close(fontConfig);
-  }
+  this.dialogRef.close(fontConfig); // ✅ Apenas retorna a fonte escolhida
+}
 }

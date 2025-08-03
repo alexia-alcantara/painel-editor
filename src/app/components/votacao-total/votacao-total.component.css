@@ -1,3 +1,16 @@
 span{
     font-family: Inter;
 }
+
+:host {
+  position: absolute;
+  display: block;
+}
+
+.bg-votacao-total {
+  position: relative;
+}
+
+[cdkDrag] {
+  cursor: move;
+}

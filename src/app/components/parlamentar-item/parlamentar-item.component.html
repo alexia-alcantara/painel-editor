@@ -1,20 +1,30 @@
-<div class="flex w-full bg-slate-700 text-white text-sm rounded overflow-hidden">
-  <div class="flex-1 px-4 py-2 border-r-4 border-[#18262D] truncate font-medium">
+<div class="flex items-center w-full bg-slate-700 text-white text-sm rounded overflow-hidden mb-1">
+  <div class="flex-1 px-4 py-2 border-r-4 border-[#18262D] truncate font-medium" [ngStyle]="{
+      'font-family': fontNome.family || 'Inter, sans-serif',
+      'font-size.px': fontNome.size || 14,
+      'font-weight': fontNome.weight || 500
+    }">
     {{ parlamentar.nome }}
   </div>
 
-  <div class="w-28 px-2 py-2 border-r-4 border-[#18262D] text-center text-slate-300">
+  <div class="w-28 px-2 py-2 border-r-4 border-[#18262D] text-center text-slate-300" [ngStyle]="{
+      'font-family': fontPartido.family || 'Inter, sans-serif',
+      'font-size.px': fontPartido.size || 14,
+      'font-weight': fontPartido.weight || 500
+    }">
     {{ parlamentar.partido || 'PARTIDO' }}
   </div>
 
-  <div
-    class="w-10 px-2 py-2 text-center font-bold"
-    [ngClass]="{
-      'text-green-400': parlamentar.voto === 'S',
-      'text-red-400': parlamentar.voto === 'N',
-      'text-gray-400': !parlamentar.voto || parlamentar.voto === '-'
-    }"
-  >
+  <div class="w-10 px-2 py-2 text-center font-bold" [ngStyle]="{
+      'font-family': fontVoto.family || 'Inter, sans-serif',
+      'font-size.px': fontVoto.size || 14,
+      'font-weight': fontVoto.weight || 700,
+      'color': parlamentar.voto === 'S'
+        ? '#36C26C'
+        : parlamentar.voto === 'N'
+        ? '#FF6633'
+        : '#9CA3AF'
+    }">
     {{ parlamentar.voto || '-' }}
   </div>
 </div>

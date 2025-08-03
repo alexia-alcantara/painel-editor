@@ -1,15 +1,7 @@
-<div class="bg-[#384349] rounded-lg px-4 py-4 text-sm font-medium text-white space-y-2"
-[style.height.px]="height" [style.width.px]="width">
-  <div class="flex justify-between items-center mb-0">
-    <span class="text-green-400 font-semibold uppercase mb-2 text-lg">Sim</span>
-    <span class="text-green-400 font-semibold mb-2 text-lg">{{ votos.sim | number: '2.0' }}</span>
-  </div>
-  <div class="flex justify-between items-center mb-0">
-    <span class="text-red-400 font-semibold uppercase mb-2 text-lg">Não</span>
-    <span class="text-red-400 font-semibold mb-2 text-lg">{{ votos.nao | number: '2.0' }}</span>
-  </div>
-  <div class="flex justify-between items-center mb-0">
-    <span class="text-yellow-300 font-semibold uppercase mb-2 text-lg">Abstenção</span>
-    <span class="text-yellow-300 font-semibold mb-2 text-lg">{{ votos.abstencao | number: '2.0' }}</span>
-  </div>
+<div
+  class="bg-[#384349] rounded-lg px-4 py-4 text-sm font-medium text-white bg-votacao-total"
+  [style.height.px]="height"
+  [style.width.px]="width"
+>
+  <!-- Caixa de fundo, sem os votos dentro -->
 </div>

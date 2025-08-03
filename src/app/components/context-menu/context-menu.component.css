@@ -22,3 +22,77 @@
 .context-menu button:hover {
   background-color: #444;
 }
+
+.context-menu.glass {
+  position: fixed;
+  background: rgba(30, 30, 30, 0.9);
+  backdrop-filter: blur(12px);
+  border-radius: 8px;
+  padding: 6px 0;
+  min-width: 160px;
+  z-index: 1000;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  color: white;
+  transition: background 0.2s;
+}
+
+.menu-item i {
+  opacity: 0.8;
+  min-width: 18px;
+  text-align: center;
+}
+
+.menu-item:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+.submenu {
+  min-width: 140px;
+  pointer-events: auto; /* Permite clicar */
+}
+
+.group:hover .submenu {
+  display: block;
+}
+
+.submenu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  color: #f1f1f1;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.submenu button:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin: 6px 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
