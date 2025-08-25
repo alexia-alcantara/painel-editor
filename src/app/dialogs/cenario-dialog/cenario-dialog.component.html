@@ -1,0 +1,39 @@
+<h1 mat-dialog-title>Gerenciar Cenários</h1>
+<div mat-dialog-content class="dialog-content">
+
+    @if (cenarios.length > 0) {
+    <mat-list>
+        @for (cenario of cenarios; track cenario.nome) {
+        <mat-list-item (click)="selecionarCenario(cenario.nome)"
+            [class.item-selecionado]="cenario.nome === cenarioSelecionado">
+
+            <div class="list-item-content">
+                <span class="cenario-nome">{{ cenario.nome }}</span>
+
+                <div class="list-item-actions">
+                    <button mat-icon-button color="primary"
+                        (click)="carregarCenario(cenario.nome); $event.stopPropagation()" title="Carregar Cenário">
+                        <mat-icon>play_arrow</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn"
+                        (click)="removerCenario(cenario.nome); $event.stopPropagation()" title="Remover Cenário">
+                        <mat-icon>delete</mat-icon>
+                    </button>
+                </div>
+            </div>
+
+        </mat-list-item>
+        }
+    </mat-list>
+    } @else {
+    <p>Nenhum cenário salvo.</p>
+    }
+
+</div>
+<div mat-dialog-actions align="end">
+    <button mat-stroked-button (click)="exportarLayout()">Exportar Layout Atual</button>
+    <button mat-stroked-button (click)="triggerFileInput()">Importar de Arquivo</button>
+    <button mat-button (click)="dialogRef.close()">Fechar</button>
+</div>
+
+<input type="file" id="import-file-input" (change)="importarLayout($event)" accept=".json" style="display: none;">

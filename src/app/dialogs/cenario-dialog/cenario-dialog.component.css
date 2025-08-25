@@ -1,0 +1,31 @@
+
+.dialog-content {
+  min-width: 400px;
+  max-height: 60vh;
+}
+
+.list-item-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; 
+}
+
+.list-item-actions {
+  display: flex;
+}
+
+mat-list-item.item-selecionado {
+  background-color: rgba(68, 138, 255, 0.2); 
+  border-radius: 4px;
+}
+
+mat-list-item {
+  margin-bottom: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+mat-list-item:hover:not(.item-selecionado) {
+  background-color: rgba(255, 255, 255, 0.05);
+}

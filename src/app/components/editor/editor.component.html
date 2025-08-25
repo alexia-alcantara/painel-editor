@@ -3,7 +3,7 @@
   @if (item) {
   <ng-container>
     <div class="componente-box absolute rounded cursor-grab "
-    [style.display]="item.visible ? 'block' : 'none'" cdkDrag (contextmenu)="contextMenu.open($event, item)"
+    [style.display]="item.visible ? 'block' : 'none'" cdkDrag (contextmenu)="contextMenu.open($event, item, componentes())"
       [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }" (cdkDragEnded)="onDragEnd($event, item)"
       [style.width.px]="item.width" [style.height.px]="item.height" cdkDragBoundary=".editor-wrapper">
       @switch(item.tipo) {
@@ -49,11 +49,6 @@
   }
   }
 
-  <button (click)="salvar()" class="text-white absolute bottom-4 left-4">Salvar Layout</button>
-
-  <button (click)="listarCenarios()" class="text-white absolute bottom-4 left-32">
-    Listar Cenários
-  </button>
 
   <button (click)="toggleControleVisibilidade()" 
   class="text-white absolute top-4 right-4 p-2 rounded 

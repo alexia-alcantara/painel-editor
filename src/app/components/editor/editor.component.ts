@@ -118,14 +118,14 @@ export class EditorComponent {
     }
   }
 
-  exportarJSON() {
-    const layout = this.layoutService.layoutAtual; // sempre o mais recente
-    const json = this.layoutExport.converterParaFormatoOriginal(layout);
-    const blob = new Blob([JSON.stringify(json, null, 2)], {
-      type: 'application/json',
-    });
-    saveAs(blob, 'layout.json');
-  }
+  // exportarJSON() {
+  //   const layout = this.layoutService.layoutAtual; // sempre o mais recente
+  //   const json = this.layoutExport.converterParaFormatoOriginal(layout);
+  //   const blob = new Blob([JSON.stringify(json, null, 2)], {
+  //     type: 'application/json',
+  //   });
+  //   saveAs(blob, 'layout.json');
+  // }
 
   ngOnInit() {
     //detecta se está na rota editor
@@ -156,7 +156,13 @@ export class EditorComponent {
       case 'distributeParliamentarians':
         this.redistribuirParlamentares(event.data);
         break;
+
+      case 'loadLayout':
+        this.componentes.set(event.data);
+        this.layoutService.salvarLayout(event.data);
+        break;
     }
+    
   }
 
   onFontSelected(event: {
@@ -509,45 +515,4 @@ export class EditorComponent {
     this.layoutService.salvarLayout(this.layout);
   }
 
-  listarCenarios() {
-    console.log('Cenários salvos:', this.layoutService.listarCenarios());
-  }
-
-  carregarCenario(nome: string) {
-    const layout = this.layoutService.carregarCenario(nome);
-    if (layout.length) {
-      this.componentes.set(layout);
-    } else {
-      console.warn(`Cenário "${nome}" não encontrado`);
-    }
-  }
-
-  salvar() {
-    const layoutAtual = this.componentes(); // array do tipo ComponenteEditor
-    const nomeCenario = prompt(
-      'Digite um nome para o cenário:',
-      'cenario-1-angular'
-    );
-    if (!nomeCenario) return;
-
-    // Salvar no localStorage a versão nova (caso queira)
-    this.layoutService.salvarCenario(nomeCenario, layoutAtual);
-
-    // ✅ Converter para formato antigo antes de baixar
-    const layoutAntigo =
-      this.layoutExport.converterParaFormatoOriginal(layoutAtual);
-
-    // Baixar o JSON já convertido
-    const blob = new Blob([JSON.stringify(layoutAntigo, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${nomeCenario}.json`;
-    link.click();
-
-    URL.revokeObjectURL(url);
-  }
 }

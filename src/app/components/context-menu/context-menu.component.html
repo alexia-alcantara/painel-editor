@@ -1,44 +1,37 @@
-
-<div #menuRef
-     class="context-menu glass"
-     [class.hidden]="!visible"
-     [style.left.px]="x"
-     [style.top.px]="y"
-     (contextmenu)="$event.preventDefault()">
+<div #menuRef class="context-menu glass" [class.hidden]="!visible" [style.left.px]="x" [style.top.px]="y"
+  (contextmenu)="$event.preventDefault()">
 
   @if (visible) {
-     @if (activeComponent && activeComponent.tipo === 'parlamentar') {
-      <div class="menu-item" (click)="abrirModalDistribuicao()">
-        <i class="fa-solid fa-table-cells"></i>
-        <span>Distribuir Parlamentares</span>
-      </div>
-      <hr class="divider">
-    }
-    <!-- ITENS DINÂMICOS DO SERVIÇO -->
-    @for (grupo of grupos; track grupo.tipo) {
-      <div class="menu-item group relative">
-        <span>{{ grupo.label }}</span>
-        <i class="fa-solid fa-chevron-right ml-auto opacity-60"></i>
+  @if (activeComponent && activeComponent.tipo === 'parlamentar') {
+  <div class="menu-item" (click)="abrirModalDistribuicao()">
+    <i class="fa-solid fa-table-cells"></i>
+    <span>Distribuir Parlamentares</span>
+  </div>
+  <hr class="divider">
+  }
+  <!-- ITENS DINÂMICOS DO SERVIÇO -->
+  @for (grupo of grupos; track grupo.tipo) {
+  <div class="menu-item group relative">
+    <span>{{ grupo.label }}</span>
+    <i class="fa-solid fa-chevron-right ml-auto opacity-60"></i>
 
-        <!-- SUBMENU -->
-        <div class="submenu absolute top-0 left-full z-50 hidden group-hover:flex flex-col 
+    <!-- SUBMENU -->
+    <div class="submenu absolute top-0 left-full z-50 hidden group-hover:flex flex-col 
                     bg-black/90 text-white rounded-md shadow-lg">
-          @for (sub of grupo.subItens; track sub.id) {
-            <button (click)="openFontDialog(grupo.tipo, sub.id)"
-                    class="px-4 py-2 hover:bg-white/10 text-left">
-              {{ sub.label }}
-            </button>
-          }
-        </div>
-      </div>
-    }
+      @for (sub of grupo.subItens; track sub.id) {
+      <button (click)="openFontDialog(grupo.tipo, sub.id)" class="px-4 py-2 hover:bg-white/10 text-left">
+        {{ sub.label }}
+      </button>
+      }
+    </div>
+  </div>
+  }
 
-    <hr class="divider">
+  <hr class="divider">
 
-    <!-- ITENS FIXOS -->
-    <div class="menu-item"><i class="fa-solid fa-gear"></i> Configurar Tela</div>
+  <div class="menu-item" (click)="abrirModalConfiguracaoTela()">
+    <i class="fa-solid fa-gear"></i>
+    <span>Configurar Tela</span>
+  </div>
   }
 </div>
-
-
-

@@ -22,6 +22,8 @@ import {
   DistribuirConfig,
   DistribuirParlamentaresComponent,
 } from '../../dialogs/distribuir-parlamentares/distribuir-parlamentares.component';
+import { LayoutService } from '../../services/layout.service';
+import { CenarioDialogComponent } from '../../dialogs/cenario-dialog/cenario-dialog.component';
 
 @Component({
   selector: 'app-context-menu',
@@ -45,8 +47,13 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
   @ViewChild('menuRef') menuRef!: ElementRef;
 
   grupos: FonteGrupo[] = [];
+  layoutCompleto: ComponenteEditor[] = [];
 
-  constructor(private dialog: MatDialog, private fonteService: FonteService) {}
+  constructor(
+    private dialog: MatDialog, 
+    private fonteService: FonteService,
+    private layoutService: LayoutService
+  ) {}
 
   async ngOnInit() {
     document.addEventListener('click', this.onDocumentClick);
@@ -121,18 +128,34 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
     this.close();
   }
 
-  open(event: MouseEvent, item?: ComponenteEditor) {
+  open(event: MouseEvent, item: ComponenteEditor | undefined, layout: ComponenteEditor[]) {
     event.preventDefault();
     event.stopPropagation();
     this.x = event.clientX;
     this.y = event.clientY;
     this.visible = true;
     this.activeComponent = item || null;
+    this.layoutCompleto = layout;
   }
 
   close() {
     this.visible = false;
   }
+
+  abrirModalConfiguracaoTela() {
+  const dialogRef = this.dialog.open(CenarioDialogComponent, {
+    width: '500px',
+    data: { layoutAtual: this.layoutCompleto } 
+  });
+
+  dialogRef.afterClosed().subscribe(resultado => {
+    if (resultado && resultado.action === 'carregar') {
+      // Emite a ação para o editor carregar o novo layout
+      this.action.emit({ action: 'loadLayout', data: resultado.layout });
+    }
+  });
+  this.close();
+}
 
   ngOnDestroy(): void {
     document.removeEventListener('click', this.onDocumentClick);
