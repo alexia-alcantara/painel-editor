@@ -1,0 +1,51 @@
+<h1 mat-dialog-title>Distribuir Parlamentares</h1>
+<div mat-dialog-content>
+  <form #form="ngForm" class="flex flex-col gap-4">
+    <mat-form-field>
+      <mat-label>Quantidade por Coluna</mat-label>
+      <input matInput type="number" name="qtdePorColuna" [(ngModel)]="data.qtdePorColuna">
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Margem Superior</mat-label>
+      <input matInput type="number" name="margemSuperior" [(ngModel)]="data.margemSuperior">
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Margem Esquerda</mat-label>
+      <input matInput type="number" name="margemEsquerda" [(ngModel)]="data.margemEsquerda">
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Espaçamento Vertical (px)</mat-label>
+      <input matInput type="number" name="espacamentoVertical" [(ngModel)]="data.espacamentoVertical">
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Espaçamento Horizontal (px)</mat-label>
+      <input matInput type="number" name="espacamentoHorizontal" [(ngModel)]="data.espacamentoHorizontal">
+    </mat-form-field>
+
+    <div class="flex items-center gap-4">
+      <mat-form-field class="flex-1">
+        <mat-label>Exibir de</mat-label>
+        <input matInput type="number" name="exibirDe" [(ngModel)]="data.exibirDe">
+      </mat-form-field>
+      <span>até</span>
+      <mat-form-field class="flex-1">
+        <mat-label>Exibir até</mat-label>
+        <input matInput type="number" name="exibirAte" [(ngModel)]="data.exibirAte">
+      </mat-form-field>
+    </div>
+
+    <mat-form-field>
+      <mat-label>Offset Inicial</mat-label>
+      <input matInput type="number" name="offsetInicial" [(ngModel)]="data.offsetInicial">
+    </mat-form-field>
+    
+    </form>
+</div>
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancelar</button>
+  <button mat-flat-button color="primary" [mat-dialog-close]="data">OK</button>
+</div>

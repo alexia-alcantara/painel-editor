@@ -6,7 +6,11 @@ h2, h3, span{
     font-family: "Ubuntu", sans-serif;
 }
 
-html, body { height: 100%; }
+html, body { 
+  height: 100%; 
+  overflow: hidden;
+  margin: 0;
+}
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
 ::ng-deep .cdk-overlay-pane.custom-dialog {

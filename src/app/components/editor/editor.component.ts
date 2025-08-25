@@ -24,6 +24,12 @@ import { VotoItemComponent } from '../voto-item/voto-item.component';
 import { LayoutExportService } from '../../services/layout-export.service';
 import saveAs from 'file-saver';
 import { ComponenteTipo } from '../../models/fontes.model';
+import { DistribuirConfig } from '../../dialogs/distribuir-parlamentares/distribuir-parlamentares.component';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { ControleVisibilidadeComponent } from "../../controle-visibilidade/controle-visibilidade.component";
 
 @Component({
   selector: 'app-editor',
@@ -44,7 +50,12 @@ import { ComponenteTipo } from '../../models/fontes.model';
     SubtituloReuniaoComponent,
     ContextMenuComponent,
     VotoItemComponent,
-  ],
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    ControleVisibilidadeComponent
+],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
 })
@@ -86,22 +97,25 @@ export class EditorComponent {
   };
 
   componentes = signal<ComponenteEditor[]>([]);
+  mostrarControleVisibilidade = false;
 
   constructor(
     private layoutService: LayoutService,
     private layoutExport: LayoutExportService
-  ) {
-    // this.router.events.subscribe(() => {
-    //   this.modoEditor = this.router.url.includes('/editor');
-    //   if (this.modoEditor) {
-    //     const layoutSalvo = this.layoutService.carregarLayout();
-    //     if (layoutSalvo.length) {
-    //       this.componentes.set(layoutSalvo);
-    //     } else {
-    //       this.componentes.set(this.montarLayoutInicial());
-    //     }
-    //   }
-    // });
+  ) {}
+
+  toggleControleVisibilidade(): void {
+    this.mostrarControleVisibilidade = !this.mostrarControleVisibilidade;
+  }
+
+   onComponentVisibilityChange(event: { id: string; visivel: boolean }) {
+    const componentesAtuais = this.componentes();
+    const compIndex = componentesAtuais.findIndex(c => c.id === event.id);
+
+    if (compIndex > -1) {
+      componentesAtuais[compIndex].visible = event.visivel;
+      this.componentes.set([...componentesAtuais]); // Atualiza o signal para redesenhar a tela
+    }
   }
 
   exportarJSON() {
@@ -129,6 +143,22 @@ export class EditorComponent {
     }
   }
 
+  onMenuAction(event: {
+    action: string;
+    data: any;
+    component?: ComponenteEditor | null;
+  }) {
+    switch (event.action) {
+      case 'updateFont':
+        this.onFontSelected(event.data);
+        break;
+
+      case 'distributeParliamentarians':
+        this.redistribuirParlamentares(event.data);
+        break;
+    }
+  }
+
   onFontSelected(event: {
     tipo: ComponenteTipo;
     subId: string;
@@ -142,7 +172,22 @@ export class EditorComponent {
       if (fonte) fonte.font = event.font;
     }
 
-    this.componentes.set([...layout]); // Atualiza Angular Signal
+    this.componentes.set([...layout]);
+  }
+
+  redistribuirParlamentares(config: DistribuirConfig) {
+    const componentesAtuais = this.componentes();
+
+    const componentesSemParlamentares = componentesAtuais.filter(
+      (c) => c.tipo !== 'parlamentar'
+    );
+
+    const novosParlamentares = this.montarComponentesParlamentares(480, config); // yBase e a nova config
+
+    const layoutFinal = [...componentesSemParlamentares, ...novosParlamentares];
+
+    this.componentes.set(layoutFinal);
+    this.layoutService.salvarLayout(layoutFinal);
   }
 
   onDragEnd(event: CdkDragEnd, item: ComponenteEditor) {
@@ -196,6 +241,7 @@ export class EditorComponent {
       y: yImagem,
       width: larguraImagem,
       height: alturaImagem,
+      visible: true,
     };
 
     // Cabeçalho
@@ -206,6 +252,7 @@ export class EditorComponent {
       y: yAtual,
       width: xImagem - espacamentoHorizontal,
       height: cabecalhoHeight,
+      visible: true,
     };
     yAtual += cabecalho.height + 12;
 
@@ -217,6 +264,7 @@ export class EditorComponent {
       y: yAtual,
       width: xImagem - espacamentoHorizontal,
       height: tituloHeight,
+      visible: true,
     };
     yAtual += titulo.height + 12;
 
@@ -228,6 +276,7 @@ export class EditorComponent {
       y: yAtual,
       width: xImagem - espacamentoHorizontal,
       height: subtituloHeight,
+      visible: true,
     };
     yAtual += subtitulo.height + 12;
 
@@ -246,6 +295,7 @@ export class EditorComponent {
           font: { ...defaultFont },
         },
       ],
+      visible: true,
     };
     yAtual += descricao.height + 12;
 
@@ -258,6 +308,7 @@ export class EditorComponent {
       width: 172,
       height: totalizadoresHeight,
       dados: this.votacaoMock,
+      visible: true,
     };
 
     const votacaoTotal: ComponenteEditor = {
@@ -267,6 +318,7 @@ export class EditorComponent {
       y: yAtual,
       width: 250,
       height: statusReuniaoHeight,
+      visible: true,
     };
 
     const margemInternaX = 10; // margem lateral dentro da caixa
@@ -287,6 +339,7 @@ export class EditorComponent {
       width: larguraVotacaoItem,
       height: alturaVotacaoItem,
       props: { label: 'SIM', cor: '#22C55E', valor: 15 },
+      visible: true,
     };
 
     const votacaoNao: ComponenteEditor = {
@@ -297,6 +350,7 @@ export class EditorComponent {
       width: larguraVotacaoItem,
       height: alturaVotacaoItem,
       props: { label: 'NÃO', cor: '#F97316', valor: 6 },
+      visible: true,
     };
 
     const votacaoAbstencao: ComponenteEditor = {
@@ -307,6 +361,7 @@ export class EditorComponent {
       width: larguraVotacaoItem,
       height: alturaVotacaoItem,
       props: { label: 'ABSTENÇÃO', cor: '#FFCC66', valor: 20 },
+      visible: true,
     };
 
     const statusReuniao: ComponenteEditor = {
@@ -316,6 +371,7 @@ export class EditorComponent {
       y: yAtual,
       width: 223,
       height: statusReuniaoHeight,
+      visible: true,
     };
 
     // Temporizadores alinhados ao final da imagem
@@ -367,6 +423,7 @@ export class EditorComponent {
           width: item.width,
           height: item.height,
           props: { tempo: item.tempo, icon: item.icon },
+          visible: true,
         };
       }
     );
@@ -395,26 +452,38 @@ export class EditorComponent {
   }
 
   private montarComponentesParlamentares(
-    yBase: number = 480
+    yBase: number = 480,
+    config: DistribuirConfig = {
+      qtdePorColuna: 10,
+      espacamentoVertical: 50,
+      espacamentoHorizontal: 50,
+      qntTotal: 4,
+      margemSuperior: 20,
+      margemEsquerda: 30,
+      exibirDe: 0,
+      exibirAte: 3,
+      offsetInicial: 0,
+    }
   ): ComponenteEditor[] {
     const larguraItem = 608;
     const alturaItem = 39;
-    const larguraColuna = 300;
-    const espacamentoHorizontal = 50;
-    const espacamentoVertical = 50;
     const xBase = 234;
 
+    const itensPorColuna = config.qtdePorColuna;
+
     return this.parlamentaresMock.map((parlamentar, i) => {
-      const coluna = i % 2;
-      const linha = Math.floor(i / 2);
+      const coluna = Math.floor(i / itensPorColuna);
+      const linha = i % itensPorColuna;
+
       return {
         id: `parlamentar-${i}`,
         tipo: 'parlamentar',
-        x: xBase + coluna * (larguraItem + espacamentoHorizontal),
-        y: yBase + linha * espacamentoVertical,
+        x: xBase + coluna * (larguraItem + config.espacamentoHorizontal),
+        y: yBase + linha * (alturaItem + config.espacamentoVertical - 11), // ajuste o cálculo conforme necessário
         width: larguraItem,
         height: alturaItem,
         dados: parlamentar,
+        visible: true,
       };
     });
   }

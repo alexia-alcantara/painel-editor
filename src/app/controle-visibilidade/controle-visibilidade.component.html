@@ -1,0 +1,17 @@
+<div class="painel-visibilidade">
+  <h4>Controle de Visibilidade</h4>
+  <div class="lista-componentes">
+    
+    @for(item of componentes; track item.id) {
+      <div class="item-controle">
+        <input 
+          type="checkbox" 
+          [id]="item.id" 
+          [checked]="item.visible" 
+          (change)="onVisibilityChange($event, item.id)">
+        <label [for]="item.id">{{ item.id }}</label>
+      </div>
+    }
+    
+  </div>
+</div>

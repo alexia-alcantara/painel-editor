@@ -30,6 +30,7 @@ export interface ComponenteEditor {
   y: number;
   width: number;
   height: number;
+  visible: boolean;
   props?: {
     tempo?: string;
     icon?: boolean;

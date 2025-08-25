@@ -11,8 +11,17 @@ import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { FontDialogComponent } from '../font-dialog/font-dialog.component';
-import { ComponenteTipo, FontConfig, FonteGrupo } from '../../models/fontes.model';
+import {
+  ComponenteTipo,
+  FontConfig,
+  FonteGrupo,
+} from '../../models/fontes.model';
 import { FonteService } from '../../services/fonte.service';
+import { ComponenteEditor } from '../../models/components.model';
+import {
+  DistribuirConfig,
+  DistribuirParlamentaresComponent,
+} from '../../dialogs/distribuir-parlamentares/distribuir-parlamentares.component';
 
 @Component({
   selector: 'app-context-menu',
@@ -25,11 +34,12 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
   x = 0;
   y = 0;
   visible = false;
+  activeComponent: ComponenteEditor | null = null;
 
-   @Output() fontUpdated = new EventEmitter<{ 
-    tipo: ComponenteTipo; 
-    subId: string; 
-    font: FontConfig 
+  @Output() action = new EventEmitter<{
+    action: string;
+    data: any;
+    component?: ComponenteEditor | null;
   }>();
 
   @ViewChild('menuRef') menuRef!: ElementRef;
@@ -47,68 +57,77 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
     this.fonteService.updateFonte(grupo.tipo, subId, config);
   }
 
-  onClick(tipo: ComponenteTipo, subId: string) {
-  console.log('Subitem selecionado:', tipo, subId);
+  openFontDialog(tipo: ComponenteTipo, subId: string) {
+    console.log('Abrindo editor de fonte para:', tipo, subId);
 
-  // Caso especial, se quiser manter alguma opção tipo "Configurar Tela"
-  if (subId !== 'configurar-tela') {
-    const dialogRef = this.dialog.open(FontDialogComponent, {
+    if (subId !== 'configurar-tela') {
+      const dialogRef = this.dialog.open(FontDialogComponent, {
+        width: '400px',
+        panelClass: 'custom-dialog',
+        autoFocus: false,
+        restoreFocus: false,
+        hasBackdrop: true,
+        disableClose: false,
+        data: { tipo, subId },
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result) {
+          console.log('Fonte escolhida para', tipo, subId, ':', result);
+          this.fonteService.updateFonte(tipo, subId, result);
+
+          this.action.emit({
+            action: 'updateFont',
+            data: { tipo, subId, font: result },
+            component: this.activeComponent,
+          });
+        }
+      });
+    }
+
+    this.close();
+  }
+
+  abrirModalDistribuicao() {
+    console.log('Abrindo modal de distribuição...');
+
+    const configModal: DistribuirConfig = {
+      qtdePorColuna: 8,
+      espacamentoVertical: 50,
+      espacamentoHorizontal: 50,
+      qntTotal: 0,
+      margemSuperior: 0,
+      margemEsquerda: 0,
+      exibirDe: 0,
+      exibirAte: 0,
+      offsetInicial: 0,
+    };
+
+    const dialogRef = this.dialog.open(DistribuirParlamentaresComponent, {
       width: '400px',
-      panelClass: 'custom-dialog',
-      autoFocus: false,
-      restoreFocus: false,
-      hasBackdrop: true,
-      disableClose: false,
-      data: { tipo, subId }, // 🔹 Passa os dados para o dialog
+      data: configModal,
     });
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        console.log('Fonte escolhida para', tipo, subId, ':', result);
-        
-        // 🔹 Aplica a fonte ao subitem correspondente
-        this.fonteService.updateFonte(tipo, subId, result);
-
-        // Aqui você pode disparar um evento para o Editor atualizar a tela
-        this.fontUpdated.emit({ tipo, subId, font: result });
+        // Emite uma ação diferente para o editor saber o que fazer
+        this.action.emit({
+          action: 'distributeParliamentarians',
+          data: result, // 'result' contém as novas configurações
+          component: this.activeComponent,
+        });
       }
     });
+    this.close();
   }
 
-  this.close();
-}
-
-
-  // onClick(op: string) {
-  //   console.log('Opção selecionada:', op);
-
-  //   if (op !== 'Configurar Tela') {
-  //     const dialogRef = this.dialog.open(FontDialogComponent, {
-  //       width: '400px',
-  //       panelClass: 'custom-dialog',
-  //       autoFocus: false,
-  //       restoreFocus: false,
-  //       hasBackdrop: true,
-  //       disableClose: false,
-  //     });
-
-  //     dialogRef.afterClosed().subscribe((result) => {
-  //       if (result) {
-  //         console.log('Fonte escolhida:', result);
-  //         // aplica a fonte ao componente selecionado
-  //       }
-  //     });
-  //   }
-
-  //   this.close();
-  // }
-
-  open(event: MouseEvent) {
+  open(event: MouseEvent, item?: ComponenteEditor) {
     event.preventDefault();
     event.stopPropagation();
     this.x = event.clientX;
     this.y = event.clientY;
     this.visible = true;
+    this.activeComponent = item || null;
   }
 
   close() {
