@@ -1,36 +1,5 @@
 import { Injectable } from '@angular/core';
-
-export interface ComponenteEditor {
-  id: string;
-  tipo:
-    | 'parlamentar'
-    | 'votacao-total'
-    | 'votacao-item'
-    | 'status-reuniao'
-    | 'totalizadores'
-    | 'imagem'
-    | 'cabecalho'
-    | 'descricao'
-    | 'titulo'
-    | 'subtitulo'
-    | 'temporizador-item'
-    | 'multimidia';
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  visible?: boolean;
-  dados?: any;
-  props?: {
-    fontFamily?: string; // Fonte escolhida pelo usuário
-    tempo?: string;
-    icon?: boolean;
-    label?: string;
-    cor?: string;
-    valor?: number;
-  };
-  children?: ComponenteEditor[];
-}
+import { ComponenteEditor } from '../models/components.model';
 
 @Injectable({
   providedIn: 'root',
@@ -199,4 +168,74 @@ export class LayoutExportService {
 
     return resultado;
   }
+
+
+ converterDoFormatoOriginal(
+  dadosImportados: any,
+  parlamentaresMock: any[],
+  votacaoMock: any
+): ComponenteEditor[] {
+  const layout: ComponenteEditor[] = [];
+
+  // 1. Reconstrói todos os componentes fixos usando uma função auxiliar robusta
+  const componentesFixos = this.recriarComponentesBase(dadosImportados, votacaoMock);
+  layout.push(...componentesFixos);
+
+  // 2. Reconstrói apenas os parlamentares, pois a quantidade deles é dinâmica
+  Object.keys(dadosImportados).forEach(key => {
+    if (key.startsWith('FrameParla')) {
+      const itemJson = dadosImportados[key];
+      const index = parseInt(key.replace('FrameParla', ''), 10) - 1;
+      if (parlamentaresMock[index]) {
+        layout.push({
+          id: key,
+          tipo: 'parlamentar',
+          x: itemJson['@ES'],
+          y: itemJson['@TO'],
+          width: itemJson['@LA'],
+          height: itemJson['@AL'],
+          visible: itemJson['@EX'],
+          dados: parlamentaresMock[index],
+        });
+      }
+    }
+  });
+
+  return layout;
+}
+
+private recriarComponentesBase(dadosImportados: any, votacaoMock: any): ComponenteEditor[] {
+  // Função para pegar as coordenadas do JSON, ou usar um valor padrão se não existir
+  const getPos = (key: string, defaults: {x: number, y: number, w: number, h: number}) => {
+    const frame = dadosImportados[key];
+    return frame 
+      ? { x: frame['@ES'], y: frame['@TO'], width: frame['@LA'], height: frame['@AL'], visible: frame['@EX'] }
+      : { x: defaults.x, y: defaults.y, width: defaults.w, height: defaults.h, visible: true };
+  };
+
+  const componentes: ComponenteEditor[] = [
+    // Recria cada componente fixo, buscando sua posição no JSON
+    { id: 'imagem-reuniao', tipo: 'imagem', ...getPos('FrameImagem', {x: 750, y: 70, w: 750, h: 421}), dados: { arquivo: dadosImportados['@IM'] } },
+    { id: 'cabecalho', tipo: 'cabecalho', ...getPos('JvPaReuniao', {x: 235, y: 70, w: 665, h: 50}) },
+    { id: 'titulo', tipo: 'titulo', ...getPos('FrameTitulo', {x: 235, y: 132, w: 665, h: 25}) },
+    { id: 'subtitulo', tipo: 'subtitulo', ...getPos('FrameSubTitulo', {x: 235, y: 167, w: 665, h: 20}) },
+    { id: 'descricao', tipo: 'descricao', ...getPos('FrameDescricao', {x: 235, y: 199, w: 665, h: 90}) },
+    { id: 'totalizadores', tipo: 'totalizadores', ...getPos('FrameTotalizador1', {x: 235, y: 301, w: 172, h: 25}), dados: votacaoMock },
+    { id: 'votacao-total', tipo: 'votacao-total', ...getPos('FrameVotacaoTotal1', {x: 492, y: 301, w: 250, h: 135}) },
+    { id: 'status-reuniao', tipo: 'status-reuniao', ...getPos('FrameStatusReuniao1', {x: 492, y: 301, w: 223, h: 135}) },
+    
+    // Recria os itens de votação (SIM/NÃO/ABSTENÇÃO) com base na posição do 'totalizadores'
+    { id: 'voto-sim', tipo: 'votacao-item', x: 245, y: 311, width: 223, height: 30, props: { label: 'SIM', cor: '#22C55E', valor: votacaoMock.sim }, visible: true },
+    { id: 'voto-nao', tipo: 'votacao-item', x: 245, y: 351, width: 223, height: 30, props: { label: 'NÃO', cor: '#F97316', valor: votacaoMock.nao }, visible: true },
+    { id: 'voto-abstencao', tipo: 'votacao-item', x: 245, y: 391, width: 223, height: 30, props: { label: 'ABSTENÇÃO', cor: '#FFCC66', valor: votacaoMock.absten }, visible: true },
+
+    // Recria os timers
+    { id: 'temporizador-1', tipo: 'temporizador-item', ...getPos('FrameTemporizador1', {x: 235, y: 456, w: 127, h: 20}), props: { tempo: '00:00', icon: false } },
+    { id: 'temporizador-2', tipo: 'temporizador-item', ...getPos('FrameTemporizador2', {x: 404, y: 456, w: 127, h: 20}), props: { tempo: '00:00', icon: false } },
+    { id: 'temporizador-3', tipo: 'temporizador-item', ...getPos('FrameTemporizador3', {x: 573, y: 456, w: 172, h: 35}), props: { tempo: '08:45:10', icon: true } },
+  ];
+
+  return componentes;
+}
+
 }

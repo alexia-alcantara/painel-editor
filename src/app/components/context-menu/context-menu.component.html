@@ -1,5 +1,5 @@
 <div #menuRef class="context-menu glass" [class.hidden]="!visible" [style.left.px]="x" [style.top.px]="y"
-  (contextmenu)="$event.preventDefault()">
+  [style.opacity]="opacity" (contextmenu)="$event.preventDefault()">
 
   @if (visible) {
   @if (activeComponent && activeComponent.tipo === 'parlamentar') {

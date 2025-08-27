@@ -37,6 +37,7 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
   y = 0;
   visible = false;
   activeComponent: ComponenteEditor | null = null;
+  opacity = 0;
 
   @Output() action = new EventEmitter<{
     action: string;
@@ -96,13 +97,14 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
   }
 
   abrirModalDistribuicao() {
-    console.log('Abrindo modal de distribuição...');
 
-    const configModal: DistribuirConfig = {
+    const configSalva = this.layoutService.carregarConfigDistribuicao();
+
+    const configModal: DistribuirConfig = configSalva || {
       qtdePorColuna: 8,
+      qntTotal: 16,
       espacamentoVertical: 50,
       espacamentoHorizontal: 50,
-      qntTotal: 0,
       margemSuperior: 0,
       margemEsquerda: 0,
       exibirDe: 0,
@@ -115,12 +117,13 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
       data: configModal,
     });
 
-    dialogRef.afterClosed().subscribe((result) => {
+    dialogRef.afterClosed().subscribe((result: DistribuirConfig) => {
       if (result) {
-        // Emite uma ação diferente para o editor saber o que fazer
+        this.layoutService.salvarConfigDistribuicao(result);
+
         this.action.emit({
           action: 'distributeParliamentarians',
-          data: result, // 'result' contém as novas configurações
+          data: result,
           component: this.activeComponent,
         });
       }
@@ -129,14 +132,37 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
   }
 
   open(event: MouseEvent, item: ComponenteEditor | undefined, layout: ComponenteEditor[]) {
-    event.preventDefault();
-    event.stopPropagation();
-    this.x = event.clientX;
-    this.y = event.clientY;
-    this.visible = true;
-    this.activeComponent = item || null;
-    this.layoutCompleto = layout;
-  }
+  event.preventDefault();
+  event.stopPropagation();
+
+  this.opacity = 0;
+  this.x = -9999;
+  this.y = -9999;
+  
+  this.visible = true;
+  this.activeComponent = item || null;
+  this.layoutCompleto = layout;
+
+  setTimeout(() => {
+    const OFFSET = 5;
+    const menuElement = this.menuRef.nativeElement as HTMLElement;
+    const menuHeight = menuElement.offsetHeight;
+    const windowHeight = window.innerHeight;
+    const clickY = event.clientY;
+
+    // 4. Calcula a posição Y final e correta.
+    if ((clickY + OFFSET + menuHeight) > windowHeight) {
+      this.y = clickY - menuHeight - OFFSET;
+    } else {
+      this.y = clickY + OFFSET;
+    }
+
+    this.x = event.clientX + OFFSET;
+
+    this.opacity = 1;
+
+  }, 0);
+}
 
   close() {
     this.visible = false;
@@ -151,6 +177,9 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
   dialogRef.afterClosed().subscribe(resultado => {
     if (resultado && resultado.action === 'carregar') {
       // Emite a ação para o editor carregar o novo layout
+      this.action.emit({ action: 'loadLayout', data: resultado.layout });
+    }
+     else if (resultado && resultado.action === 'importar') {
       this.action.emit({ action: 'loadLayout', data: resultado.layout });
     }
   });

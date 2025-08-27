@@ -1,11 +1,11 @@
-<div class="editor-wrapper relative w-full h-full bg-[#18262D] overflow-y-auto">
+<div #editorWrapper class="editor-wrapper relative w-full h-screen bg-[#18262D] overflow-y-auto">
   @for (item of componentes(); track item.id) {
   @if (item) {
   <ng-container>
     <div class="componente-box absolute rounded cursor-grab "
-    [style.display]="item.visible ? 'block' : 'none'" cdkDrag (contextmenu)="contextMenu.open($event, item, componentes())"
-      [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }" (cdkDragEnded)="onDragEnd($event, item)"
-      [style.width.px]="item.width" [style.height.px]="item.height" cdkDragBoundary=".editor-wrapper">
+   cdkDrag  [style.display]="item.visible ? 'block' : 'none'" (contextmenu)="onRightClick($event, item)"
+     [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }" (cdkDragEnded)="onDragEnd($event, item)"
+     [style.width.px]="item.width" [style.height.px]="item.height" cdkDragBoundary=".editor-wrapper">
       @switch(item.tipo) {
       @case('parlamentar') {
       <app-parlamentar-item [parlamentar]="item.dados"></app-parlamentar-item>
@@ -63,3 +63,8 @@
   }
   <app-context-menu #contextMenu (action)="onMenuAction($event)"></app-context-menu>
 </div>
+
+<button mat-fab color="primary" (click)="salvar()" title="Salvar Cenário"
+  style="position: fixed; right: 20px; bottom: 20px;">
+  <mat-icon>save</mat-icon>
+</button>

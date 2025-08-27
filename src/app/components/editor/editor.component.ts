@@ -1,4 +1,11 @@
-import { Component, inject, signal, ViewChild } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  inject,
+  signal,
+  ViewChild,
+  AfterViewInit,
+} from '@angular/core';
 import { ComponenteEditor, FontConfig } from '../../models/components.model';
 import { LayoutService } from '../../services/layout.service';
 import { CommonModule } from '@angular/common';
@@ -29,7 +36,8 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { ControleVisibilidadeComponent } from "../../controle-visibilidade/controle-visibilidade.component";
+import { ControleVisibilidadeComponent } from '../../controle-visibilidade/controle-visibilidade.component';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-editor',
@@ -54,12 +62,14 @@ import { ControleVisibilidadeComponent } from "../../controle-visibilidade/contr
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    ControleVisibilidadeComponent
-],
+    MatIconModule,
+    ControleVisibilidadeComponent,
+  ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
 })
 export class EditorComponent {
+  @ViewChild('editorWrapper', { static: true }) editorWrapperRef!: ElementRef;
   @ViewChild(ContextMenuComponent)
   contextMenu!: ContextMenuComponent;
 
@@ -104,43 +114,35 @@ export class EditorComponent {
     private layoutExport: LayoutExportService
   ) {}
 
-  toggleControleVisibilidade(): void {
-    this.mostrarControleVisibilidade = !this.mostrarControleVisibilidade;
-  }
-
-   onComponentVisibilityChange(event: { id: string; visivel: boolean }) {
+  onComponentVisibilityChange(event: { id: string; visivel: boolean }) {
     const componentesAtuais = this.componentes();
-    const compIndex = componentesAtuais.findIndex(c => c.id === event.id);
+    const compIndex = componentesAtuais.findIndex((c) => c.id === event.id);
 
     if (compIndex > -1) {
       componentesAtuais[compIndex].visible = event.visivel;
-      this.componentes.set([...componentesAtuais]); // Atualiza o signal para redesenhar a tela
+      this.componentes.set([...componentesAtuais]);
     }
   }
 
-  // exportarJSON() {
-  //   const layout = this.layoutService.layoutAtual; // sempre o mais recente
-  //   const json = this.layoutExport.converterParaFormatoOriginal(layout);
-  //   const blob = new Blob([JSON.stringify(json, null, 2)], {
-  //     type: 'application/json',
-  //   });
-  //   saveAs(blob, 'layout.json');
-  // }
-
   ngOnInit() {
-    //detecta se está na rota editor
     this.modoEditor = this.router.url.includes('/editor');
+  }
 
+  ngAfterViewInit() {
     if (!this.modoEditor) return;
 
-    //carrega layout salvo ou monta o layout inicial
-    const layoutSalvo = this.layoutService.carregarLayout();
+    setTimeout(() => {
+      const layoutSalvo = this.layoutService.carregarLayout();
+      if (layoutSalvo?.length) {
+        this.componentes.set(layoutSalvo);
+      } else {
+        this.componentes.set(this.montarLayoutInicial());
+      }
+    }, 0);
+  }
 
-    if (layoutSalvo?.length) {
-      this.componentes.set(layoutSalvo);
-    } else {
-      this.componentes.set(this.montarLayoutInicial());
-    }
+  toggleControleVisibilidade(): void {
+    this.mostrarControleVisibilidade = !this.mostrarControleVisibilidade;
   }
 
   onMenuAction(event: {
@@ -158,11 +160,20 @@ export class EditorComponent {
         break;
 
       case 'loadLayout':
-        this.componentes.set(event.data);
-        this.layoutService.salvarLayout(event.data);
+        let layoutFinal: ComponenteEditor[];
+        if (Array.isArray(event.data)) {
+          layoutFinal = event.data;
+        } else {
+          layoutFinal = this.layoutExport.converterDoFormatoOriginal(
+            event.data,
+            this.parlamentaresMock,
+            this.votacaoMock
+          );
+        }
+        this.componentes.set(layoutFinal);
+        this.layoutService.salvarLayout(layoutFinal);
         break;
     }
-    
   }
 
   onFontSelected(event: {
@@ -183,15 +194,21 @@ export class EditorComponent {
 
   redistribuirParlamentares(config: DistribuirConfig) {
     const componentesAtuais = this.componentes();
-
     const componentesSemParlamentares = componentesAtuais.filter(
       (c) => c.tipo !== 'parlamentar'
     );
+    const yBaseComponenteImagem =
+      componentesAtuais.find((c) => c.tipo === 'imagem')?.y ?? 70;
+    const alturaComponenteImagem =
+      componentesAtuais.find((c) => c.tipo === 'imagem')?.height ?? 421;
+    const yBaseParlamentares =
+      yBaseComponenteImagem + alturaComponenteImagem + 45;
 
-    const novosParlamentares = this.montarComponentesParlamentares(480, config); // yBase e a nova config
-
+    const novosParlamentares = this.montarComponentesParlamentares(
+      yBaseParlamentares,
+      config
+    );
     const layoutFinal = [...componentesSemParlamentares, ...novosParlamentares];
-
     this.componentes.set(layoutFinal);
     this.layoutService.salvarLayout(layoutFinal);
   }
@@ -206,7 +223,16 @@ export class EditorComponent {
     );
 
     this.componentes.set(atualizados);
-    this.layoutService.salvarLayout(atualizados); // opcional: salvar localmente
+    this.layoutService.salvarLayout(atualizados);
+  }
+
+  onRightClick(event: MouseEvent, component: ComponenteEditor) {
+    // 1. Previne o menu padrão do navegador de aparecer
+    event.preventDefault();
+
+    if (this.contextMenu) {
+      this.contextMenu.open(event, component, this.componentes());
+    }
   }
 
   // metodo que monta a posiçao inicial dos componentes
@@ -225,7 +251,7 @@ export class EditorComponent {
     const tituloHeight = 25;
     const subtituloHeight = 20;
     const descricaoHeight = 90;
-    const totalizadoresHeight = 25;
+    const totalizadoresHeight = 135;
     const statusReuniaoHeight = 135;
 
     const larguraVotacaoItem = 223;
@@ -437,8 +463,22 @@ export class EditorComponent {
     // Parlamentares começam abaixo da imagem com uma margem
     const margemParlamentares = 45;
     const yParlamentares = yImagem + alturaImagem + margemParlamentares;
+    const defaultConfig: DistribuirConfig = {
+      qtdePorColuna: 5,
+      qntTotal: 10,
+      espacamentoVertical: 50,
+      espacamentoHorizontal: 50,
+      margemSuperior: 0,
+      margemEsquerda: 0,
+      exibirDe: 0,
+      exibirAte: 0,
+      offsetInicial: 0,
+    };
 
-    const parlamentares = this.montarComponentesParlamentares(yParlamentares);
+    const parlamentares = this.montarComponentesParlamentares(
+      yParlamentares,
+      defaultConfig
+    );
 
     return [
       imagem,
@@ -459,33 +499,56 @@ export class EditorComponent {
 
   private montarComponentesParlamentares(
     yBase: number = 480,
-    config: DistribuirConfig = {
-      qtdePorColuna: 10,
-      espacamentoVertical: 50,
-      espacamentoHorizontal: 50,
-      qntTotal: 4,
-      margemSuperior: 20,
-      margemEsquerda: 30,
-      exibirDe: 0,
-      exibirAte: 3,
-      offsetInicial: 0,
-    }
+    config: DistribuirConfig
   ): ComponenteEditor[] {
     const larguraItem = 608;
     const alturaItem = 39;
     const xBase = 234;
+    const larguraTotalItem = larguraItem + config.espacamentoHorizontal;
+    const parlamentaresParaExibir = this.parlamentaresMock.slice(
+      0,
+      config.qntTotal
+    );
+    const itensPorColunaConfigurado =
+      config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
+    const containerElement = this.editorWrapperRef.nativeElement as HTMLElement;
+    const containerWidth = containerElement.getBoundingClientRect().width;
+    const maxColumnsResponsivo = Math.max(
+      1,
+      Math.floor(
+        (containerWidth - xBase + config.espacamentoHorizontal) /
+          larguraTotalItem
+      )
+    );
+    const colunasRequeridasPeloUsuario = Math.ceil(
+      parlamentaresParaExibir.length / itensPorColunaConfigurado
+    );
+    const usarLogicaResponsiva =
+      colunasRequeridasPeloUsuario > maxColumnsResponsivo;
 
-    const itensPorColuna = config.qtdePorColuna;
+    return parlamentaresParaExibir.map((parlamentar, i) => {
+      let coluna: number;
+      let linha: number;
 
-    return this.parlamentaresMock.map((parlamentar, i) => {
-      const coluna = Math.floor(i / itensPorColuna);
-      const linha = i % itensPorColuna;
+      if (usarLogicaResponsiva) {
+        coluna = i % maxColumnsResponsivo;
+        linha = Math.floor(i / maxColumnsResponsivo);
+      } else {
+        coluna = Math.floor(i / itensPorColunaConfigurado);
+        linha = i % itensPorColunaConfigurado;
+      }
+
+      const posX = xBase + coluna * larguraTotalItem;
+      const posY =
+        yBase +
+        config.margemSuperior +
+        linha * (alturaItem + config.espacamentoVertical - 11);
 
       return {
         id: `parlamentar-${i}`,
         tipo: 'parlamentar',
-        x: xBase + coluna * (larguraItem + config.espacamentoHorizontal),
-        y: yBase + linha * (alturaItem + config.espacamentoVertical - 11), // ajuste o cálculo conforme necessário
+        x: posX,
+        y: posY,
         width: larguraItem,
         height: alturaItem,
         dados: parlamentar,
@@ -494,25 +557,33 @@ export class EditorComponent {
     });
   }
 
-  // onDragEnd(event: CdkDragEnd, item: ComponenteEditor) {
-  //   const position = event.source.getFreeDragPosition();
-
-  //   const index = this.componentes().findIndex((c) => c.id === item.id);
-  //   if (index !== -1) {
-  //     const atualizados = [...this.componentes()];
-  //     atualizados[index] = {
-  //       ...atualizados[index],
-  //       x: Math.round(position.x),
-  //       y: Math.round(position.y),
-  //     };
-  //     this.componentes.set(atualizados);
-
-  //     this.layoutService.salvarLayout(atualizados);
-  //   }
-  // }
-
   onItemChange() {
     this.layoutService.salvarLayout(this.layout);
   }
 
+  salvar() {
+    const layoutAtual = this.componentes();
+
+    const nomeCenario = prompt(
+      'Digite um nome para o cenário:',
+      'novo-cenario'
+    );
+
+    if (!nomeCenario) {
+      return;
+    }
+
+    // salva o cenário na lista para o modal gerenciar cenarios
+    this.layoutService.salvarCenario(nomeCenario, layoutAtual);
+
+    // converte para o formato antigo e exporta o arquivo .json
+    const layoutAntigo =
+      this.layoutExport.converterParaFormatoOriginal(layoutAtual);
+    const blob = new Blob([JSON.stringify(layoutAntigo, null, 2)], {
+      type: 'application/json',
+    });
+    saveAs(blob, `${nomeCenario}.json`);
+
+    alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
+  }
 }

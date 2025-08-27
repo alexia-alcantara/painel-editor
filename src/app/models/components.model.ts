@@ -24,7 +24,8 @@ export interface ComponenteEditor {
     | 'descricao'
     | 'titulo'
     | 'subtitulo'
-    | 'temporizador-item';
+    | 'temporizador-item'
+    | 'multimidia';
   dados?: any;
   x: number;
   y: number;
@@ -32,6 +33,7 @@ export interface ComponenteEditor {
   height: number;
   visible: boolean;
   props?: {
+    fontFamily?: string;
     tempo?: string;
     icon?: boolean;
     label?: string;
