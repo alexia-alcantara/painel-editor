@@ -1,0 +1,17 @@
+@if (cenarioParaExibir) {
+  <div class="display-wrapper"
+       [style.background-image]="'url(' + cenarioParaExibir.backgroundImage + ')'"
+       [style.aspect-ratio]="cenarioParaExibir.targetWidth / cenarioParaExibir.targetHeight">
+
+    @for (item of cenarioParaExibir.componentes; track item.id) {
+       <div class="draggable-item"
+           [hidden]="!item.visible" 
+           cdkDrag 
+           [cdkDragFreeDragPosition]="{x: item.x, y: item.y}"
+           (cdkDragEnded)="onDragEnded($event, item)"
+           (contextmenu)="toggleVisibility(item); $event.preventDefault()"> </div>
+    }
+  </div>
+} @else {
+  <p>Cenário não encontrado!</p>
+}

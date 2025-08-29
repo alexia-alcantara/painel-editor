@@ -1,39 +1,41 @@
-<h1 mat-dialog-title>Gerenciar Cenários</h1>
-<div mat-dialog-content class="dialog-content">
+<div class="bg-gray-800 text-white rounded-lg">
 
+  <h1 mat-dialog-title class="text-xl font-bold">Gerenciar Cenários</h1>
+
+  <div mat-dialog-content class="min-w-[500px] max-h-[60vh] overflow-y-auto p-2">
+    
     @if (cenarios.length > 0) {
-    <mat-list>
-        @for (cenario of cenarios; track cenario.nome) {
-        <mat-list-item (click)="selecionarCenario(cenario.nome)"
-            [class.item-selecionado]="cenario.nome === cenarioSelecionado">
-
-            <div class="list-item-content">
-                <span class="cenario-nome">{{ cenario.nome }}</span>
-
-                <div class="list-item-actions">
-                    <button mat-icon-button color="primary"
-                        (click)="carregarCenario(cenario.nome); $event.stopPropagation()" title="Carregar Cenário">
-                        <mat-icon>play_arrow</mat-icon>
-                    </button>
-                    <button mat-icon-button color="warn"
-                        (click)="removerCenario(cenario.nome); $event.stopPropagation()" title="Remover Cenário">
-                        <mat-icon>delete</mat-icon>
-                    </button>
-                </div>
+      <ul class="space-y-2">
+        @for (cenario of cenarios; track cenario.id) {
+          <li class="flex items-center justify-between p-2 bg-gray-700 rounded transition-colors hover:bg-gray-600">
+            
+            <span class="font-medium">{{ cenario.nome }}</span>
+            
+            <div class="flex items-center gap-2">
+              <button (click)="carregarCenario(cenario.id)" mat-button color="primary">Carregar</button>
+              
+              <button (click)="removerCenario(cenario.id, cenario.nome)" mat-button color="warn">Deletar</button>
             </div>
 
-        </mat-list-item>
+          </li>
         }
-    </mat-list>
+      </ul>
     } @else {
-    <p>Nenhum cenário salvo.</p>
+      <p class="text-center text-gray-400 my-8">Nenhum cenário salvo.</p>
     }
+  </div>
+
+  <hr class="my-2 border-gray-600">
+
+  <div mat-dialog-actions class="flex justify-between items-center p-2">
+    <div class="flex gap-2">
+      <button (click)="exportarLayout()" mat-stroked-button>Exportar Layout Atual</button>
+      
+      <input type="file" hidden #fileInput (change)="importarLayout($event)" accept=".json">
+      <button (click)="fileInput.click()" mat-stroked-button>Importar de Arquivo</button>
+    </div>
+    
+    <button mat-flat-button color="primary" [mat-dialog-close]>Fechar</button>
+  </div>
 
 </div>
-<div mat-dialog-actions align="end">
-    <button mat-stroked-button (click)="exportarLayout()">Exportar Layout Atual</button>
-    <button mat-stroked-button (click)="triggerFileInput()">Importar de Arquivo</button>
-    <button mat-button (click)="dialogRef.close()">Fechar</button>
-</div>
-
-<input type="file" id="import-file-input" (change)="importarLayout($event)" accept=".json" style="display: none;">

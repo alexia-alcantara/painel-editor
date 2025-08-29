@@ -1,15 +1,5 @@
-export interface FontConfig {
-  family: string;
-  size: number;
-  weight?: string;
-  color?: string;
-}
-
-export interface FonteSubItem {
-  subId: string;   // ex: 'descricao-texto' ou 'titulo-principal'
-  label: string;   // rótulo amigável
-  font: FontConfig;
-}
+// Importe as interfaces de fontes do arquivo correto
+import { FonteSubItem } from './fontes.model';
 
 export interface ComponenteEditor {
   id: string;
@@ -40,6 +30,6 @@ export interface ComponenteEditor {
     cor?: string;
     valor?: number;
   };
-  fontes?: FonteSubItem[]; // ✅ NOVO
+  fontes?: FonteSubItem[]; 
   children?: ComponenteEditor[];
 }

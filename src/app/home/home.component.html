@@ -1,17 +1,29 @@
-<div class="min-h-screen bg-gray-700 flex justify-center items-center p-4">
-  <div class="bg-gray-900 text-white rounded-xl p-6 max-w-7xl w-full shadow-lg">
-    <div class="grid grid-cols-2 gap-6 mb-6">
-      <!-- Esquerda: Cabeçalho + Resumo -->
-      <div>
-        <app-header-reuniao></app-header-reuniao>
-        <app-cronometro class="mt-6"></app-cronometro>
-      </div>
+<div class="container mx-auto p-8 bg-gray-900 text-white min-h-screen">
+  <header class="flex justify-between items-center mb-8">
+    <h1 class="text-4xl font-bold">Gerenciador de Cenários</h1>
+    <button (click)="criarNovoCenario()" mat-flat-button color="primary">
+      Criar Novo Cenário
+    </button>
+  </header>
 
-      <!-- Direita: Imagem -->
-      <app-imagem-reuniao></app-imagem-reuniao>
-    </div>
-
-    <!-- Lista de Parlamentares -->
-    <app-painel-parlamentares></app-painel-parlamentares>
+  <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+    @if (cenarios.length > 0) {
+      <ul class="space-y-4">
+        @for (cenario of cenarios; track cenario.id) {
+          <li class="flex items-center justify-between p-4 bg-gray-700 rounded">
+            <span class="text-xl">{{ cenario.nome }}</span>
+            <div class="flex items-center gap-4">
+              <a [routerLink]="['/editor', cenario.id]" mat-button>Editar</a>
+              <a [routerLink]="['/display', cenario.id]" target="_blank" mat-stroked-button color="accent">Apresentar</a>
+              <button (click)="deletarCenario(cenario.id, cenario.nome)" mat-icon-button color="warn">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="text-center text-gray-400">Nenhum cenário salvo. Clique em "Criar Novo Cenário" para começar.</p>
+    }
   </div>
 </div>

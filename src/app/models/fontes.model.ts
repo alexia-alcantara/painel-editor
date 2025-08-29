@@ -16,10 +16,11 @@ export interface FontConfig {
   size: number;
   weight?: string;
   color?: string;
+  style?: string;
 }
 
 export interface FonteSubItem {
-  id: string;       // ex: 'nome', 'partido', 'cronometro1'
+  subId: string;       // ex: 'nome', 'partido', 'cronometro1'
   label: string;    // ex: 'Nome', 'Partido', 'Cronômetro 1'
   font: FontConfig; // Configuração da fonte
 }

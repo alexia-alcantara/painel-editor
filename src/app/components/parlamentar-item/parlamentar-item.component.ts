@@ -7,35 +7,33 @@ import { FontConfig } from '../../models/fontes.model';
 @Component({
   selector: 'app-parlamentar-item',
   standalone: true,
-  imports: [
-    CommonModule
-  ],
+  imports: [CommonModule],
   templateUrl: './parlamentar-item.component.html',
-  styleUrl: './parlamentar-item.component.css'
+  styleUrl: './parlamentar-item.component.css',
 })
 export class ParlamentarItemComponent {
   @Input() parlamentar!: Parlamentar;
   @Input() height = 608;
   @Input() width = 38;
 
-  
+  constructor(private fonteService: FonteService) {}
 
-  constructor(
-    private fonteService: FonteService
-  ){}
+  private get defaultFont(): FontConfig {
+  return { family: 'Inter, sans-serif', size: 14, color: '#FFFFFF' };
+}
 
-    get fontNome(): FontConfig {
-    return this.fonteService.getFonteByTipo('parlamentar')
-      .find(f => f.id === 'nome')?.font!;
-  }
+get fontNome(): FontConfig {
+  const fonte = this.fonteService.getFonteByTipo('parlamentar').find(f => f.subId === 'nome');
+  return fonte?.font || { ...this.defaultFont, weight: "500" };
+}
 
-  get fontPartido(): FontConfig {
-    return this.fonteService.getFonteByTipo('parlamentar')
-      .find(f => f.id === 'partido')?.font!;
-  }
+get fontPartido(): FontConfig {
+  const fonte = this.fonteService.getFonteByTipo('parlamentar').find(f => f.subId === 'partido');
+  return fonte?.font || { ...this.defaultFont, weight: "500" };
+}
 
-  get fontVoto(): FontConfig {
-    return this.fonteService.getFonteByTipo('parlamentar')
-      .find(f => f.id === 'voto')?.font!;
-  }
+get fontVoto(): FontConfig {
+  const fonte = this.fonteService.getFonteByTipo('parlamentar').find(f => f.subId === 'voto');
+  return fonte?.font || { ...this.defaultFont, weight: "700" };
+}
 }

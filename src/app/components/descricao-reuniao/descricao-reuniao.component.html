@@ -1,7 +1,12 @@
-<!-- app-descricao-reuniao.component.html -->
-<div class="text-left py-3 max-w-[430px]">
-  <p class="text-[#9D9D9D] text-sm font-medium leading-relaxed mt-2">
-    Texto de descrição para entender sobre o que se trata a reunião em questão.
-    Podemos usar até 4 linhas sem alterar a estrutura da interface.
+
+<div class="text-left max-w-[430px]">
+  <p class="text-white" [ngStyle]="{
+    'font-family': fontConfig?.family,
+    'font-size.px': fontConfig?.size,
+    'color': fontConfig?.color,
+    'font-weight': fontConfig?.weight,
+    'font-style': fontConfig?.style
+  }">
+    Texto de descrição para entender sobre o que se trata a reunião em questão. Podemos usar até 4 linhas sem alterar a estrutura da interface.
   </p>
 </div>

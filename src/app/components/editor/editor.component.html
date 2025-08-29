@@ -1,5 +1,23 @@
-<div #editorWrapper class="editor-wrapper relative w-full h-screen bg-[#18262D] overflow-y-auto">
-  @for (item of componentes(); track item.id) {
+
+<div class="config-panel bg-gray-800 text-white p-4 flex gap-4 items-center">
+  <label>Nome:</label>
+  <input type="text" [(ngModel)]="cenarioAtual.nome" class="bg-gray-700 p-1 rounded">
+
+  <label>Largura:</label>
+  <input type="number" [(ngModel)]="cenarioAtual.targetWidth" class="bg-gray-700 p-1 rounded w-20">
+
+  <label>Altura:</label>
+  <input type="number" [(ngModel)]="cenarioAtual.targetHeight" class="bg-gray-700 p-1 rounded w-20">
+
+  <label>Imagem de Fundo:</label>
+  <input type="file" (change)="onFileSelected($event)" class="text-sm">
+</div>
+
+
+<div #editorWrapper class="editor-wrapper relative w-full h-screen bg-[#18262D] overflow-y-auto"
+[style.background-image]="'url(' + cenarioAtual.backgroundImage + ')'"
+[style.aspect-ratio]="cenarioAtual.targetWidth / cenarioAtual.targetHeight">
+  @for (item of cenarioAtual.componentes; track item.id) {
   @if (item) {
   <ng-container>
     <div class="componente-box absolute rounded cursor-grab "
@@ -26,7 +44,7 @@
       <app-titulo-reuniao></app-titulo-reuniao>
       }
       @case('subtitulo') {
-      <app-subtitulo-reuniao></app-subtitulo-reuniao>
+      <app-subtitulo-reuniao [fontConfig]="item.fontes?.[0]?.font"></app-subtitulo-reuniao>
       }
       @case('status-reuniao') {
       <app-status-reuniao [presentes]="26" [votos]="21"></app-status-reuniao>
@@ -58,8 +76,10 @@
   </button>
 
   @if (mostrarControleVisibilidade) {
-  <app-controle-visibilidade [componentes]="componentes()" (visibilityChanged)="onComponentVisibilityChange($event)">
-  </app-controle-visibilidade>
+  <app-controle-visibilidade 
+      [componentes]="cenarioAtual.componentes" 
+      (visibilityChanged)="onComponentVisibilityChange($event)">
+    </app-controle-visibilidade>
   }
   <app-context-menu #contextMenu (action)="onMenuAction($event)"></app-context-menu>
 </div>

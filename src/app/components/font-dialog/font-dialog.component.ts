@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, Inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { FontConfig } from '../../models/components.model';
+import { FontConfig } from '../../models/fontes.model';
 @Component({
   selector: 'app-font-dialog',
   standalone: true,
@@ -33,14 +33,33 @@ export class FontDialogComponent {
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
 
- close() {
+close() {
+  // Cria o objeto base da configuração
   const fontConfig: FontConfig = {
     family: this.selectedFont,
     size: this.selectedSize,
-    weight: this.selectedStyle.includes('Bold') ? 'bold' : 'normal',
     color: this.selectedColor || '#FFFFFF',
   };
 
-  this.dialogRef.close(fontConfig); // ✅ Apenas retorna a fonte escolhida
+  switch (this.selectedStyle) {
+    case 'Regular':
+      fontConfig.weight = 'normal';
+      fontConfig.style = 'normal';
+      break;
+    case 'Italic':
+      fontConfig.weight = 'normal';
+      fontConfig.style = 'italic';
+      break;
+    case 'Bold':
+      fontConfig.weight = 'bold';
+      fontConfig.style = 'normal';
+      break;
+    case 'Bold Italic':
+      fontConfig.weight = 'bold';
+      fontConfig.style = 'italic';
+      break;
+  }
+
+  this.dialogRef.close(fontConfig);
 }
 }

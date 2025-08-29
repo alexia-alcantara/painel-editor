@@ -18,8 +18,8 @@
     <!-- SUBMENU -->
     <div class="submenu absolute top-0 left-full z-50 hidden group-hover:flex flex-col 
                     bg-black/90 text-white rounded-md shadow-lg">
-      @for (sub of grupo.subItens; track sub.id) {
-      <button (click)="openFontDialog(grupo.tipo, sub.id)" class="px-4 py-2 hover:bg-white/10 text-left">
+      @for (sub of grupo.subItens; track sub.subId) {
+      <button (click)="openFontDialog(grupo.tipo, sub.subId)" class="px-4 py-2 hover:bg-white/10 text-left">
         {{ sub.label }}
       </button>
       }
