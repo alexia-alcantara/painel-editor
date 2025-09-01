@@ -9,9 +9,8 @@ import { Component, Input } from '@angular/core';
 })
 export class StatusReuniaoComponent {
 
-  @Input() presentes: number = 0;
-  @Input() votos: number = 0;
-  @Input() andamento: string = 'ANDAMENTO';
+  // @Input() dados?: { presentes: number; votos: number; andamento: string };
   @Input() height = 135;
   @Input() width = 223;
+
 }

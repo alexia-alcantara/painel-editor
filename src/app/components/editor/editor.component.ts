@@ -27,7 +27,7 @@ import { DescricaoReuniaoComponent } from '../descricao-reuniao/descricao-reunia
 import { TituloReuniaoComponent } from '../titulo-reuniao/titulo-reuniao.component';
 import { SubtituloReuniaoComponent } from '../subtitulo-reuniao/subtitulo-reuniao.component';
 import { ContextMenuComponent } from '../context-menu/context-menu.component';
-import { VotoItemComponent } from '../voto-item/voto-item.component';
+import { VotoItemComponent } from '../votacao-total/voto-item/voto-item.component';
 import { LayoutExportService } from '../../services/layout-export.service';
 import saveAs from 'file-saver';
 import { ComponenteTipo, FontConfig } from '../../models/fontes.model';
@@ -41,6 +41,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { Cenario } from '../../models/cenario.model';
 import { FormsModule } from '@angular/forms';
 import { FonteService } from '../../services/fonte.service';
+import { StatusItemComponent } from "../status-reuniao/status-item/status-item.component";
 
 @Component({
   selector: 'app-editor',
@@ -68,7 +69,8 @@ import { FonteService } from '../../services/fonte.service';
     MatButtonModule,
     MatIconModule,
     ControleVisibilidadeComponent,
-  ],
+    StatusItemComponent
+],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
 })
@@ -118,10 +120,10 @@ export class EditorComponent {
     nome: 'Novo Cenário',
     targetWidth: 1920,
     targetHeight: 1080,
-    backgroundImage: '', 
-    componentes: [] 
+    backgroundImage: '',
+    componentes: [],
   };
-  
+
   constructor(
     private layoutService: LayoutService,
     private route: ActivatedRoute,
@@ -135,8 +137,13 @@ export class EditorComponent {
       const file = input.files[0];
       const reader = new FileReader();
       reader.onload = () => {
-        // Converte a imagem para base64 e salva no cenário
-        this.cenarioAtual.backgroundImage = reader.result as string;
+        const base64Image = reader.result as string;
+
+        this.cenarioAtual.backgroundImage = base64Image;
+
+        localStorage.setItem('bg_temporary', base64Image);
+
+        input.value = '';
       };
       reader.readAsDataURL(file);
     }
@@ -154,29 +161,27 @@ export class EditorComponent {
 
   ngOnInit() {
     const idDoCenario = this.route.snapshot.paramMap.get('id');
-     // 2. Tenta carregar um cenário permanente salvo com esse ID
     let cenarioCarregado = null;
     if (idDoCenario) {
       cenarioCarregado = this.layoutService.carregarCenario(idDoCenario);
     }
-    
-    // 3. Decide o que fazer
+
     if (cenarioCarregado) {
-      // SE ENCONTROU: Carrega o cenário existente (fluxo de "EDITAR")
       this.cenarioAtual = cenarioCarregado;
     } else {
-      // SE NÃO ENCONTROU: Cria um cenário novo do zero (fluxo de "CRIAR NOVO")
       this.cenarioAtual = this.montarLayoutInicial();
-      // Se o ID veio da URL, atribui a este novo cenário
       if (idDoCenario) {
         this.cenarioAtual.id = idDoCenario;
       }
     }
-
-    // O auto-save a partir daqui funcionará no cenário que estiver carregado
     this.onItemChange();
 
-    // this.modoEditor = this.router.url.includes('/editor');
+    const imagemTemporaria = localStorage.getItem('bg_temporary');
+
+    if (imagemTemporaria) {
+      console.log('Imagem de fundo encontrada. Aplicando...');
+      this.cenarioAtual.backgroundImage = imagemTemporaria;
+    }
   }
 
   ngAfterViewInit() {
@@ -227,13 +232,13 @@ export class EditorComponent {
     }
   }
 
-onFontSelected(event: {
-  tipo: ComponenteTipo;
-  subId: string;
-  font: FontConfig;
-}) {
-  this.fonteService.updateFonte(event.tipo, event.subId, event.font);
-}
+  onFontSelected(event: {
+    tipo: ComponenteTipo;
+    subId: string;
+    font: FontConfig;
+  }) {
+    this.fonteService.updateFonte(event.tipo, event.subId, event.font);
+  }
 
   redistribuirParlamentares(config: DistribuirConfig) {
     const componentesAtuais = this.cenarioAtual.componentes;
@@ -256,19 +261,19 @@ onFontSelected(event: {
     this.layoutService.salvarLayoutAtual(this.cenarioAtual);
   }
 
-onDragEnd(event: CdkDragEnd, item: ComponenteEditor) {
-  const position = event.source.getFreeDragPosition();
+  onDragEnd(event: CdkDragEnd, item: ComponenteEditor) {
+    const position = event.source.getFreeDragPosition();
 
-  const componentesAtualizados = this.cenarioAtual.componentes.map((c) =>
-    c.id === item.id
-      ? { ...c, x: Math.round(position.x), y: Math.round(position.y) }
-      : c
-  );
-  
-  this.cenarioAtual.componentes = componentesAtualizados;
+    const componentesAtualizados = this.cenarioAtual.componentes.map((c) =>
+      c.id === item.id
+        ? { ...c, x: Math.round(position.x), y: Math.round(position.y) }
+        : c
+    );
 
-  this.onItemChange();
-}
+    this.cenarioAtual.componentes = componentesAtualizados;
+
+    this.onItemChange();
+  }
 
   onRightClick(event: MouseEvent, component: ComponenteEditor) {
     // 1. Previne o menu padrão do navegador de aparecer
@@ -279,272 +284,330 @@ onDragEnd(event: CdkDragEnd, item: ComponenteEditor) {
     }
   }
 
-private montarLayoutInicial(): Cenario { 
-  const larguraImagem = 750;
-  const alturaImagem = 421;
-  const xImagem = 750;
-  const yImagem = 70;
+  private montarLayoutInicial(): Cenario {
+    const larguraImagem = 750;
+    const alturaImagem = 421;
+    const xImagem = 750;
+    const yImagem = 70;
 
-  const espacamentoHorizontal = 85;
-  const espacamentoTemporizador = 42;
-  const xBase = 235;
+    const espacamentoHorizontal = 85;
+    const espacamentoTemporizador = 42;
+    const xBase = 235;
 
-  // Alturas fixas dos blocos
-  const cabecalhoHeight = 50;
-  const tituloHeight = 25;
-  const subtituloHeight = 20;
-  const descricaoHeight = 90;
-  const totalizadoresHeight = 135;
-  const statusReuniaoHeight = 135;
+    // Alturas fixas dos blocos
+    const cabecalhoHeight = 50;
+    const tituloHeight = 25;
+    const subtituloHeight = 20;
+    const descricaoHeight = 90;
+    const totalizadoresHeight = 135;
+    const statusReuniaoHeight = 135;
 
-  const larguraVotacaoItem = 223;
-  const alturaVotacaoItem = 30;
+    const larguraVotacaoItem = 223;
+    const alturaVotacaoItem = 30;
 
-  let yAtual = yImagem;
+    let yAtual = yImagem;
 
-  const defaultFont: FontConfig = {
-    family: 'Inter, sans-serif',
-    size: 14,
-    color: '#FFFFFF',
-    weight: 'normal',
-  };
+    const defaultFont: FontConfig = {
+      family: 'Inter, sans-serif',
+      size: 14,
+      color: '#FFFFFF',
+      weight: 'normal',
+    };
 
-  // Imagem da reunião
-  const imagem: ComponenteEditor = {
-    id: 'imagem-reuniao',
-    tipo: 'imagem',
-    x: xImagem,
-    y: yImagem,
-    width: larguraImagem,
-    height: alturaImagem,
-    visible: true,
-  };
+    // Imagem da reunião
+    const imagem: ComponenteEditor = {
+      id: 'imagem-reuniao',
+      tipo: 'imagem',
+      x: xImagem,
+      y: yImagem,
+      width: larguraImagem,
+      height: alturaImagem,
+      visible: true,
+    };
 
-  // Cabeçalho
-  const cabecalho: ComponenteEditor = {
-    id: 'cabecalho',
-    tipo: 'cabecalho',
-    x: xBase,
-    y: yAtual,
-    width: xImagem - espacamentoHorizontal,
-    height: cabecalhoHeight,
-    visible: true,
-  };
-  yAtual += cabecalho.height + 12;
+    // Cabeçalho
+    const cabecalho: ComponenteEditor = {
+      id: 'cabecalho',
+      tipo: 'cabecalho',
+      x: xBase,
+      y: yAtual,
+      width: xImagem - espacamentoHorizontal,
+      height: cabecalhoHeight,
+      visible: true,
+    };
+    yAtual += cabecalho.height + 12;
 
-  // Título
-  const titulo: ComponenteEditor = {
-    id: 'titulo',
-    tipo: 'titulo',
-    x: xBase,
-    y: yAtual,
-    width: xImagem - espacamentoHorizontal,
-    height: tituloHeight,
-    visible: true,
-    fontes: [
-    {
-      subId: 'titulo-texto', 
-      label: 'Título da Reunião',
-      font: { ...defaultFont, size: 24, weight: 'bold' }, // Fonte padrão para o título
-    },
-  ],
-  };
-  yAtual += titulo.height + 12;
+    // Título
+    const titulo: ComponenteEditor = {
+      id: 'titulo',
+      tipo: 'titulo',
+      x: xBase,
+      y: yAtual,
+      width: xImagem - espacamentoHorizontal,
+      height: tituloHeight,
+      visible: true,
+      fontes: [
+        {
+          subId: 'titulo-texto',
+          label: 'Título da Reunião',
+          font: { ...defaultFont, size: 24, weight: 'bold' }, // Fonte padrão para o título
+        },
+      ],
+    };
+    yAtual += titulo.height + 12;
 
-  // Subtítulo
- const subtitulo: ComponenteEditor = {
-  id: 'subtitulo',
-  tipo: 'subtitulo',
-  x: xBase,
-  y: yAtual,
-  width: xImagem - espacamentoHorizontal,
-  height: subtituloHeight,
-  visible: true,
-  fontes: [ 
-    {
-      subId: 'subtitulo-texto',
-      label: 'Subtítulo da Reunião',
-      font: { ...defaultFont, size: 18, weight: 'normal' }, // Defina uma fonte inicial
-    },
-  ],
-};
-  yAtual += subtitulo.height + 12;
+    // Subtítulo
+    const subtitulo: ComponenteEditor = {
+      id: 'subtitulo',
+      tipo: 'subtitulo',
+      x: xBase,
+      y: yAtual,
+      width: xImagem - espacamentoHorizontal,
+      height: subtituloHeight,
+      visible: true,
+      fontes: [
+        {
+          subId: 'subtitulo-texto',
+          label: 'Subtítulo da Reunião',
+          font: { ...defaultFont, size: 18, weight: 'normal' }, // Defina uma fonte inicial
+        },
+      ],
+    };
+    yAtual += subtitulo.height + 12;
 
-  // Descrição
-  const descricao: ComponenteEditor = {
-    id: 'descricao',
-    tipo: 'descricao',
-    x: cabecalho.x,
-    y: yAtual,
-    width: cabecalho.width,
-    height: descricaoHeight,
-    fontes: [
+    // Descrição
+    const descricao: ComponenteEditor = {
+      id: 'descricao',
+      tipo: 'descricao',
+      x: cabecalho.x,
+      y: yAtual,
+      width: cabecalho.width,
+      height: descricaoHeight,
+      fontes: [
+        {
+          subId: 'descricao-texto',
+          label: 'Descrição',
+          font: { ...defaultFont },
+        },
+      ],
+      visible: true,
+    };
+    yAtual += descricao.height + 12;
+
+    // Blocos Totalizadores
+    const totalizadores: ComponenteEditor = {
+      id: 'totalizadores',
+      tipo: 'totalizadores',
+      x: xBase,
+      y: yAtual,
+      width: 172,
+      height: totalizadoresHeight,
+      dados: this.votacaoMock,
+      visible: true,
+    };
+
+    const votacaoTotal: ComponenteEditor = {
+      id: 'votacao-total',
+      tipo: 'votacao-total',
+      x: xBase + totalizadores.width + espacamentoHorizontal,
+      y: yAtual,
+      width: 250,
+      height: statusReuniaoHeight,
+      visible: true,
+    };
+
+    const margemInternaX = 10; // margem lateral dentro da caixa
+    const margemInternaY = 10; // margem superior
+    const espacoVertical = 10;
+
+    const totalAlturaItens = alturaVotacaoItem * 3 + espacoVertical * 2;
+    const margemSuperior = (totalizadores.height - totalAlturaItens) / 2;
+
+    const baseX = totalizadores.x + margemInternaX;
+    const baseY = totalizadores.y + margemInternaY;
+
+    const votacaoSim: ComponenteEditor = {
+      id: 'voto-sim',
+      tipo: 'votacao-item',
+      x: baseX,
+      y: baseY,
+      width: larguraVotacaoItem,
+      height: alturaVotacaoItem,
+      props: { label: 'SIM', cor: '#22C55E', valor: 15 },
+      visible: true,
+    };
+
+    const votacaoNao: ComponenteEditor = {
+      id: 'voto-nao',
+      tipo: 'votacao-item',
+      x: baseX,
+      y: baseY + alturaVotacaoItem + espacoVertical,
+      width: larguraVotacaoItem,
+      height: alturaVotacaoItem,
+      props: { label: 'NÃO', cor: '#F97316', valor: 6 },
+      visible: true,
+    };
+
+    const votacaoAbstencao: ComponenteEditor = {
+      id: 'voto-abstencao',
+      tipo: 'votacao-item',
+      x: baseX,
+      y: baseY + (alturaVotacaoItem + espacoVertical) * 2,
+      width: larguraVotacaoItem,
+      height: alturaVotacaoItem,
+      props: { label: 'ABSTENÇÃO', cor: '#FFCC66', valor: 20 },
+      visible: true,
+    };
+
+    const statusReuniao: ComponenteEditor = {
+      id: 'status-reuniao',
+      tipo: 'status-reuniao',
+      x: xBase + totalizadores.width + espacamentoHorizontal,
+      y: yAtual,
+      width: 223,
+      height: statusReuniaoHeight,
+      visible: true,
+    };
+
+    const baseXStatus = statusReuniao.x + 15;
+    const baseYStatus = statusReuniao.y + 15;
+    const larguraStatusItem = statusReuniao.width - 30;
+    const alturaStatusItem = 25;
+    const espacoVerticalStatus = 10;
+
+    //item Presentes
+    const statusPresentes: ComponenteEditor = {
+      id: 'status-presentes',
+      tipo: 'status-item',
+      x: baseXStatus,
+      y: baseYStatus,
+      width: larguraStatusItem,
+      height: alturaStatusItem,
+      props: { label: 'PRESENTES', valor: 26 },
+      visible: true,
+    };
+
+    const statusVotos: ComponenteEditor = {
+      id: 'status-votos',
+      tipo: 'status-item',
+      x: baseXStatus,
+      y: baseYStatus + alturaStatusItem + espacoVerticalStatus,
+      width: larguraStatusItem,
+      height: alturaStatusItem,
+      props: { label: 'VOTOS', valor: 21 },
+      visible: true,
+    };
+
+    // Temporizadores alinhados ao final da imagem
+    const temporizadoresBase = [
       {
-        subId: 'descricao-texto',
-        label: 'Descrição',
-        font: { ...defaultFont },
+        id: 'temporizador-1',
+        width: 127,
+        height: 20,
+        tempo: '00:00',
+        icon: false,
       },
-    ],
-    visible: true,
-  };
-  yAtual += descricao.height + 12;
+      {
+        id: 'temporizador-2',
+        width: 127,
+        height: 20,
+        tempo: '00:00',
+        icon: false,
+      },
+      {
+        id: 'temporizador-3',
+        width: 172,
+        height: 35,
+        tempo: '08:45:10',
+        icon: true,
+      },
+    ];
 
-  // Blocos Totalizadores
-  const totalizadores: ComponenteEditor = {
-    id: 'totalizadores',
-    tipo: 'totalizadores',
-    x: xBase,
-    y: yAtual,
-    width: 172,
-    height: totalizadoresHeight,
-    dados: this.votacaoMock,
-    visible: true,
-  };
+    const alturaTemporizadores = Math.max(
+      ...temporizadoresBase.map((t) => t.height)
+    );
+    const yTemporizadores = yImagem + alturaImagem - alturaTemporizadores;
 
-  const votacaoTotal: ComponenteEditor = {
-    id: 'votacao-total',
-    tipo: 'votacao-total',
-    x: xBase + totalizadores.width + espacamentoHorizontal,
-    y: yAtual,
-    width: 250,
-    height: statusReuniaoHeight,
-    visible: true,
-  };
+    const temporizadores: ComponenteEditor[] = temporizadoresBase.map(
+      (item, index) => {
+        const x =
+          xBase +
+          temporizadoresBase
+            .slice(0, index)
+            .reduce(
+              (acc, prev) => acc + prev.width + espacamentoTemporizador,
+              0
+            );
 
-  const margemInternaX = 10; // margem lateral dentro da caixa
-  const margemInternaY = 10; // margem superior
-  const espacoVertical = 10;
+        return {
+          id: item.id,
+          tipo: 'temporizador-item',
+          x,
+          y: yTemporizadores,
+          width: item.width,
+          height: item.height,
+          props: { tempo: item.tempo, icon: item.icon },
+          visible: true,
+        };
+      }
+    );
 
-  const totalAlturaItens = alturaVotacaoItem * 3 + espacoVertical * 2;
-  const margemSuperior = (totalizadores.height - totalAlturaItens) / 2;
+    const margemParlamentares = 45;
+    const yParlamentares = yImagem + alturaImagem + margemParlamentares;
+    const defaultConfig: DistribuirConfig = {
+      qtdePorColuna: 5,
+      qntTotal: 10,
+      espacamentoVertical: 50,
+      espacamentoHorizontal: 50,
+      margemSuperior: 0,
+      margemEsquerda: 0,
+      exibirDe: 0,
+      exibirAte: 0,
+      offsetInicial: 0,
+    };
 
-  const baseX = totalizadores.x + margemInternaX;
-  const baseY = totalizadores.y + margemInternaY;
+    const parlamentares = this.montarComponentesParlamentares(
+      yParlamentares,
+      defaultConfig
+    );
 
-  const votacaoSim: ComponenteEditor = {
-    id: 'voto-sim',
-    tipo: 'votacao-item',
-    x: baseX,
-    y: baseY,
-    width: larguraVotacaoItem,
-    height: alturaVotacaoItem,
-    props: { label: 'SIM', cor: '#22C55E', valor: 15 },
-    visible: true,
-  };
+    const componentesIniciais = [
+      imagem,
+      cabecalho,
+      titulo,
+      subtitulo,
+      descricao,
+      totalizadores,
+      votacaoTotal,
+      statusReuniao,
+      statusPresentes,
+      statusVotos,
 
-  const votacaoNao: ComponenteEditor = {
-    id: 'voto-nao',
-    tipo: 'votacao-item',
-    x: baseX,
-    y: baseY + alturaVotacaoItem + espacoVertical,
-    width: larguraVotacaoItem,
-    height: alturaVotacaoItem,
-    props: { label: 'NÃO', cor: '#F97316', valor: 6 },
-    visible: true,
-  };
+      votacaoSim,
+      votacaoNao,
+      votacaoAbstencao,
+      ...temporizadores,
+      ...parlamentares,
+    ];
 
-  const votacaoAbstencao: ComponenteEditor = {
-    id: 'voto-abstencao',
-    tipo: 'votacao-item',
-    x: baseX,
-    y: baseY + (alturaVotacaoItem + espacoVertical) * 2,
-    width: larguraVotacaoItem,
-    height: alturaVotacaoItem,
-    props: { label: 'ABSTENÇÃO', cor: '#FFCC66', valor: 20 },
-    visible: true,
-  };
+    const cenarioPadrao: Cenario = {
+      id: `cenario_${Date.now()}`,
+      nome: 'Novo Cenário',
+      targetWidth: 1920,
+      targetHeight: 1080,
+      backgroundImage: '',
+      componentes: componentesIniciais,
+    };
 
-  const statusReuniao: ComponenteEditor = {
-    id: 'status-reuniao',
-    tipo: 'status-reuniao',
-    x: xBase + totalizadores.width + espacamentoHorizontal,
-    y: yAtual,
-    width: 223,
-    height: statusReuniaoHeight,
-    visible: true,
-  };
-
-  // Temporizadores alinhados ao final da imagem
-  const temporizadoresBase = [
-    { id: 'temporizador-1', width: 127, height: 20, tempo: '00:00', icon: false },
-    { id: 'temporizador-2', width: 127, height: 20, tempo: '00:00', icon: false },
-    { id: 'temporizador-3', width: 172, height: 35, tempo: '08:45:10', icon: true },
-  ];
-
-  const alturaTemporizadores = Math.max(...temporizadoresBase.map((t) => t.height));
-  const yTemporizadores = yImagem + alturaImagem - alturaTemporizadores;
-
-  const temporizadores: ComponenteEditor[] = temporizadoresBase.map(
-    (item, index) => {
-      const x =
-        xBase +
-        temporizadoresBase
-          .slice(0, index)
-          .reduce((acc, prev) => acc + prev.width + espacamentoTemporizador, 0);
-
-      return {
-        id: item.id,
-        tipo: 'temporizador-item',
-        x,
-        y: yTemporizadores,
-        width: item.width,
-        height: item.height,
-        props: { tempo: item.tempo, icon: item.icon },
-        visible: true,
-      };
-    }
-  );
-
-  const margemParlamentares = 45;
-  const yParlamentares = yImagem + alturaImagem + margemParlamentares;
-  const defaultConfig: DistribuirConfig = {
-    qtdePorColuna: 5,
-    qntTotal: 10,
-    espacamentoVertical: 50,
-    espacamentoHorizontal: 50,
-    margemSuperior: 0,
-    margemEsquerda: 0,
-    exibirDe: 0,
-    exibirAte: 0,
-    offsetInicial: 0,
-  };
-
-  const parlamentares = this.montarComponentesParlamentares(yParlamentares, defaultConfig);
-
-  const componentesIniciais = [
-    imagem,
-    cabecalho,
-    titulo,
-    subtitulo,
-    descricao,
-    totalizadores,
-    votacaoTotal,
-    statusReuniao,
-    votacaoSim,
-    votacaoNao,
-    votacaoAbstencao,
-    ...temporizadores,
-    ...parlamentares,
-  ];
-
-  const cenarioPadrao: Cenario = {
-    id: `cenario_${Date.now()}`,       
-    nome: 'Novo Cenário',              
-    targetWidth: 1920,                 
-    targetHeight: 1080,
-    backgroundImage: '',               
-    componentes: componentesIniciais,  
-  };
-
-  return cenarioPadrao;
-}
+    return cenarioPadrao;
+  }
 
   private montarComponentesParlamentares(
     yBase: number = 480,
     config: DistribuirConfig
   ): ComponenteEditor[] {
     const larguraItem = 608;
-    const alturaItem = 39;
+    const alturaItem = 20;
     const xBase = 234;
     const larguraTotalItem = larguraItem + config.espacamentoHorizontal;
     const parlamentaresParaExibir = this.parlamentaresMock.slice(
@@ -603,8 +666,7 @@ private montarLayoutInicial(): Cenario {
     this.layoutService.salvarLayoutAtual(this.cenarioAtual);
   }
 
-  salvar() {
-
+  async salvar() {
     const nomeCenario = prompt(
       'Digite um nome para o cenário:',
       'novo-cenario'
@@ -614,20 +676,26 @@ private montarLayoutInicial(): Cenario {
       return;
     }
 
-    // Atualiza o nome no nosso objeto de estado 'cenarioAtual'
     this.cenarioAtual.nome = nomeCenario;
     const cenarioParaSalvar = JSON.parse(JSON.stringify(this.cenarioAtual));
 
-    this.layoutService.salvarCenario(cenarioParaSalvar); 
+    try {
+      await this.layoutService.salvarCenario(cenarioParaSalvar);
 
-    // converte para o formato antigo e exporta o arquivo .json
-    const layoutAntigo =
-      this.layoutExport.converterParaFormatoOriginal(this.cenarioAtual.componentes);
-    const blob = new Blob([JSON.stringify(layoutAntigo, null, 2)], {
-      type: 'application/json',
-    });
-    saveAs(blob, `${nomeCenario}.json`);
+      const layoutAntigo = this.layoutExport.converterParaFormatoOriginal(
+        this.cenarioAtual.componentes
+      );
+      const blob = new Blob([JSON.stringify(layoutAntigo, null, 2)], {
+        type: 'application/json',
+      });
+      saveAs(blob, `${nomeCenario}.json`);
 
-    alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
+      localStorage.removeItem('imagem_fundo_temporaria');
+
+      alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
+    } catch (error) {
+      console.error('Falha ao salvar o cenário:', error);
+      alert('Ocorreu um erro ao salvar o cenário. Tente novamente.');
+    }
   }
 }
