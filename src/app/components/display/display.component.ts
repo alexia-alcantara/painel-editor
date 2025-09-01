@@ -1,21 +1,47 @@
 import { FormsModule } from '@angular/forms';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Cenario } from '../../models/cenario.model';
 import { ActivatedRoute } from '@angular/router';
 import { LayoutService } from '../../services/layout.service';
 import { CommonModule } from '@angular/common';
 import { CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { ComponenteEditor } from '../../models/components.model';
+import { HeaderReuniaoComponent } from '../header-reuniao/header-reuniao.component';
+import { ImagemReuniaoComponent } from '../imagem-reuniao/imagem-reuniao.component';
+import { ParlamentarItemComponent } from '../parlamentar-item/parlamentar-item.component';
+import { VotacaoTotalComponent } from '../votacao-total/votacao-total.component';
+import { DescricaoReuniaoComponent } from '../descricao-reuniao/descricao-reuniao.component';
+import { TituloReuniaoComponent } from '../titulo-reuniao/titulo-reuniao.component';
+import { SubtituloReuniaoComponent } from '../subtitulo-reuniao/subtitulo-reuniao.component';
+import { StatusReuniaoComponent } from '../status-reuniao/status-reuniao.component';
+import { TemporizadorItemComponent } from '../temporizador-item/temporizador-item.component';
+import { VotoItemComponent } from '../votacao-total/voto-item/voto-item.component';
+import { StatusItemComponent } from '../status-reuniao/status-item/status-item.component';
 
 
 @Component({
   selector: 'app-display',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    DragDropModule,
+    HeaderReuniaoComponent,
+    ImagemReuniaoComponent,
+    ParlamentarItemComponent,
+    VotacaoTotalComponent,
+    DescricaoReuniaoComponent,
+    TituloReuniaoComponent,
+    SubtituloReuniaoComponent,
+    StatusReuniaoComponent,
+    TemporizadorItemComponent,
+    VotoItemComponent,
+    StatusItemComponent
+  ],
   templateUrl: './display.component.html',
   styleUrl: './display.component.css',
 })
-export class DisplayComponent {
+export class DisplayComponent implements OnInit{
   cenarioParaExibir: Cenario | null = null;
 
   constructor(

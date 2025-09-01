@@ -1,4 +1,3 @@
-// CÓDIGO FINAL PARA O SEU cenario-dialog.component.ts
 import { CommonModule } from '@angular/common';
 import { Component, Inject, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,11 +9,18 @@ import { LayoutService } from '../../services/layout.service';
 import { LayoutExportService } from '../../services/layout-export.service';
 import saveAs from 'file-saver';
 import { Cenario } from '../../models/cenario.model';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-cenario-dialog',
   standalone: true,
-  imports: [ CommonModule, MatDialogModule, MatButtonModule, MatListModule, MatIconModule ],
+  imports: [ 
+    CommonModule, 
+    MatDialogModule, 
+    MatButtonModule, 
+    MatListModule, 
+    MatIconModule,
+  ],
   templateUrl: './cenario-dialog.component.html',
   styleUrls: ['./cenario-dialog.component.css'],
 })
@@ -25,7 +31,8 @@ export class CenarioDialogComponent implements OnInit {
     public dialogRef: MatDialogRef<CenarioDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { layoutAtual: ComponenteEditor[] },
     private layoutService: LayoutService,
-    private layoutExportService: LayoutExportService
+    private layoutExportService: LayoutExportService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -36,9 +43,12 @@ export class CenarioDialogComponent implements OnInit {
     this.cenarios = this.layoutService.listarCenarios();
   }
 
-  carregarCenario(id: string): void {
-    const cenario = this.layoutService.carregarCenario(id);
-    this.dialogRef.close({ action: 'load', data: cenario });
+  carregarCenario(id: string): void{
+    //gera a url para a rota display
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/display', id])
+    );
+    window.open(url, '_blank');
   }
 
   removerCenario(id: string, nome: string): void {

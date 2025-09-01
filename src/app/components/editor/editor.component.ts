@@ -1,3 +1,4 @@
+import { Subscription } from 'rxjs';
 import {
   Component,
   ElementRef,
@@ -5,6 +6,8 @@ import {
   signal,
   ViewChild,
   AfterViewInit,
+  OnInit,
+  OnDestroy,
 } from '@angular/core';
 import { ComponenteEditor } from '../../models/components.model';
 import { LayoutService } from '../../services/layout.service';
@@ -74,7 +77,7 @@ import { StatusItemComponent } from '../status-reuniao/status-item/status-item.c
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
 })
-export class EditorComponent {
+export class EditorComponent implements OnInit, OnDestroy{
   @ViewChild('editorWrapper', { static: true }) editorWrapperRef!: ElementRef;
   @ViewChild(ContextMenuComponent)
   contextMenu!: ContextMenuComponent;
@@ -159,28 +162,37 @@ export class EditorComponent {
     }
   }
 
+  private routeSub: Subscription | undefined;
+
   ngOnInit() {
-    const idDoCenario = this.route.snapshot.paramMap.get('id');
-    let cenarioCarregado = null;
-    if (idDoCenario) {
-      cenarioCarregado = this.layoutService.carregarCenario(idDoCenario);
-    }
-
-    if (cenarioCarregado) {
-      this.cenarioAtual = cenarioCarregado;
-    } else {
-      this.cenarioAtual = this.montarLayoutInicial();
+    this.routeSub = this.route.params.subscribe((params) => {
+      const idDoCenario = params['id'];
+      let cenarioCarregado = null;
       if (idDoCenario) {
-        this.cenarioAtual.id = idDoCenario;
+        cenarioCarregado = this.layoutService.carregarCenario(idDoCenario);
       }
-    }
-    this.onItemChange();
 
-    const imagemTemporaria = localStorage.getItem('bg_temporary');
+      if (cenarioCarregado) {
+        this.cenarioAtual = cenarioCarregado;
+      } else {
+        this.cenarioAtual = this.montarLayoutInicial();
+        if (idDoCenario) {
+          this.cenarioAtual.id = idDoCenario;
+        }
+      }
+      this.onItemChange();
 
-    if (imagemTemporaria) {
-      console.log('Imagem de fundo encontrada. Aplicando...');
-      this.cenarioAtual.backgroundImage = imagemTemporaria;
+      const imagemTemporaria = localStorage.getItem('bg_temporary');
+      if (imagemTemporaria && !this.cenarioAtual.backgroundImage) {
+        console.log('Imagem de fundo encontrada. Aplicando...');
+        this.cenarioAtual.backgroundImage = imagemTemporaria;
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.routeSub) {
+      this.routeSub.unsubscribe();
     }
   }
 
