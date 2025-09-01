@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
-import { VotoItemComponent } from '../voto-item/voto-item.component';
+import { VotoItemComponent } from './voto-item/voto-item.component';
 
 @Component({
   selector: 'app-votacao-total',

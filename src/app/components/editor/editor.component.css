@@ -9,4 +9,5 @@
   padding: 1rem; 
   box-sizing: border-box;
   overflow-y: auto;
+  background: center center / cover no-repeat;
 }

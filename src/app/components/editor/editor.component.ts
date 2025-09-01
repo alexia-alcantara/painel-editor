@@ -41,7 +41,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { Cenario } from '../../models/cenario.model';
 import { FormsModule } from '@angular/forms';
 import { FonteService } from '../../services/fonte.service';
-import { StatusItemComponent } from "../status-reuniao/status-item/status-item.component";
+import { StatusItemComponent } from '../status-reuniao/status-item/status-item.component';
 
 @Component({
   selector: 'app-editor',
@@ -69,8 +69,8 @@ import { StatusItemComponent } from "../status-reuniao/status-item/status-item.c
     MatButtonModule,
     MatIconModule,
     ControleVisibilidadeComponent,
-    StatusItemComponent
-],
+    StatusItemComponent,
+  ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
 })
@@ -606,49 +606,42 @@ export class EditorComponent {
     yBase: number = 480,
     config: DistribuirConfig
   ): ComponenteEditor[] {
+    const numeroDeColunas = config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
+    const totalDeParlamentares = config.qntTotal;
+    if (numeroDeColunas <= 0) {
+      console.error('O número de colunas deve ser maior que zero.');
+      return [];
+    }
+
+    const parlamentaresParaExibir = this.parlamentaresMock.slice(
+      0,
+      totalDeParlamentares
+    );
+
+    // const itensPorColuna = Math.ceil(
+    //   parlamentaresParaExibir.length / numeroDeColunas
+    // );
+
+    if (parlamentaresParaExibir.length === 0) {
+      return [];
+    }
+
     const larguraItem = 608;
     const alturaItem = 20;
     const xBase = 234;
-    const larguraTotalItem = larguraItem + config.espacamentoHorizontal;
-    const parlamentaresParaExibir = this.parlamentaresMock.slice(
-      0,
-      config.qntTotal
-    );
-    const itensPorColunaConfigurado =
-      config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
-    const containerElement = this.editorWrapperRef.nativeElement as HTMLElement;
-    const containerWidth = containerElement.getBoundingClientRect().width;
-    const maxColumnsResponsivo = Math.max(
-      1,
-      Math.floor(
-        (containerWidth - xBase + config.espacamentoHorizontal) /
-          larguraTotalItem
-      )
-    );
-    const colunasRequeridasPeloUsuario = Math.ceil(
-      parlamentaresParaExibir.length / itensPorColunaConfigurado
-    );
-    const usarLogicaResponsiva =
-      colunasRequeridasPeloUsuario > maxColumnsResponsivo;
 
     return parlamentaresParaExibir.map((parlamentar, i) => {
-      let coluna: number;
-      let linha: number;
+      const linhaAtual = Math.floor(i / numeroDeColunas);
+      const colunaAtual = i % numeroDeColunas;
 
-      if (usarLogicaResponsiva) {
-        coluna = i % maxColumnsResponsivo;
-        linha = Math.floor(i / maxColumnsResponsivo);
-      } else {
-        coluna = Math.floor(i / itensPorColunaConfigurado);
-        linha = i % itensPorColunaConfigurado;
-      }
-
-      const posX = xBase + coluna * larguraTotalItem;
+      const posX =
+        xBase +
+        config.margemEsquerda +
+        colunaAtual * (larguraItem + config.espacamentoHorizontal);
       const posY =
         yBase +
         config.margemSuperior +
-        linha * (alturaItem + config.espacamentoVertical - 11);
-
+        linhaAtual * (alturaItem + config.espacamentoVertical);
       return {
         id: `parlamentar-${i}`,
         tipo: 'parlamentar',
@@ -661,6 +654,66 @@ export class EditorComponent {
       };
     });
   }
+
+  // private montarComponentesParlamentares(
+  //   yBase: number = 480,
+  //   config: DistribuirConfig
+  // ): ComponenteEditor[] {
+  //   const larguraItem = 608;
+  //   const alturaItem = 20;
+  //   const xBase = 234;
+  //   const larguraTotalItem = larguraItem + config.espacamentoHorizontal;
+  //   const parlamentaresParaExibir = this.parlamentaresMock.slice(
+  //     0,
+  //     config.qntTotal
+  //   );
+  //   const itensPorColunaConfigurado =
+  //     config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
+  //   const containerElement = this.editorWrapperRef.nativeElement as HTMLElement;
+  //   const containerWidth = containerElement.getBoundingClientRect().width;
+  //   const maxColumnsResponsivo = Math.max(
+  //     1,
+  //     Math.floor(
+  //       (containerWidth - xBase + config.espacamentoHorizontal) /
+  //         larguraTotalItem
+  //     )
+  //   );
+  //   const colunasRequeridasPeloUsuario = Math.ceil(
+  //     parlamentaresParaExibir.length / itensPorColunaConfigurado
+  //   );
+  //   const usarLogicaResponsiva =
+  //     colunasRequeridasPeloUsuario > maxColumnsResponsivo;
+
+  //   return parlamentaresParaExibir.map((parlamentar, i) => {
+  //     let coluna: number;
+  //     let linha: number;
+
+  //     if (usarLogicaResponsiva) {
+  //       coluna = i % maxColumnsResponsivo;
+  //       linha = Math.floor(i / maxColumnsResponsivo);
+  //     } else {
+  //       coluna = Math.floor(i / itensPorColunaConfigurado);
+  //       linha = i % itensPorColunaConfigurado;
+  //     }
+
+  //     const posX = xBase + coluna * larguraTotalItem;
+  //     const posY =
+  //       yBase +
+  //       config.margemSuperior +
+  //       linha * (alturaItem + config.espacamentoVertical - 11);
+
+  //     return {
+  //       id: `parlamentar-${i}`,
+  //       tipo: 'parlamentar',
+  //       x: posX,
+  //       y: posY,
+  //       width: larguraItem,
+  //       height: alturaItem,
+  //       dados: parlamentar,
+  //       visible: true,
+  //     };
+  //   });
+  // }
 
   onItemChange() {
     this.layoutService.salvarLayoutAtual(this.cenarioAtual);

@@ -8,6 +8,7 @@ export interface ComponenteEditor {
     | 'votacao-total'
     | 'votacao-item'
     | 'status-reuniao'
+    | 'status-item'
     | 'totalizadores'
     | 'imagem'
     | 'cabecalho'
