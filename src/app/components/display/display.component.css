@@ -1,0 +1,15 @@
+:host {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #1a202c;
+}
+
+.display-wrapper {
+  transform-origin: center center;
+  background-repeat: no-repeat;
+  position: relative; 
+}
