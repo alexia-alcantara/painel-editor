@@ -1,31 +1,46 @@
-
-.dialog-content {
-  min-width: 400px;
-  max-height: 60vh;
+:host ::ng-deep .mat-mdc-dialog-container .mdc-dialog__surface {
+  background-color: #f8fafc !important; 
+  border-radius: 12px;
 }
 
-.list-item-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between; 
+h1[mat-dialog-title] {
+  color: #1e293b; 
+  font-size: 1.5rem;
+  border-bottom: 1px solid #e2e8f0; 
+  padding-bottom: 1rem;
 }
 
-.list-item-actions {
-  display: flex;
+.bg-gray-800 {
+  background-color: transparent;
 }
 
-mat-list-item.item-selecionado {
-  background-color: rgba(68, 138, 255, 0.2); 
-  border-radius: 4px;
+.text-white {
+  color: #334155;
 }
 
-mat-list-item {
-  margin-bottom: 4px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
+li.bg-gray-700 {
+  background-color: #ffffff; 
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-mat-list-item:hover:not(.item-selecionado) {
-  background-color: rgba(255, 255, 255, 0.05);
+li.hover\:bg-gray-600:hover {
+  background-color: #f1f5f9; 
+}
+
+span.font-medium {
+  color: #1e293b;
+}
+
+button[mat-button] span.mat-mdc-button-persistent-ripple {
+  color: currentColor !important;
+}
+
+button[mat-stroked-button] {
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+button[mat-stroked-button]:hover {
+  background-color: #f1f5f9;
 }

@@ -217,7 +217,7 @@ private ajustarEscala(): void {
         console.log('Imagem de fundo encontrada. Aplicando...');
         this.cenarioAtual.backgroundImage = imagemTemporaria;
       }
-      this.sincronizarEstado();
+      this.dispararAutosave();
     });
   }
 
@@ -232,18 +232,6 @@ private ajustarEscala(): void {
     }
   }
 
-  // ngAfterViewInit() {
-  //   if (!this.modoEditor) return;
-
-  //   setTimeout(() => {
-  //     const cenarioSalvo = this.layoutService.carregarLayoutAtual();
-  //     if (cenarioSalvo) {
-  //       this.cenarioAtual = cenarioSalvo;
-  //     } else {
-  //       this.cenarioAtual = this.montarLayoutInicial();
-  //     }
-  //   }, 0);
-  // }
 
   toggleControleVisibilidade(): void {
     this.mostrarControleVisibilidade = !this.mostrarControleVisibilidade;
@@ -307,25 +295,24 @@ private ajustarEscala(): void {
     const layoutFinal = [...componentesSemParlamentares, ...novosParlamentares];
     this.cenarioAtual.componentes = layoutFinal;
 
-    this.sincronizarEstado();
+    this.dispararAutosave();
   }
 
-  onDragEnd(event: CdkDragEnd, item: ComponenteEditor) {
-    const position = event.source.getFreeDragPosition();
+onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
+  const novaPosicao = event.source.getFreeDragPosition();
 
-    const componentesAtualizados = this.cenarioAtual.componentes.map((c) =>
-      c.id === item.id
-        ? { ...c, x: Math.round(position.x), y: Math.round(position.y) }
-        : c
-    );
+  console.log(`[DRAG END] Item: ${itemArrastado.id}, Nova Posição: X=${Math.round(novaPosicao.x)}, Y=${Math.round(novaPosicao.y)}`);
 
-    this.cenarioAtual.componentes = componentesAtualizados;
-
-    this.sincronizarEstado();
+  const index = this.cenarioAtual.componentes.findIndex(c => c.id === itemArrastado.id);
+  if (index !== -1) {
+    this.cenarioAtual.componentes[index].x = Math.round(novaPosicao.x);
+    this.cenarioAtual.componentes[index].y = Math.round(novaPosicao.y);
+    this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
+    this.dispararAutosave();
   }
+}
 
   onRightClick(event: MouseEvent, component: ComponenteEditor) {
-    // 1. Previne o menu padrão do navegador de aparecer
     event.preventDefault();
 
     if (this.contextMenu) {
@@ -418,7 +405,7 @@ private ajustarEscala(): void {
         {
           subId: 'subtitulo-texto',
           label: 'Subtítulo da Reunião',
-          font: { ...defaultFont, size: 18, weight: 'normal' }, // Defina uma fonte inicial
+          font: { ...defaultFont, size: 18, weight: 'normal' },
         },
       ],
     };
@@ -443,7 +430,7 @@ private ajustarEscala(): void {
     };
     yAtual += descricao.height + 12;
 
-    // Blocos Totalizadores
+    // Totalizadores
     const totalizadores: ComponenteEditor = {
       id: 'totalizadores',
       tipo: 'totalizadores',
@@ -455,15 +442,6 @@ private ajustarEscala(): void {
       visible: true,
     };
 
-    const votacaoTotal: ComponenteEditor = {
-      id: 'votacao-total',
-      tipo: 'votacao-total',
-      x: xBase + totalizadores.width + espacamentoHorizontal,
-      y: yAtual,
-      width: 250,
-      height: statusReuniaoHeight,
-      visible: true,
-    };
 
     const margemInternaX = 10; // margem lateral dentro da caixa
     const margemInternaY = 10; // margem superior
@@ -547,7 +525,7 @@ private ajustarEscala(): void {
       visible: true,
     };
 
-    // Temporizadores alinhados ao final da imagem
+    // Temporizadores 
     const temporizadoresBase = [
       {
         id: 'temporizador-1',
@@ -627,7 +605,7 @@ private ajustarEscala(): void {
       subtitulo,
       descricao,
       totalizadores,
-      votacaoTotal,
+      // votacaoTotal,
       statusReuniao,
       statusPresentes,
       statusVotos,
@@ -655,7 +633,6 @@ private ajustarEscala(): void {
     yBase: number = 480,
     config: DistribuirConfig
   ): ComponenteEditor[] {
-    // Renomeamos a variável para maior clareza
     const itensPorColuna = config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
     const totalDeParlamentares = config.qntTotal;
 
@@ -702,50 +679,56 @@ private ajustarEscala(): void {
     this.layoutService.salvarLayoutAtual(this.cenarioAtual);
   }
 
-  async salvar() {
-    const idDoCenarioNaUrl = this.route.snapshot.paramMap.get('id');
-    if (!idDoCenarioNaUrl) {
-      alert('Não foi possível identificar o ID do cenário na URL.');
-      return;
-    }
-
-    const nomeCenario = prompt(
-      'Digite um nome para o cenário:',
-      this.cenarioAtual.nome || 'novo-cenario'
-    );
-
-    if (!nomeCenario) {
-      return;
-    }
-
-    this.sincronizarEstado();
-
-    const cenarioParaSalvar: Cenario = {
-      ...this.cenarioAtual,
-      id: idDoCenarioNaUrl,
-      nome: nomeCenario,
-    };
-
-    try {
-      await this.layoutService.salvarCenario(cenarioParaSalvar);
-
-      const layoutAntigo = this.layoutExport.converterParaFormatoOriginal(
-        cenarioParaSalvar.componentes
-      );
-      const blob = new Blob([JSON.stringify(layoutAntigo, null, 2)], {
-        type: 'application/json',
-      });
-      saveAs(blob, `${nomeCenario}.json`);
-
-      localStorage.removeItem('bg_temporary');
-      alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
-    } catch (error) {
-      console.error('Falha grave ao salvar o cenário:', error);
-      alert('Ocorreu um erro ao salvar o cenário.');
-    }
+async salvar() {
+  const idDoCenarioNaUrl = this.route.snapshot.paramMap.get('id');
+  if (!idDoCenarioNaUrl) {
+    alert('ERRO: Não foi possível identificar o ID do cenário na URL.');
+    return;
   }
 
-  private sincronizarEstado(): void {
+  const nomeCenario = prompt(
+    'Digite um nome para o cenário:',
+    this.cenarioAtual.nome || 'novo-cenario'
+  );
+
+  if (!nomeCenario) {
+    return; // Usuário cancelou
+  }
+
+  // --- INÍCIO DA CORREÇÃO ---
+
+  // 1. Cria uma CÓPIA PROFUNDA e 100% independente do estado atual.
+  //    Nenhum processo "fantasma" pode alterar este clone.
+  const cenarioParaSalvar = structuredClone(this.cenarioAtual);
+
+  // 2. Atualiza a ID e o nome no clone, não no objeto original.
+  cenarioParaSalvar.id = idDoCenarioNaUrl;
+  cenarioParaSalvar.nome = nomeCenario;
+  
+  // --- FIM DA CORREÇÃO ---
+
+  try {
+    // 3. Passa a cópia segura e imutável para o serviço.
+    this.layoutService.salvarCenario(cenarioParaSalvar);
+
+    // 4. LÓGICA DE DOWNLOAD RESTAURADA
+    const layoutParaExportar = this.layoutExport.converterParaFormatoOriginal(
+      cenarioParaSalvar.componentes
+    );
+    const blob = new Blob([JSON.stringify(layoutParaExportar, null, 2)], {
+      type: 'application/json',
+    });
+    saveAs(blob, `${nomeCenario}.json`); // Pede para o usuário salvar o arquivo
+
+    alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
+
+  } catch (error) {
+    console.error('Falha grave ao salvar o cenário:', error);
+    alert('Ocorreu um erro ao salvar o cenário.');
+  }
+}
+
+  private dispararAutosave(): void {
     this.componentes.set(this.cenarioAtual.componentes);
     this.onItemChange();
   }
