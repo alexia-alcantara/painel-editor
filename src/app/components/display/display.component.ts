@@ -124,27 +124,33 @@ export class DisplayComponent implements OnInit, AfterViewInit {
     this.ajustarEscala();
   }
 
-  private ajustarEscala(): void {
-    if (!this.wrapper || !this.cenarioParaExibir) {
-      return;
-    }
+private ajustarEscala(): void {
+  const wrapperRef = (this as any).editorWrapperRef || (this as any).wrapper;
+  
+  const cenario = (this as any).cenarioAtual || (this as any).cenarioParaExibir;
 
-    const host = this.hostElement.nativeElement;
-    const target = this.wrapper.nativeElement;
-
-    const hostWidth = host.clientWidth;
-    const hostHeight = host.clientHeight;
-
-    const targetWidth = this.cenarioParaExibir.targetWidth;
-    const targetHeight = this.cenarioParaExibir.targetHeight;
-
-    const scaleX = hostWidth / targetWidth;
-    const scaleY = hostHeight / targetHeight;
-
-    const scale = Math.min(scaleX, scaleY);
-
-    this.renderer.setStyle(target, 'transform', `scale(${scale})`);
+  if (!wrapperRef || !cenario) {
+    return;
   }
+
+  const container = wrapperRef.nativeElement.parentElement;
+  const target = wrapperRef.nativeElement;
+
+  if (!container) return;
+
+  const containerWidth = container.clientWidth;
+  const containerHeight = container.clientHeight;
+
+  const targetWidth = cenario.targetWidth;
+  const targetHeight = cenario.targetHeight;
+
+  const scaleX = containerWidth / targetWidth;
+  const scaleY = containerHeight / targetHeight;
+
+  const scale = Math.min(scaleX, scaleY);
+
+  this.renderer.setStyle(target, 'transform', `scale(${scale})`);
+}
 
   onDragEnd(event: CdkDragEnd, item: ComponenteEditor) {
     const position = event.source.getFreeDragPosition();

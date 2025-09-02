@@ -9,7 +9,7 @@
 }
 
 .display-wrapper {
+  position: relative !important; 
   transform-origin: center center;
   background-repeat: no-repeat;
-  position: relative; 
 }
