@@ -49,12 +49,14 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
 
   grupos: FonteGrupo[] = [];
   layoutCompleto: ComponenteEditor[] = [];
+  public isEditorMode: boolean = true;
 
   constructor(
     private dialog: MatDialog, 
     private fonteService: FonteService,
     private layoutService: LayoutService
   ) {}
+
 
   async ngOnInit() {
     document.addEventListener('click', this.onDocumentClick);
@@ -132,9 +134,16 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
     this.close();
   }
 
-  open(event: MouseEvent, item: ComponenteEditor | undefined, layout: ComponenteEditor[]) {
+  open(
+    event: MouseEvent, 
+    item: ComponenteEditor | undefined, 
+    layout: ComponenteEditor[],
+    isEditor: boolean = true
+  ) {
   event.preventDefault();
   event.stopPropagation();
+
+  this.isEditorMode = isEditor;
 
   this.opacity = 0;
   this.x = -9999;
