@@ -6,7 +6,7 @@
 
   @for (item of cenarioParaExibir.componentes; track item.id) {
   @if (item.visible) {
-  <div class="component-box absolute" [style.width.px]="item.width" [style.height.px]="item.height" cdkDrag
+  <div class="component-box absolute cursor-grab" [style.width.px]="item.width" [style.height.px]="item.height" cdkDrag
     [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }" (cdkDragEnded)="onDragEnd($event, item)"
     (contextmenu)="onRightClick($event, item)">
 
