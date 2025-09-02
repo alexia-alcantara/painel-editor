@@ -77,7 +77,7 @@ import { StatusItemComponent } from '../status-reuniao/status-item/status-item.c
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
 })
-export class EditorComponent implements OnInit, OnDestroy{
+export class EditorComponent implements OnInit, OnDestroy {
   @ViewChild('editorWrapper', { static: true }) editorWrapperRef!: ElementRef;
   @ViewChild(ContextMenuComponent)
   contextMenu!: ContextMenuComponent;
@@ -153,12 +153,13 @@ export class EditorComponent implements OnInit, OnDestroy{
   }
 
   onComponentVisibilityChange(event: { id: string; visivel: boolean }) {
-    const componentesAtuais = this.componentes();
-    const compIndex = componentesAtuais.findIndex((c) => c.id === event.id);
+    const compIndex = this.cenarioAtual.componentes.findIndex(
+      (c) => c.id === event.id
+    );
 
     if (compIndex > -1) {
-      componentesAtuais[compIndex].visible = event.visivel;
-      this.componentes.set([...componentesAtuais]);
+      this.cenarioAtual.componentes[compIndex].visible = event.visivel;
+      this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
     }
   }
 
@@ -187,6 +188,7 @@ export class EditorComponent implements OnInit, OnDestroy{
         console.log('Imagem de fundo encontrada. Aplicando...');
         this.cenarioAtual.backgroundImage = imagemTemporaria;
       }
+      this.sincronizarEstado();
     });
   }
 
@@ -270,7 +272,8 @@ export class EditorComponent implements OnInit, OnDestroy{
     );
     const layoutFinal = [...componentesSemParlamentares, ...novosParlamentares];
     this.cenarioAtual.componentes = layoutFinal;
-    this.layoutService.salvarLayoutAtual(this.cenarioAtual);
+
+    this.sincronizarEstado();
   }
 
   onDragEnd(event: CdkDragEnd, item: ComponenteEditor) {
@@ -284,7 +287,7 @@ export class EditorComponent implements OnInit, OnDestroy{
 
     this.cenarioAtual.componentes = componentesAtualizados;
 
-    this.onItemChange();
+    this.sincronizarEstado();
   }
 
   onRightClick(event: MouseEvent, component: ComponenteEditor) {
@@ -614,153 +617,105 @@ export class EditorComponent implements OnInit, OnDestroy{
     return cenarioPadrao;
   }
 
+
   private montarComponentesParlamentares(
-    yBase: number = 480,
-    config: DistribuirConfig
-  ): ComponenteEditor[] {
-    const numeroDeColunas = config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
-    const totalDeParlamentares = config.qntTotal;
-    if (numeroDeColunas <= 0) {
-      console.error('O número de colunas deve ser maior que zero.');
-      return [];
-    }
+  yBase: number = 480,
+  config: DistribuirConfig
+): ComponenteEditor[] {
+  // Renomeamos a variável para maior clareza
+  const itensPorColuna = config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
+  const totalDeParlamentares = config.qntTotal;
+  
+  const parlamentaresParaExibir = this.parlamentaresMock.slice(
+    0,
+    totalDeParlamentares
+  );
 
-    const parlamentaresParaExibir = this.parlamentaresMock.slice(
-      0,
-      totalDeParlamentares
-    );
-
-    // const itensPorColuna = Math.ceil(
-    //   parlamentaresParaExibir.length / numeroDeColunas
-    // );
-
-    if (parlamentaresParaExibir.length === 0) {
-      return [];
-    }
-
-    const larguraItem = 608;
-    const alturaItem = 20;
-    const xBase = 234;
-
-    return parlamentaresParaExibir.map((parlamentar, i) => {
-      const linhaAtual = Math.floor(i / numeroDeColunas);
-      const colunaAtual = i % numeroDeColunas;
-
-      const posX =
-        xBase +
-        config.margemEsquerda +
-        colunaAtual * (larguraItem + config.espacamentoHorizontal);
-      const posY =
-        yBase +
-        config.margemSuperior +
-        linhaAtual * (alturaItem + config.espacamentoVertical);
-      return {
-        id: `parlamentar-${i}`,
-        tipo: 'parlamentar',
-        x: posX,
-        y: posY,
-        width: larguraItem,
-        height: alturaItem,
-        dados: parlamentar,
-        visible: true,
-      };
-    });
+  if (parlamentaresParaExibir.length === 0) {
+    return [];
   }
 
-  // private montarComponentesParlamentares(
-  //   yBase: number = 480,
-  //   config: DistribuirConfig
-  // ): ComponenteEditor[] {
-  //   const larguraItem = 608;
-  //   const alturaItem = 20;
-  //   const xBase = 234;
-  //   const larguraTotalItem = larguraItem + config.espacamentoHorizontal;
-  //   const parlamentaresParaExibir = this.parlamentaresMock.slice(
-  //     0,
-  //     config.qntTotal
-  //   );
-  //   const itensPorColunaConfigurado =
-  //     config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
-  //   const containerElement = this.editorWrapperRef.nativeElement as HTMLElement;
-  //   const containerWidth = containerElement.getBoundingClientRect().width;
-  //   const maxColumnsResponsivo = Math.max(
-  //     1,
-  //     Math.floor(
-  //       (containerWidth - xBase + config.espacamentoHorizontal) /
-  //         larguraTotalItem
-  //     )
-  //   );
-  //   const colunasRequeridasPeloUsuario = Math.ceil(
-  //     parlamentaresParaExibir.length / itensPorColunaConfigurado
-  //   );
-  //   const usarLogicaResponsiva =
-  //     colunasRequeridasPeloUsuario > maxColumnsResponsivo;
+  const larguraItem = 608;
+  const alturaItem = 20;
+  const xBase = 234;
 
-  //   return parlamentaresParaExibir.map((parlamentar, i) => {
-  //     let coluna: number;
-  //     let linha: number;
-
-  //     if (usarLogicaResponsiva) {
-  //       coluna = i % maxColumnsResponsivo;
-  //       linha = Math.floor(i / maxColumnsResponsivo);
-  //     } else {
-  //       coluna = Math.floor(i / itensPorColunaConfigurado);
-  //       linha = i % itensPorColunaConfigurado;
-  //     }
-
-  //     const posX = xBase + coluna * larguraTotalItem;
-  //     const posY =
-  //       yBase +
-  //       config.margemSuperior +
-  //       linha * (alturaItem + config.espacamentoVertical - 11);
-
-  //     return {
-  //       id: `parlamentar-${i}`,
-  //       tipo: 'parlamentar',
-  //       x: posX,
-  //       y: posY,
-  //       width: larguraItem,
-  //       height: alturaItem,
-  //       dados: parlamentar,
-  //       visible: true,
-  //     };
-  //   });
-  // }
+  return parlamentaresParaExibir.map((parlamentar, i) => {
+    const colunaAtual = Math.floor(i / itensPorColuna);
+    const linhaAtual = i % itensPorColuna;
+    
+    const posX =
+      xBase +
+      config.margemEsquerda +
+      colunaAtual * (larguraItem + config.espacamentoHorizontal);
+    const posY =
+      yBase +
+      config.margemSuperior +
+      linhaAtual * (alturaItem + config.espacamentoVertical);
+      
+    return {
+      id: `parlamentar-${i}`,
+      tipo: 'parlamentar',
+      x: posX,
+      y: posY,
+      width: larguraItem,
+      height: alturaItem,
+      dados: parlamentar,
+      visible: true,
+    };
+  });
+}
 
   onItemChange() {
     this.layoutService.salvarLayoutAtual(this.cenarioAtual);
   }
 
-  async salvar() {
-    const nomeCenario = prompt(
-      'Digite um nome para o cenário:',
-      'novo-cenario'
+
+async salvar() {
+  const idDoCenarioNaUrl = this.route.snapshot.paramMap.get('id');
+  if (!idDoCenarioNaUrl) {
+    alert('Não foi possível identificar o ID do cenário na URL.');
+    return;
+  }
+
+  const nomeCenario = prompt(
+    'Digite um nome para o cenário:',
+    this.cenarioAtual.nome || 'novo-cenario'
+  );
+
+  if (!nomeCenario) {
+    return; 
+  }
+
+  this.sincronizarEstado();
+
+  const cenarioParaSalvar: Cenario = {
+    ...this.cenarioAtual,
+    id: idDoCenarioNaUrl, 
+    nome: nomeCenario,    
+  };
+
+  try {
+    await this.layoutService.salvarCenario(cenarioParaSalvar);
+
+    const layoutAntigo = this.layoutExport.converterParaFormatoOriginal(
+      cenarioParaSalvar.componentes
     );
+    const blob = new Blob([JSON.stringify(layoutAntigo, null, 2)], {
+      type: 'application/json',
+    });
+    saveAs(blob, `${nomeCenario}.json`);
 
-    if (!nomeCenario) {
-      return;
-    }
+    localStorage.removeItem('bg_temporary');
+    alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
 
-    this.cenarioAtual.nome = nomeCenario;
-    const cenarioParaSalvar = JSON.parse(JSON.stringify(this.cenarioAtual));
+  } catch (error) {
+    console.error('Falha grave ao salvar o cenário:', error);
+    alert('Ocorreu um erro ao salvar o cenário.');
+  }
+}
 
-    try {
-      await this.layoutService.salvarCenario(cenarioParaSalvar);
-
-      const layoutAntigo = this.layoutExport.converterParaFormatoOriginal(
-        this.cenarioAtual.componentes
-      );
-      const blob = new Blob([JSON.stringify(layoutAntigo, null, 2)], {
-        type: 'application/json',
-      });
-      saveAs(blob, `${nomeCenario}.json`);
-
-      localStorage.removeItem('imagem_fundo_temporaria');
-
-      alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
-    } catch (error) {
-      console.error('Falha ao salvar o cenário:', error);
-      alert('Ocorreu um erro ao salvar o cenário. Tente novamente.');
-    }
+  private sincronizarEstado(): void {
+    this.componentes.set(this.cenarioAtual.componentes);
+    this.onItemChange();
   }
 }
