@@ -8,6 +8,8 @@ import {
   AfterViewInit,
   OnInit,
   OnDestroy,
+  Renderer2,
+  HostListener,
 } from '@angular/core';
 import { ComponenteEditor } from '../../models/components.model';
 import { LayoutService } from '../../services/layout.service';
@@ -77,7 +79,7 @@ import { StatusItemComponent } from '../status-reuniao/status-item/status-item.c
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
 })
-export class EditorComponent implements OnInit, OnDestroy {
+export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('editorWrapper', { static: true }) editorWrapperRef!: ElementRef;
   @ViewChild(ContextMenuComponent)
   contextMenu!: ContextMenuComponent;
@@ -131,8 +133,35 @@ export class EditorComponent implements OnInit, OnDestroy {
     private layoutService: LayoutService,
     private route: ActivatedRoute,
     private layoutExport: LayoutExportService,
-    private fonteService: FonteService
+    private fonteService: FonteService,
+    private renderer: Renderer2,
+    private hostElement: ElementRef
   ) {}
+
+
+  @HostListener('window:resize')
+  onResize(): void {
+    this.ajustarEscala();
+  }
+
+private ajustarEscala(): void {
+  const wrapperRef = this.editorWrapperRef;
+  if (!wrapperRef || !this.cenarioAtual) {
+    return;
+  }
+
+  const container = wrapperRef.nativeElement.parentElement;
+  const target = wrapperRef.nativeElement;
+
+  if (!container) return;
+
+  const containerWidth = container.clientWidth;
+  const targetWidth = this.cenarioAtual.targetWidth;
+
+  const scale = containerWidth / targetWidth;
+
+  this.renderer.setStyle(target, 'transform', `scale(${scale})`);
+}
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -192,24 +221,29 @@ export class EditorComponent implements OnInit, OnDestroy {
     });
   }
 
+   ngAfterViewInit(): void {
+    setTimeout(() => this.ajustarEscala(), 0);
+  }
+
+
   ngOnDestroy() {
     if (this.routeSub) {
       this.routeSub.unsubscribe();
     }
   }
 
-  ngAfterViewInit() {
-    if (!this.modoEditor) return;
+  // ngAfterViewInit() {
+  //   if (!this.modoEditor) return;
 
-    setTimeout(() => {
-      const cenarioSalvo = this.layoutService.carregarLayoutAtual();
-      if (cenarioSalvo) {
-        this.cenarioAtual = cenarioSalvo;
-      } else {
-        this.cenarioAtual = this.montarLayoutInicial();
-      }
-    }, 0);
-  }
+  //   setTimeout(() => {
+  //     const cenarioSalvo = this.layoutService.carregarLayoutAtual();
+  //     if (cenarioSalvo) {
+  //       this.cenarioAtual = cenarioSalvo;
+  //     } else {
+  //       this.cenarioAtual = this.montarLayoutInicial();
+  //     }
+  //   }, 0);
+  // }
 
   toggleControleVisibilidade(): void {
     this.mostrarControleVisibilidade = !this.mostrarControleVisibilidade;
@@ -617,102 +651,99 @@ export class EditorComponent implements OnInit, OnDestroy {
     return cenarioPadrao;
   }
 
-
   private montarComponentesParlamentares(
-  yBase: number = 480,
-  config: DistribuirConfig
-): ComponenteEditor[] {
-  // Renomeamos a variável para maior clareza
-  const itensPorColuna = config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
-  const totalDeParlamentares = config.qntTotal;
-  
-  const parlamentaresParaExibir = this.parlamentaresMock.slice(
-    0,
-    totalDeParlamentares
-  );
+    yBase: number = 480,
+    config: DistribuirConfig
+  ): ComponenteEditor[] {
+    // Renomeamos a variável para maior clareza
+    const itensPorColuna = config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
+    const totalDeParlamentares = config.qntTotal;
 
-  if (parlamentaresParaExibir.length === 0) {
-    return [];
+    const parlamentaresParaExibir = this.parlamentaresMock.slice(
+      0,
+      totalDeParlamentares
+    );
+
+    if (parlamentaresParaExibir.length === 0) {
+      return [];
+    }
+
+    const larguraItem = 608;
+    const alturaItem = 20;
+    const xBase = 234;
+
+    return parlamentaresParaExibir.map((parlamentar, i) => {
+      const colunaAtual = Math.floor(i / itensPorColuna);
+      const linhaAtual = i % itensPorColuna;
+
+      const posX =
+        xBase +
+        config.margemEsquerda +
+        colunaAtual * (larguraItem + config.espacamentoHorizontal);
+      const posY =
+        yBase +
+        config.margemSuperior +
+        linhaAtual * (alturaItem + config.espacamentoVertical);
+
+      return {
+        id: `parlamentar-${i}`,
+        tipo: 'parlamentar',
+        x: posX,
+        y: posY,
+        width: larguraItem,
+        height: alturaItem,
+        dados: parlamentar,
+        visible: true,
+      };
+    });
   }
-
-  const larguraItem = 608;
-  const alturaItem = 20;
-  const xBase = 234;
-
-  return parlamentaresParaExibir.map((parlamentar, i) => {
-    const colunaAtual = Math.floor(i / itensPorColuna);
-    const linhaAtual = i % itensPorColuna;
-    
-    const posX =
-      xBase +
-      config.margemEsquerda +
-      colunaAtual * (larguraItem + config.espacamentoHorizontal);
-    const posY =
-      yBase +
-      config.margemSuperior +
-      linhaAtual * (alturaItem + config.espacamentoVertical);
-      
-    return {
-      id: `parlamentar-${i}`,
-      tipo: 'parlamentar',
-      x: posX,
-      y: posY,
-      width: larguraItem,
-      height: alturaItem,
-      dados: parlamentar,
-      visible: true,
-    };
-  });
-}
 
   onItemChange() {
     this.layoutService.salvarLayoutAtual(this.cenarioAtual);
   }
 
+  async salvar() {
+    const idDoCenarioNaUrl = this.route.snapshot.paramMap.get('id');
+    if (!idDoCenarioNaUrl) {
+      alert('Não foi possível identificar o ID do cenário na URL.');
+      return;
+    }
 
-async salvar() {
-  const idDoCenarioNaUrl = this.route.snapshot.paramMap.get('id');
-  if (!idDoCenarioNaUrl) {
-    alert('Não foi possível identificar o ID do cenário na URL.');
-    return;
-  }
-
-  const nomeCenario = prompt(
-    'Digite um nome para o cenário:',
-    this.cenarioAtual.nome || 'novo-cenario'
-  );
-
-  if (!nomeCenario) {
-    return; 
-  }
-
-  this.sincronizarEstado();
-
-  const cenarioParaSalvar: Cenario = {
-    ...this.cenarioAtual,
-    id: idDoCenarioNaUrl, 
-    nome: nomeCenario,    
-  };
-
-  try {
-    await this.layoutService.salvarCenario(cenarioParaSalvar);
-
-    const layoutAntigo = this.layoutExport.converterParaFormatoOriginal(
-      cenarioParaSalvar.componentes
+    const nomeCenario = prompt(
+      'Digite um nome para o cenário:',
+      this.cenarioAtual.nome || 'novo-cenario'
     );
-    const blob = new Blob([JSON.stringify(layoutAntigo, null, 2)], {
-      type: 'application/json',
-    });
-    saveAs(blob, `${nomeCenario}.json`);
 
-    localStorage.removeItem('bg_temporary');
-    alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
+    if (!nomeCenario) {
+      return;
+    }
 
-  } catch (error) {
-    console.error('Falha grave ao salvar o cenário:', error);
-    alert('Ocorreu um erro ao salvar o cenário.');
+    this.sincronizarEstado();
+
+    const cenarioParaSalvar: Cenario = {
+      ...this.cenarioAtual,
+      id: idDoCenarioNaUrl,
+      nome: nomeCenario,
+    };
+
+    try {
+      await this.layoutService.salvarCenario(cenarioParaSalvar);
+
+      const layoutAntigo = this.layoutExport.converterParaFormatoOriginal(
+        cenarioParaSalvar.componentes
+      );
+      const blob = new Blob([JSON.stringify(layoutAntigo, null, 2)], {
+        type: 'application/json',
+      });
+      saveAs(blob, `${nomeCenario}.json`);
+
+      localStorage.removeItem('bg_temporary');
+      alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
+    } catch (error) {
+      console.error('Falha grave ao salvar o cenário:', error);
+      alert('Ocorreu um erro ao salvar o cenário.');
+    }
   }
-}
 
   private sincronizarEstado(): void {
     this.componentes.set(this.cenarioAtual.componentes);

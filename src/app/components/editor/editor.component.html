@@ -12,16 +12,22 @@
   <input type="file" (change)="onFileSelected($event)" class="text-sm">
 </div>
 
+<div class="editor-container">
+<div #editorWrapper class="editor-wrapper"
+       [style.background-image]="cenarioAtual.backgroundImage ? 'url(' + cenarioAtual.backgroundImage + ')' : 'none'"
+       [style.width.px]="cenarioAtual.targetWidth"
+       [style.height.px]="cenarioAtual.targetHeight">
 
-<div #editorWrapper class="editor-wrapper relative w-full h-screen bg-[#18262D] overflow-y-auto"
-  [style.background-image]="'url(' + cenarioAtual.backgroundImage + ')'"
-  [style.aspect-ratio]="cenarioAtual.targetWidth / cenarioAtual.targetHeight">
   @for (item of cenarioAtual.componentes; track item.id) {
   @if (item) {
   <ng-container>
-    <div class="componente-box absolute rounded cursor-grab " cdkDrag [style.display]="item.visible ? 'block' : 'none'"
-      (contextmenu)="onRightClick($event, item)" [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }"
-      (cdkDragEnded)="onDragEnd($event, item)" [style.width.px]="item.width" [style.height.px]="item.height"
+    <div class="componente-box absolute rounded cursor-grab " cdkDrag
+      [style.display]="item.visible ? 'block' : 'none'"
+      (contextmenu)="onRightClick($event, item)"
+      [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }"
+      (cdkDragEnded)="onDragEnd($event, item)"
+      [style.width.px]="item.width"
+      [style.height.px]="item.height"
       cdkDragBoundary=".editor-wrapper">
       @switch(item.tipo) {
       @case('parlamentar') {
@@ -85,6 +91,9 @@
   }
   <app-context-menu #contextMenu (action)="onMenuAction($event)"></app-context-menu>
 </div>
+</div>
+
+
 
 <button mat-fab color="primary" (click)="salvar()" title="Salvar Cenário"
   style="position: fixed; right: 20px; bottom: 20px;">

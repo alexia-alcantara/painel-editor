@@ -1,13 +1,28 @@
 :host {
-  display: block;
-  height: 100vh; 
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.config-panel {
+  flex-shrink: 0;
+}
+
+.editor-container {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: #1a202c;
 }
 
 .editor-wrapper {
-  width: 100%;
-  height: 100%;
-  padding: 1rem; 
-  box-sizing: border-box;
-  overflow-y: auto;
-  background: center center / cover no-repeat;
+  position: relative !important;
+  transform-origin: top center; 
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
