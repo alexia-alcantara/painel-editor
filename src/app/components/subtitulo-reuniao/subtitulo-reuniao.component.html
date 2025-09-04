@@ -1,10 +1,10 @@
 <div class="text-center px-4 py-3 max-w-[430px]">
-  <p class="text-white mt-1" [ngStyle]="{
-    'font-family': fontConfig?.family || 'Inter, sans-serif',
-    'font-size.px': fontConfig?.size || 18,
-    'color': fontConfig?.color || '#FFFFFF',
-    'font-weight': fontConfig?.weight || 'normal',
-    'font-style': fontConfig?.style || 'normal'
+ <p class="text-white mt-1" [ngStyle]="{
+    'font-family': fontConfig()?.family || 'Inter, sans-serif',
+    'font-size.px': fontConfig()?.size || 18,
+    'color': fontConfig()?.color || '#FFFFFF',
+    'font-weight': fontConfig()?.weight || 'normal',
+    'font-style': fontConfig()?.style || 'normal'
   }">
     SUBTÍTULO DESCRITIVO
   </p>

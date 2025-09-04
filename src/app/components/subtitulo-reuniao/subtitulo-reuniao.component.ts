@@ -1,6 +1,7 @@
-import { Component, Input, SimpleChanges } from '@angular/core';
-import { FontConfig } from '../../models/fontes.model';
+import { Component, computed, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FontConfig } from '../../models/fontes.model';
+import { FonteService } from '../../services/fonte.service';
 
 @Component({
   selector: 'app-subtitulo-reuniao',
@@ -10,13 +11,15 @@ import { CommonModule } from '@angular/common';
   styleUrl: './subtitulo-reuniao.component.css'
 })
 export class SubtituloReuniaoComponent {
- @Input() fontConfig: FontConfig | undefined;
+  
+  fontConfig: Signal<FontConfig | undefined>;
 
-  constructor() {}
-
-  ngOnChanges(changes: SimpleChanges) {
-    if (changes['fontConfig']) {
-      console.warn('FONTE RECEBIDA E ATUALIZADA:', this.fontConfig);
-    }
+  constructor(private fonteService: FonteService) {
+    this.fontConfig = computed(() => {
+      const grupo = this.fonteService.grupos().find(g => g.tipo === 'subtitulo');
+      const config = grupo?.subItens.find(f => f.subId === 'subtitulo-texto')?.font;
+      console.log('FONTE DO SUBTÍTULO RECALCULADA:', config); 
+      return config;
+    });
   }
 }
