@@ -10,7 +10,6 @@ import { Component, Input } from '@angular/core';
 })
 export class StatusItemComponent {
 
-  @Input() width: number = 100;
   @Input() height: number = 30;
   @Input() label: string = '';
   @Input() valor: number = 0;
