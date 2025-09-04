@@ -11,7 +11,6 @@ import { FontConfig } from '../../../models/fontes.model';
   styleUrl: './voto-item.component.css'
 })
 export class VotoItemComponent {
-  @Input() width: number = 100;
   @Input() height: number = 30;
 
   @Input() label: string = '';
