@@ -58,11 +58,11 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
   ) {}
 
 
-  async ngOnInit() {
-    document.addEventListener('click', this.onDocumentClick);
-    this.grupos = this.fonteService.getGrupos();
-    console.log('GRUPOS CARREGADOS NO MENU:', this.grupos);
-  }
+async ngOnInit() {
+  document.addEventListener('click', this.onDocumentClick);
+  this.grupos = this.fonteService.grupos(); 
+  console.log('GRUPOS CARREGADOS NO MENU:', this.grupos);
+}
 
   onFontChange(grupo: FonteGrupo, subId: string, config: FontConfig) {
     this.fonteService.updateFonte(grupo.tipo, subId, config);
