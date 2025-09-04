@@ -2,7 +2,6 @@ import { Component } from '@angular/core';
 import { HeaderReuniaoComponent } from '../components/header-reuniao/header-reuniao.component';
 import { CronometroComponent } from '../components/cronometro/cronometro.component';
 import { ImagemReuniaoComponent } from '../components/imagem-reuniao/imagem-reuniao.component';
-import { PainelParlamentaresComponent } from '../components/painel-parlamentares/painel-parlamentares.component';
 import { LayoutService } from '../services/layout.service';
 import { Cenario } from '../models/cenario.model';
 import { Router, RouterLink } from '@angular/router';
@@ -16,7 +15,6 @@ import { Subscription } from 'rxjs';
     HeaderReuniaoComponent,
     CronometroComponent,
     ImagemReuniaoComponent,
-    PainelParlamentaresComponent,
     RouterLink,
     MatIconModule,
   ],
