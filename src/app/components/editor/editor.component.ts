@@ -30,7 +30,6 @@ import {
 } from '../lista-votacao/lista-votacao.component';
 import { DescricaoReuniaoComponent } from '../descricao-reuniao/descricao-reuniao.component';
 import { TituloReuniaoComponent } from '../titulo-reuniao/titulo-reuniao.component';
-import { SubtituloReuniaoComponent } from '../subtitulo-reuniao/subtitulo-reuniao.component';
 import { ContextMenuComponent } from '../context-menu/context-menu.component';
 import { VotoItemComponent } from '../votacao-total/voto-item/voto-item.component';
 import { LayoutExportService } from '../../services/layout-export.service';
@@ -47,6 +46,7 @@ import { Cenario } from '../../models/cenario.model';
 import { FormsModule } from '@angular/forms';
 import { FonteService } from '../../services/fonte.service';
 import { StatusItemComponent } from '../status-reuniao/status-item/status-item.component';
+import { SubtituloReuniaoComponent } from '../subtitulo-reuniao/subtitulo-reuniao.component';
 
 @Component({
   selector: 'app-editor',

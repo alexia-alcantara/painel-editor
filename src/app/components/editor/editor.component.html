@@ -48,7 +48,7 @@
       <app-titulo-reuniao></app-titulo-reuniao>
       }
       @case('subtitulo') {
-      <app-subtitulo-reuniao [fontConfig]="item.fontes?.[0]?.font"></app-subtitulo-reuniao>
+      <app-subtitulo-reuniao ></app-subtitulo-reuniao>
       }
       @case('status-reuniao') {
       <app-status-reuniao></app-status-reuniao>
@@ -59,10 +59,10 @@
       }
       @case('votacao-item') {
       <app-voto-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
-        [cor]="item.props?.cor ?? '#FFFFFF'" [width]="item.width" [height]="item.height"></app-voto-item>
+        [cor]="item.props?.cor ?? '#FFFFFF'"  [height]="item.height"></app-voto-item>
       }
       @case('status-item') {
-      <app-status-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0" [width]="item.width"
+      <app-status-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
         [height]="item.height">
       </app-status-item>
       }
