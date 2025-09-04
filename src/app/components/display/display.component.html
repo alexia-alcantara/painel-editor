@@ -27,7 +27,7 @@
     <app-titulo-reuniao></app-titulo-reuniao>
     }
     @case('subtitulo') {
-    <app-subtitulo-reuniao [fontConfig]="item.fontes?.[0]?.font"></app-subtitulo-reuniao>
+    <app-subtitulo-reuniao ></app-subtitulo-reuniao>
     }
     @case('temporizador-item') {
     <app-temporizador-item [tempo]="item.props?.tempo ?? '00:00'"
