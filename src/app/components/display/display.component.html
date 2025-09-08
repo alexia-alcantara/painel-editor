@@ -1,57 +1,55 @@
 @if (cenarioParaExibir) {
 <div #wrapper class="display-wrapper" [style.position]="'relative'"
-     [style.background-image]="cenarioParaExibir.backgroundImage ? 'url(' + cenarioParaExibir.backgroundImage + ')' : 'none'"
-     [style.background-size]="'cover'" [style.background-position]="'center'" [style.background-repeat]="'no-repeat'"
-     [style.width.px]="cenarioParaExibir.targetWidth" [style.height.px]="cenarioParaExibir.targetHeight">
+  [style.background-image]="cenarioParaExibir.backgroundImage ? 'url(' + cenarioParaExibir.backgroundImage + ')' : 'none'"
+  [style.background-size]="'cover'" [style.background-position]="'center'" [style.background-repeat]="'no-repeat'"
+  [style.width.px]="cenarioParaExibir.targetWidth" [style.height.px]="cenarioParaExibir.targetHeight">
 
   @for (item of cenarioParaExibir.componentes; track item.id) {
-    @if (item.visible) {
-      <div class="component-box absolute" 
-           [style.width.px]="item.width" 
-           [style.height.px]="item.height"
-           [style.transform]="'translate(' + item.x + 'px, ' + item.y + 'px)'">
+  @if (item.visible) {
+  <div class="component-box absolute" [style.width.px]="item.width" [style.height.px]="item.height"
+    [style.transform]="'translate(' + item.x + 'px, ' + item.y + 'px)'">
 
-        @switch(item.tipo) {
-          @case('parlamentar') {
-            <app-parlamentar-item [parlamentar]="item.dados"></app-parlamentar-item>
-          }
-          @case('imagem') {
-            <app-imagem-reuniao></app-imagem-reuniao>
-          }
-          @case('cabecalho') {
-            <app-header-reuniao></app-header-reuniao>
-          }
-          @case('descricao') {
-            <app-descricao-reuniao></app-descricao-reuniao>
-          }
-          @case('titulo') {
-            <app-titulo-reuniao></app-titulo-reuniao>
-          }
-          @case('subtitulo') {
-            <app-subtitulo-reuniao></app-subtitulo-reuniao>
-          }
-          @case('temporizador-item') {
-            <app-temporizador-item [tempo]="item.props?.tempo ?? '00:00'"
-                                   [icon]="item.props?.icon ?? false"></app-temporizador-item>
-          }
-          @case('totalizadores') {
-            <app-votacao-total [dados]="item.dados"></app-votacao-total>
-          }
-          @case('status-reuniao') {
-            <app-status-reuniao></app-status-reuniao>
-          }
-          @case('status-item') {
-            <app-status-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"></app-status-item>
-          }
-          @case('votacao-item') {
-            <app-voto-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
-                           [cor]="item.props?.cor ?? '#FFFFFF'"></app-voto-item>
-          }
-        }
-      </div>
+    @switch(item.tipo) {
+    @case('parlamentar') {
+    <app-parlamentar-item [parlamentar]="item.dados"></app-parlamentar-item>
     }
+    @case('imagem') {
+    <app-imagem-reuniao></app-imagem-reuniao>
+    }
+    @case('cabecalho') {
+    <app-header-reuniao></app-header-reuniao>
+    }
+    @case('descricao') {
+    <app-descricao-reuniao [dados]="item.dados"></app-descricao-reuniao>
+    }
+    @case('titulo') {
+    <app-titulo-reuniao [dados]="item.dados"></app-titulo-reuniao>
+    }
+    @case('subtitulo') {
+    <app-subtitulo-reuniao [dados]="item.dados"></app-subtitulo-reuniao>
+    }
+    @case('temporizador-item') {
+    <app-temporizador-item [tempo]="item.props?.tempo ?? '00:00'"
+      [icon]="item.props?.icon ?? false"></app-temporizador-item>
+    }
+    @case('totalizadores') {
+    <app-votacao-total [dados]="item.dados"></app-votacao-total>
+    }
+    @case('status-reuniao') {
+    <app-status-reuniao></app-status-reuniao>
+    }
+    @case('status-item') {
+    <app-status-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"></app-status-item>
+    }
+    @case('votacao-item') {
+    <app-voto-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
+      [cor]="item.props?.cor ?? '#FFFFFF'"></app-voto-item>
+    }
+    }
+  </div>
+  }
   }
 </div>
 } @else {
-  <p class="text-white text-center p-8">Cenário não encontrado!</p>
+<p class="text-white text-center p-8">Cenário não encontrado!</p>
 }

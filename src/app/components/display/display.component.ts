@@ -1,13 +1,21 @@
-import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, OnInit, Renderer2, ViewChild } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  Renderer2,
+  ViewChild,
+} from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { Subscription, interval } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
-
 import { Cenario } from '../../models/cenario.model';
-import { ComponenteEditor } from '../../models/components.model';
-import { PainelService, ReuniaoDTO } from '../../services/painel.service';
+import { LayoutService } from '../../services/layout.service';
+import { PainelService } from '../../services/painel.service';
+import { Subscription, interval } from 'rxjs';
 
-// Imports dos componentes visuais necessários
+// Imports dos seus componentes visuais
 import { HeaderReuniaoComponent } from '../header-reuniao/header-reuniao.component';
 import { ImagemReuniaoComponent } from '../imagem-reuniao/imagem-reuniao.component';
 import { ParlamentarItemComponent } from '../parlamentar-item/parlamentar-item.component';
@@ -44,94 +52,152 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('wrapper') wrapper!: ElementRef<HTMLDivElement>;
 
   cenarioParaExibir: Cenario | null = null;
-  private updateSubscription: Subscription | undefined;
-  private readonly PAINEL_IDENTIFICADOR = '15'; // O identificador do seu painel!
+
+  private atualizacaoSubscription: Subscription | null = null;
+  private readonly PAINEL_IDENTIFICADOR = '15';
 
   constructor(
+    private route: ActivatedRoute,
+    private layoutService: LayoutService,
     private painelService: PainelService,
     private renderer: Renderer2
   ) {}
 
   ngOnInit(): void {
-    this.iniciarAtualizacaoAutomatica();
-  }
-
-  ngOnDestroy(): void {
-    if (this.updateSubscription) {
-      this.updateSubscription.unsubscribe();
+    const idCenario = this.route.snapshot.paramMap.get('id');
+    if (idCenario) {
+      this.cenarioParaExibir = this.layoutService.carregarCenario(idCenario);
+    }
+    if (this.cenarioParaExibir) {
+      this.iniciarAtualizacaoAutomatica();
     }
   }
 
   private iniciarAtualizacaoAutomatica(): void {
-    this.updateSubscription = interval(1000) 
-      .pipe(
-        switchMap(() => this.painelService.getDadosPainel(this.PAINEL_IDENTIFICADOR))
-      )
-      .subscribe({
-        next: (dadosDaApi) => {
-          console.log('Dados recebidos da API:', dadosDaApi);
-          if(dadosDaApi && dadosDaApi['valor']){
-            this.cenarioParaExibir = this.adaptarDtoParaCenario(dadosDaApi);
-            this.ngAfterViewInit();
-          }else{
-            console.warn('sem dados de painel', dadosDaApi);
-            this.cenarioParaExibir = null;
-          }
+    this.buscarEAtualizarDados();
+
+    /*
+    this.atualizacaoSubscription = interval(5000).subscribe(() => {
+      this.buscarEAtualizarDados();
+    });
+    */
+  }
+
+  private buscarEAtualizarDados(): void {
+    this.painelService.getDadosPainel(this.PAINEL_IDENTIFICADOR).subscribe({
+      next: (dadosDaApi) => {
+        console.log(
+          'Dados (já convertidos de XML) recebidos da API:',
+          dadosDaApi
+        );
+
+        // Verificamos se recebemos dados válidos no campo 'valor'
+        if (this.cenarioParaExibir && dadosDaApi && dadosDaApi['valor']) {
+          this.atualizarCenarioComDadosReais(dadosDaApi['valor']);
+        } else {
+          console.warn(
+            'Backend respondeu com sucesso, mas sem dados de painel (valor is null).'
+          );
         }
-      });
+      },
+      error: (err) => console.error('Erro ao buscar dados do painel:', err),
+    });
   }
 
-  /**
-   * Esta é uma função CRÍTICA. Ela traduz os dados do backend
-   * para o formato que seus componentes frontend entendem.
-   * Você precisará ajustar este código para corresponder aos dados reais da API.
-   */
-  private adaptarDtoParaCenario(dto: ReuniaoDTO): Cenario {
-    // Mapear os dados reais do DTO para a estrutura de componentes
-    const componentes: ComponenteEditor[] = [
-      { id: 'titulo', tipo: 'titulo', x: 235, y: 132, width: 430, height: 25, visible: true, dados: { texto: dto['tituloReuniao'] } },
-      { id: 'subtitulo', tipo: 'subtitulo', x: 235, y: 169, width: 430, height: 20, visible: true, dados: { texto: dto['subtituloReuniao'] } },
-      // ... mapear todos os outros componentes (parlamentares, votação, etc.)
-    ];
+private atualizarCenarioComDadosReais(dados: any): void {
+    if (!this.cenarioParaExibir) return;
 
-    const cenario: Cenario = {
-      id: `painel_${this.PAINEL_IDENTIFICADOR}`,
-      nome: dto['nomePainel'] || 'Painel em Tempo Real',
-      targetWidth: 1920, // Pode vir do DTO também
-      targetHeight: 1080, // Pode vir do DTO também
-      backgroundImage: dto['urlImagemFundo'] || '',
-      componentes: componentes,
-    };
+    // Usamos structuredClone para criar uma nova cópia do cenário e evitar mutações inesperadas
+    const cenarioAtualizado = structuredClone(this.cenarioParaExibir);
 
-    return cenario;
-  }
+    // --- Mapear Parlamentares ---
+    let parlamentaresApi: any[] = [];
+    // O caminho correto no JSON é: parlamentares -> presencas (que é um array) -> primeiro item -> membros
+    if (dados.parlamentares && dados.parlamentares.presencas && dados.parlamentares.presencas.length > 0) {
+        const membros = dados.parlamentares.presencas[0].membros;
+        if (membros) {
+            parlamentaresApi = Array.isArray(membros) ? membros : [membros];
+        }
+    }
+
+    const parlamentaresLayout = cenarioAtualizado.componentes.filter(
+        (c) => c.tipo === 'parlamentar'
+    );
+
+    parlamentaresApi.forEach((membro: any, index: number) => {
+        const parlamentarApi = membro.titular;
+        if (parlamentaresLayout[index] && parlamentarApi) {
+            parlamentaresLayout[index].dados = {
+                nome: parlamentarApi.nome || 'Nome não informado',
+                partido: parlamentarApi.partido || '-',
+                voto: parlamentarApi.voto?.status || '-', // O 'voto' pode ser nulo
+            };
+            parlamentaresLayout[index].visible = true; // Garante que o componente seja visível
+        }
+    });
+
+    // Esconde os componentes de parlamentar que não receberam dados da API
+    for (let i = parlamentaresApi.length; i < parlamentaresLayout.length; i++) {
+        parlamentaresLayout[i].visible = false;
+    }
+
+    cenarioAtualizado.componentes.forEach((componente) => {
+        switch (componente.tipo) {
+            case 'titulo':
+                componente.dados = { texto: dados.nomeReuniao || 'Reunião' };
+                break;
+            case 'subtitulo':
+                componente.dados = { texto: dados.categoriaReuniao || 'Status' };
+                break;
+            case 'descricao':
+                componente.dados = { texto: dados.statusReuniao || '' };
+                break;
+            case 'status-item':
+                // O caminho correto para os dados de presença
+                const presencas = dados.parlamentares?.presencas?.[0] || {};
+                
+                if (componente.id === 'status-presentes') {
+                    componente.props = {
+                        label: 'PRESENTES',
+                        valor: presencas.presentes || 0,
+                    };
+                }
+                if (componente.id === 'status-votos') {
+                    // Lógica para calcular o total de votos. Adapte se necessário.
+                    const totalVotos = (Number(presencas.presentes) || 0) - (Number(presencas.abstencao) || 0);
+                    componente.props = { label: 'VOTOS', valor: totalVotos };
+                }
+                break;
+        }
+    });
+
+    this.cenarioParaExibir = cenarioAtualizado;
+}
 
   ngAfterViewInit(): void {
-    // Usamos um pequeno timeout para garantir que o DOM foi atualizado
     setTimeout(() => this.ajustarEscala(), 0);
   }
 
-  @HostListener('window:resize')
-  onResize(): void {
+  ngOnDestroy(): void {
+    if (this.atualizacaoSubscription) {
+      this.atualizacaoSubscription.unsubscribe();
+    }
+  }
+
+  @HostListener('window:resize') onResize(): void {
     this.ajustarEscala();
   }
 
   private ajustarEscala(): void {
-    if (!this.wrapper || !this.cenarioParaExibir) {
-      return;
-    }
+    if (!this.wrapper || !this.cenarioParaExibir) return;
     const container = this.wrapper.nativeElement.parentElement;
     const target = this.wrapper.nativeElement;
     if (!container) return;
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
-    const targetWidth = this.cenarioParaExibir.targetWidth;
-    const targetHeight = this.cenarioParaExibir.targetHeight;
-    const scaleX = containerWidth / targetWidth;
-    const scaleY = containerHeight / targetHeight;
-    const scale = Math.min(scaleX, scaleY);
+    const scale = Math.min(
+      container.clientWidth / this.cenarioParaExibir.targetWidth,
+      container.clientHeight / this.cenarioParaExibir.targetHeight
+    );
     this.renderer.setStyle(target, 'transform-origin', 'top left');
     this.renderer.setStyle(target, 'transform', `scale(${scale})`);
   }
 }
-
