@@ -270,16 +270,18 @@ if (dados.votacao && dados.votacao.sim !== undefined) {
     this.ajustarEscala();
   }
 
-  private ajustarEscala(): void {
-    if (!this.wrapper || !this.cenarioParaExibir) return;
-    const container = this.wrapper.nativeElement.parentElement;
-    const target = this.wrapper.nativeElement;
-    if (!container) return;
-    const scale = Math.min(
-      container.clientWidth / this.cenarioParaExibir.targetWidth,
-      container.clientHeight / this.cenarioParaExibir.targetHeight
-    );
-    this.renderer.setStyle(target, 'transform-origin', 'top left');
-    this.renderer.setStyle(target, 'transform', `scale(${scale})`);
-  }
+private ajustarEscala(): void {
+  if (!this.wrapper || !this.cenarioParaExibir) return;
+
+  const container = this.wrapper.nativeElement.parentElement;
+  const target = this.wrapper.nativeElement;
+
+  if (!container) return;
+
+  // Calcula a escala baseada APENAS na largura do container.
+  const scale = container.clientWidth / this.cenarioParaExibir.targetWidth;
+
+  this.renderer.setStyle(target, 'transform-origin', 'top left');
+  this.renderer.setStyle(target, 'transform', `scale(${scale})`);
+}
 }

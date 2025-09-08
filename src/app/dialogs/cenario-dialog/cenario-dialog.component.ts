@@ -43,13 +43,14 @@ export class CenarioDialogComponent implements OnInit {
     this.cenarios = this.layoutService.listarCenarios();
   }
 
-  carregarCenario(id: string): void{
-    //gera a url para a rota display
-    const url = this.router.serializeUrl(
-      this.router.createUrlTree(['/display', id])
-    );
-    window.open(url, '_blank');
-  }
+ carregarCenario(id: string): void {
+  // Gera a URL para a rota de exibição 
+  const url = this.router.serializeUrl(
+    this.router.createUrlTree(['/display', id])
+  );
+  window.open(url, '_blank');
+  this.dialogRef.close(); 
+}
 
   removerCenario(id: string, nome: string): void {
     if (confirm(`Tem certeza que deseja remover o cenário "${nome}"?`)) {

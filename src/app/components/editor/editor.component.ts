@@ -723,52 +723,35 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   async salvar() {
-    const idDoCenarioNaUrl = this.route.snapshot.paramMap.get('id');
-    if (!idDoCenarioNaUrl) {
-      alert('ERRO: Não foi possível identificar o ID do cenário na URL.');
-      return;
-    }
+  const nomeCenario = prompt(
+    'Digite um nome para o cenário:',
+    this.cenarioAtual.nome || 'novo-cenario'
+  );
 
-    const nomeCenario = prompt(
-      'Digite um nome para o cenário:',
-      this.cenarioAtual.nome || 'novo-cenario'
-    );
-
-    if (!nomeCenario) {
-      return; // Usuário cancelou
-    }
-
-    // --- INÍCIO DA CORREÇÃO ---
-
-    // 1. Cria uma CÓPIA PROFUNDA e 100% independente do estado atual.
-    //    Nenhum processo "fantasma" pode alterar este clone.
-    const cenarioParaSalvar = structuredClone(this.cenarioAtual);
-
-    // 2. Atualiza a ID e o nome no clone, não no objeto original.
-    cenarioParaSalvar.id = idDoCenarioNaUrl;
-    cenarioParaSalvar.nome = nomeCenario;
-
-    // --- FIM DA CORREÇÃO ---
-
-    try {
-      // 3. Passa a cópia segura e imutável para o serviço.
-      this.layoutService.salvarCenario(cenarioParaSalvar);
-
-      // 4. LÓGICA DE DOWNLOAD RESTAURADA
-      const layoutParaExportar = this.layoutExport.converterParaFormatoOriginal(
-        cenarioParaSalvar.componentes
-      );
-      const blob = new Blob([JSON.stringify(layoutParaExportar, null, 2)], {
-        type: 'application/json',
-      });
-      saveAs(blob, `${nomeCenario}.json`); // Pede para o usuário salvar o arquivo
-
-      alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
-    } catch (error) {
-      console.error('Falha grave ao salvar o cenário:', error);
-      alert('Ocorreu um erro ao salvar o cenário.');
-    }
+  if (!nomeCenario) {
+    return;
   }
+
+  // 1. Cria uma cópia segura do cenário atual
+  const cenarioParaSalvar = structuredClone(this.cenarioAtual);
+  
+  // 2. Gera um ID NOVO e único para este cenário
+  const novoId = `cenario_${Date.now()}`;
+  cenarioParaSalvar.id = novoId;
+  cenarioParaSalvar.nome = nomeCenario;
+
+  try {
+    this.layoutService.salvarCenario(cenarioParaSalvar);
+
+    alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
+
+    this.router.navigate(['/editor', novoId]);
+
+  } catch (error) {
+    console.error('Falha grave ao salvar o cenário:', error);
+    alert('Ocorreu um erro ao salvar o cenário.');
+  }
+}
 
   private dispararAutosave(): void {
     this.componentes.set(this.cenarioAtual.componentes);
