@@ -42,13 +42,13 @@
       <app-header-reuniao></app-header-reuniao>
       }
       @case('descricao') {
-      <app-descricao-reuniao></app-descricao-reuniao>
+      <app-descricao-reuniao [dados]="item.dados"></app-descricao-reuniao>
       }
       @case('titulo') {
-      <app-titulo-reuniao></app-titulo-reuniao>
+      <app-titulo-reuniao [dados]="item.dados"></app-titulo-reuniao>
       }
       @case('subtitulo') {
-      <app-subtitulo-reuniao ></app-subtitulo-reuniao>
+      <app-subtitulo-reuniao [dados]="item.dados"></app-subtitulo-reuniao>
       }
       @case('status-reuniao') {
       <app-status-reuniao></app-status-reuniao>

@@ -88,29 +88,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   router = inject(Router);
   layout: ComponenteEditor[] = [];
 
-  parlamentaresMock: Parlamentar[] = [
-    { nome: 'Arlene McCoy', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Devon Lane', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Floyd Miles', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Darlene Robertson', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Marvin McKinney', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Kathryn Murphy', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Brooklyn Simmons', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Annette Black', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Esther Howard', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Guy Hawkins', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Albert Flores', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Jerome Bell', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Savannah Nguyen', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Wade Warren', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Dianne Russell', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Cameron Williamson', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Courtney Henry', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Bessie Cooper', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Jacob Jones', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Jane Cooper', partido: 'PARTIDO', voto: 'S' },
-  ];
-
   votacaoMock = {
     sim: 10,
     nao: 5,
@@ -138,30 +115,35 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     private hostElement: ElementRef
   ) {}
 
-
   @HostListener('window:resize')
   onResize(): void {
     this.ajustarEscala();
   }
 
-private ajustarEscala(): void {
-  const wrapperRef = this.editorWrapperRef;
-  if (!wrapperRef || !this.cenarioAtual) {
-    return;
+  private ajustarEscala(): void {
+    const wrapperRef = this.editorWrapperRef;
+    if (!wrapperRef || !this.cenarioAtual) {
+      return;
+    }
+
+    const container = wrapperRef.nativeElement.parentElement;
+    const target = wrapperRef.nativeElement;
+
+    if (!container) return;
+
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    const targetWidth = this.cenarioAtual.targetWidth;
+    const targetHeight = this.cenarioAtual.targetHeight;
+
+    const scaleX = (containerWidth * 1.1) / targetWidth;
+    const scaleY = (containerHeight * 1.1) / targetHeight;
+
+    const scale = Math.min(scaleX, scaleY);
+
+    this.renderer.setStyle(target, 'transform', `scale(${scale})`);
+    this.renderer.setStyle(target, 'transform-origin', 'top left');
   }
-
-  const container = wrapperRef.nativeElement.parentElement;
-  const target = wrapperRef.nativeElement;
-
-  if (!container) return;
-
-  const containerWidth = container.clientWidth;
-  const targetWidth = this.cenarioAtual.targetWidth;
-
-  const scale = containerWidth / targetWidth;
-
-  this.renderer.setStyle(target, 'transform', `scale(${scale})`);
-}
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -221,17 +203,15 @@ private ajustarEscala(): void {
     });
   }
 
-   ngAfterViewInit(): void {
+  ngAfterViewInit(): void {
     setTimeout(() => this.ajustarEscala(), 0);
   }
-
 
   ngOnDestroy() {
     if (this.routeSub) {
       this.routeSub.unsubscribe();
     }
   }
-
 
   toggleControleVisibilidade(): void {
     this.mostrarControleVisibilidade = !this.mostrarControleVisibilidade;
@@ -256,9 +236,14 @@ private ajustarEscala(): void {
         if (Array.isArray(event.data)) {
           layoutFinal = event.data;
         } else {
+          const tempParlamentaresMock = Array.from({ length: 24 }, (_, i) => ({
+            nome: `Parlamentar ${i + 1}`,
+            partido: 'PART',
+            voto: '-',
+          }));
           layoutFinal = this.layoutExport.converterDoFormatoOriginal(
             event.data,
-            this.parlamentaresMock,
+            tempParlamentaresMock,
             this.votacaoMock
           );
         }
@@ -298,19 +283,25 @@ private ajustarEscala(): void {
     this.dispararAutosave();
   }
 
-onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
-  const novaPosicao = event.source.getFreeDragPosition();
+  onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
+    const novaPosicao = event.source.getFreeDragPosition();
 
-  console.log(`[DRAG END] Item: ${itemArrastado.id}, Nova Posição: X=${Math.round(novaPosicao.x)}, Y=${Math.round(novaPosicao.y)}`);
+    console.log(
+      `[DRAG END] Item: ${itemArrastado.id}, Nova Posição: X=${Math.round(
+        novaPosicao.x
+      )}, Y=${Math.round(novaPosicao.y)}`
+    );
 
-  const index = this.cenarioAtual.componentes.findIndex(c => c.id === itemArrastado.id);
-  if (index !== -1) {
-    this.cenarioAtual.componentes[index].x = Math.round(novaPosicao.x);
-    this.cenarioAtual.componentes[index].y = Math.round(novaPosicao.y);
-    this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
-    this.dispararAutosave();
+    const index = this.cenarioAtual.componentes.findIndex(
+      (c) => c.id === itemArrastado.id
+    );
+    if (index !== -1) {
+      this.cenarioAtual.componentes[index].x = Math.round(novaPosicao.x);
+      this.cenarioAtual.componentes[index].y = Math.round(novaPosicao.y);
+      this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
+      this.dispararAutosave();
+    }
   }
-}
 
   onRightClick(event: MouseEvent, component: ComponenteEditor) {
     event.preventDefault();
@@ -321,8 +312,8 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
   }
 
   private montarLayoutInicial(): Cenario {
-    const larguraImagem = 750;
-    const alturaImagem = 421;
+    const larguraImagem = 650;
+    const alturaImagem = 365;
     const xImagem = 750;
     const yImagem = 70;
 
@@ -382,6 +373,7 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
       width: xImagem - espacamentoHorizontal,
       height: tituloHeight,
       visible: true,
+      dados: { texto: 'Título da Reunião' },
       fontes: [
         {
           subId: 'titulo-texto',
@@ -401,6 +393,7 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
       width: xImagem - espacamentoHorizontal,
       height: subtituloHeight,
       visible: true,
+      dados: { texto: 'Subtítulo da Reunião' },
       fontes: [
         {
           subId: 'subtitulo-texto',
@@ -419,6 +412,7 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
       y: yAtual,
       width: cabecalho.width,
       height: descricaoHeight,
+      dados: { texto: 'Status da Reunião' },
       fontes: [
         {
           subId: 'descricao-texto',
@@ -441,7 +435,6 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
       dados: this.votacaoMock,
       visible: true,
     };
-
 
     const margemInternaX = 10; // margem lateral dentro da caixa
     const margemInternaY = 10; // margem superior
@@ -525,7 +518,7 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
       visible: true,
     };
 
-    // Temporizadores 
+    // Temporizadores
     const temporizadoresBase = [
       {
         id: 'temporizador-1',
@@ -636,12 +629,16 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
     const itensPorColuna = config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
     const totalDeParlamentares = config.qntTotal;
 
-    const parlamentaresParaExibir = this.parlamentaresMock.slice(
-      0,
-      totalDeParlamentares
+    const parlamentaresDeExemplo = Array.from(
+      { length: totalDeParlamentares },
+      (_, i) => ({
+        nome: `Parlamentar ${i + 1}`,
+        partido: 'PART',
+        voto: '-',
+      })
     );
 
-    if (parlamentaresParaExibir.length === 0) {
+    if (parlamentaresDeExemplo.length === 0) {
       return [];
     }
 
@@ -649,7 +646,7 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
     const alturaItem = 20;
     const xBase = 234;
 
-    return parlamentaresParaExibir.map((parlamentar, i) => {
+    return parlamentaresDeExemplo.map((parlamentar, i) => {
       const colunaAtual = Math.floor(i / itensPorColuna);
       const linhaAtual = i % itensPorColuna;
 
@@ -679,54 +676,53 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
     this.layoutService.salvarLayoutAtual(this.cenarioAtual);
   }
 
-async salvar() {
-  const idDoCenarioNaUrl = this.route.snapshot.paramMap.get('id');
-  if (!idDoCenarioNaUrl) {
-    alert('ERRO: Não foi possível identificar o ID do cenário na URL.');
-    return;
-  }
+  async salvar() {
+    const idDoCenarioNaUrl = this.route.snapshot.paramMap.get('id');
+    if (!idDoCenarioNaUrl) {
+      alert('ERRO: Não foi possível identificar o ID do cenário na URL.');
+      return;
+    }
 
-  const nomeCenario = prompt(
-    'Digite um nome para o cenário:',
-    this.cenarioAtual.nome || 'novo-cenario'
-  );
-
-  if (!nomeCenario) {
-    return; // Usuário cancelou
-  }
-
-  // --- INÍCIO DA CORREÇÃO ---
-
-  // 1. Cria uma CÓPIA PROFUNDA e 100% independente do estado atual.
-  //    Nenhum processo "fantasma" pode alterar este clone.
-  const cenarioParaSalvar = structuredClone(this.cenarioAtual);
-
-  // 2. Atualiza a ID e o nome no clone, não no objeto original.
-  cenarioParaSalvar.id = idDoCenarioNaUrl;
-  cenarioParaSalvar.nome = nomeCenario;
-  
-  // --- FIM DA CORREÇÃO ---
-
-  try {
-    // 3. Passa a cópia segura e imutável para o serviço.
-    this.layoutService.salvarCenario(cenarioParaSalvar);
-
-    // 4. LÓGICA DE DOWNLOAD RESTAURADA
-    const layoutParaExportar = this.layoutExport.converterParaFormatoOriginal(
-      cenarioParaSalvar.componentes
+    const nomeCenario = prompt(
+      'Digite um nome para o cenário:',
+      this.cenarioAtual.nome || 'novo-cenario'
     );
-    const blob = new Blob([JSON.stringify(layoutParaExportar, null, 2)], {
-      type: 'application/json',
-    });
-    saveAs(blob, `${nomeCenario}.json`); // Pede para o usuário salvar o arquivo
 
-    alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
+    if (!nomeCenario) {
+      return; // Usuário cancelou
+    }
 
-  } catch (error) {
-    console.error('Falha grave ao salvar o cenário:', error);
-    alert('Ocorreu um erro ao salvar o cenário.');
+    // --- INÍCIO DA CORREÇÃO ---
+
+    // 1. Cria uma CÓPIA PROFUNDA e 100% independente do estado atual.
+    //    Nenhum processo "fantasma" pode alterar este clone.
+    const cenarioParaSalvar = structuredClone(this.cenarioAtual);
+
+    // 2. Atualiza a ID e o nome no clone, não no objeto original.
+    cenarioParaSalvar.id = idDoCenarioNaUrl;
+    cenarioParaSalvar.nome = nomeCenario;
+
+    // --- FIM DA CORREÇÃO ---
+
+    try {
+      // 3. Passa a cópia segura e imutável para o serviço.
+      this.layoutService.salvarCenario(cenarioParaSalvar);
+
+      // 4. LÓGICA DE DOWNLOAD RESTAURADA
+      const layoutParaExportar = this.layoutExport.converterParaFormatoOriginal(
+        cenarioParaSalvar.componentes
+      );
+      const blob = new Blob([JSON.stringify(layoutParaExportar, null, 2)], {
+        type: 'application/json',
+      });
+      saveAs(blob, `${nomeCenario}.json`); // Pede para o usuário salvar o arquivo
+
+      alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
+    } catch (error) {
+      console.error('Falha grave ao salvar o cenário:', error);
+      alert('Ocorreu um erro ao salvar o cenário.');
+    }
   }
-}
 
   private dispararAutosave(): void {
     this.componentes.set(this.cenarioAtual.componentes);
