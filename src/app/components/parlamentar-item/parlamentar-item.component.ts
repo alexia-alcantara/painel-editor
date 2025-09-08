@@ -4,6 +4,14 @@ import { Parlamentar } from '../lista-votacao/lista-votacao.component';
 import { FonteService } from '../../services/fonte.service';
 import { FontConfig } from '../../models/fontes.model';
 
+export interface DadosParlamentar {
+  nome: string;
+  partido: string;
+  voto: string;
+  status: 'PRESENTE' | 'AUSENTE' | string; 
+  cor: string; 
+}
+
 @Component({
   selector: 'app-parlamentar-item',
   standalone: true,
@@ -12,7 +20,7 @@ import { FontConfig } from '../../models/fontes.model';
   styleUrl: './parlamentar-item.component.css',
 })
 export class ParlamentarItemComponent {
-  @Input() parlamentar!: Parlamentar;
+  @Input() parlamentar!: DadosParlamentar;
   @Input() height = 608;
   @Input() width = 38;
 

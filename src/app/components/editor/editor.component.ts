@@ -327,7 +327,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     const subtituloHeight = 20;
     const descricaoHeight = 90;
     const totalizadoresHeight = 135;
-    const statusReuniaoHeight = 135;
+    const statusReuniaoHeight = 220;
 
     const larguraVotacaoItem = 223;
     const alturaVotacaoItem = 30;
@@ -518,6 +518,50 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       visible: true,
     };
 
+    const statusAusentes: ComponenteEditor = {
+      id: 'status-ausentes',
+      tipo: 'status-item',
+      x: baseXStatus,
+      y: baseYStatus + (alturaStatusItem + espacoVerticalStatus) * 2,
+      width: larguraStatusItem,
+      height: alturaStatusItem,
+      props: { label: 'AUSENTES', valor: 23 },
+      visible: true,
+    };
+
+    const statusQuorum: ComponenteEditor = {
+      id: 'status-quorum',
+      tipo: 'status-item',
+      x: baseXStatus,
+      y: baseYStatus + (alturaStatusItem + espacoVerticalStatus) * 3,
+      width: larguraStatusItem,
+      height: alturaStatusItem,
+      props: { label: 'QUORUM', valor: 13 },
+      visible: true,
+    };
+
+    const statusLicenciados: ComponenteEditor = {
+      id: 'status-licenciados',
+      tipo: 'status-item',
+      x: baseXStatus,
+      y: baseYStatus + (alturaStatusItem + espacoVerticalStatus) * 4,
+      width: larguraStatusItem,
+      height: alturaStatusItem,
+      props: { label: 'LICENCIADOS', valor: 0 },
+      visible: true,
+    };
+
+    const statusObstrucao: ComponenteEditor = {
+      id: 'status-obstrucao',
+      tipo: 'status-item',
+      x: baseXStatus,
+      y: baseYStatus + (alturaStatusItem + espacoVerticalStatus) * 5,
+      width: larguraStatusItem,
+      height: alturaStatusItem,
+      props: { label: 'OBSTRUÇÃO', valor: 0 },
+      visible: true,
+    };
+
     // Temporizadores
     const temporizadoresBase = [
       {
@@ -598,11 +642,13 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       subtitulo,
       descricao,
       totalizadores,
-      // votacaoTotal,
       statusReuniao,
       statusPresentes,
       statusVotos,
-
+      statusAusentes,
+      statusQuorum,
+      statusLicenciados,
+      statusObstrucao,
       votacaoSim,
       votacaoNao,
       votacaoAbstencao,

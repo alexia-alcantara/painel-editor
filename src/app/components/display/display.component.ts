@@ -86,17 +86,23 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   private buscarEAtualizarDados(): void {
     this.painelService.getDadosPainel(this.PAINEL_IDENTIFICADOR).subscribe({
       next: (dadosDaApi) => {
-        console.log(
-          'Dados (já convertidos de XML) recebidos da API:',
-          dadosDaApi
-        );
+        console.log('Dados recebidos da API:', dadosDaApi);
 
-        // Verificamos se recebemos dados válidos no campo 'valor'
+        // if (dadosDaApi['valor']) {
+        //   dadosDaApi['valor'].votacao = {
+        //     materia: 'PL 123/2025 - PROJETO TESTE DE VOTAÇÃO',
+        //     sim: 42,
+        //     nao: 15,
+        //     abstencao: 3,
+        //   };
+        // }
+
+        // Verifica se recebe dados válidos no campo 'valor'
         if (this.cenarioParaExibir && dadosDaApi && dadosDaApi['valor']) {
           this.atualizarCenarioComDadosReais(dadosDaApi['valor']);
         } else {
           console.warn(
-            'Backend respondeu com sucesso, mas sem dados de painel (valor is null).'
+            'Backend respondeu com sucesso, mas sem dados de painel .'
           );
         }
       },
@@ -104,75 +110,151 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-private atualizarCenarioComDadosReais(dados: any): void {
+  private atualizarCenarioComDadosReais(dados: any): void {
     if (!this.cenarioParaExibir) return;
 
-    // Usamos structuredClone para criar uma nova cópia do cenário e evitar mutações inesperadas
     const cenarioAtualizado = structuredClone(this.cenarioParaExibir);
 
     // --- Mapear Parlamentares ---
     let parlamentaresApi: any[] = [];
     // O caminho correto no JSON é: parlamentares -> presencas (que é um array) -> primeiro item -> membros
-    if (dados.parlamentares && dados.parlamentares.presencas && dados.parlamentares.presencas.length > 0) {
-        const membros = dados.parlamentares.presencas[0].membros;
-        if (membros) {
-            parlamentaresApi = Array.isArray(membros) ? membros : [membros];
-        }
+    if (
+      dados.parlamentares &&
+      dados.parlamentares.presencas &&
+      dados.parlamentares.presencas.length > 0
+    ) {
+      const membros = dados.parlamentares.presencas[0].membros;
+      if (membros) {
+        parlamentaresApi = Array.isArray(membros) ? membros : [membros];
+      }
     }
 
     const parlamentaresLayout = cenarioAtualizado.componentes.filter(
-        (c) => c.tipo === 'parlamentar'
+      (c) => c.tipo === 'parlamentar'
     );
 
     parlamentaresApi.forEach((membro: any, index: number) => {
-        const parlamentarApi = membro.titular;
-        if (parlamentaresLayout[index] && parlamentarApi) {
-            parlamentaresLayout[index].dados = {
-                nome: parlamentarApi.nome || 'Nome não informado',
-                partido: parlamentarApi.partido || '-',
-                voto: parlamentarApi.voto?.status || '-', // O 'voto' pode ser nulo
-            };
-            parlamentaresLayout[index].visible = true; // Garante que o componente seja visível
-        }
+      const parlamentarApi = membro.titular;
+      if (parlamentaresLayout[index] && parlamentarApi) {
+        parlamentaresLayout[index].dados = {
+          nome: parlamentarApi.nome || 'Nome não informado',
+          partido: parlamentarApi.partido || '-',
+          voto: parlamentarApi.voto?.status || '-', // O 'voto' pode ser nulo
+          status: parlamentarApi.status,
+          cor: parlamentarApi.cor,
+        };
+        parlamentaresLayout[index].visible = true; // Garante que o componente seja visível
+      }
     });
 
     // Esconde os componentes de parlamentar que não receberam dados da API
     for (let i = parlamentaresApi.length; i < parlamentaresLayout.length; i++) {
-        parlamentaresLayout[i].visible = false;
+      parlamentaresLayout[i].visible = false;
     }
 
     cenarioAtualizado.componentes.forEach((componente) => {
-        switch (componente.tipo) {
-            case 'titulo':
-                componente.dados = { texto: dados.nomeReuniao || 'Reunião' };
-                break;
-            case 'subtitulo':
-                componente.dados = { texto: dados.categoriaReuniao || 'Status' };
-                break;
-            case 'descricao':
-                componente.dados = { texto: dados.statusReuniao || '' };
-                break;
-            case 'status-item':
-                // O caminho correto para os dados de presença
-                const presencas = dados.parlamentares?.presencas?.[0] || {};
-                
-                if (componente.id === 'status-presentes') {
-                    componente.props = {
-                        label: 'PRESENTES',
-                        valor: presencas.presentes || 0,
-                    };
-                }
-                if (componente.id === 'status-votos') {
-                    // Lógica para calcular o total de votos. Adapte se necessário.
-                    const totalVotos = (Number(presencas.presentes) || 0) - (Number(presencas.abstencao) || 0);
-                    componente.props = { label: 'VOTOS', valor: totalVotos };
-                }
-                break;
-        }
+      switch (componente.tipo) {
+        case 'titulo':
+          componente.dados = { texto: dados.nomeReuniao || 'Reunião' };
+          break;
+        case 'subtitulo':
+          componente.dados = { texto: dados.categoriaReuniao || 'Status' };
+          break;
+        case 'descricao':
+          componente.dados = { texto: dados.statusReuniao || '' };
+          break;
+        case 'status-item':
+          const presencas = dados.parlamentares?.presencas?.[0] || {};
+          const nomesTotalizadores = dados.nomesTotalizadores || {};
+
+          if (componente.id === 'status-presentes') {
+            componente.props = {
+              label: nomesTotalizadores.PRESENTES || 'PRESENTES',
+              valor: presencas.presentes || 0,
+            };
+          }
+          if (componente.id === 'status-ausentes') {
+            componente.props = {
+              label: nomesTotalizadores.AUSENTES || 'AUSENTES',
+              valor: presencas.ausentes || 0,
+            };
+          }
+          if (componente.id === 'status-quorum') {
+            componente.props = {
+              label: nomesTotalizadores.QUORUM || 'QUORUM',
+              valor: presencas.quorum || 0,
+            };
+          }
+          if (componente.id === 'status-licenciados') {
+            componente.props = {
+              label: nomesTotalizadores.LICENCIADOS || 'LICENCIADOS',
+              valor: presencas.licenciados || 0,
+            };
+          }
+          if (componente.id === 'status-obstrucao') {
+            componente.props = {
+              label: nomesTotalizadores.OBSTRUCAO || 'OBSTRUCAO',
+              valor: presencas.obstrucao || 0,
+            };
+          }
+          break;
+      }
     });
 
-    this.cenarioParaExibir = cenarioAtualizado;
+    // Lógica para componentes que dependem da votação
+const votacaoSimComp = cenarioAtualizado.componentes.find(
+  (c) => c.id === 'voto-sim'
+);
+const votacaoNaoComp = cenarioAtualizado.componentes.find(
+  (c) => c.id === 'voto-nao'
+);
+const votacaoAbstencaoComp = cenarioAtualizado.componentes.find(
+  (c) => c.id === 'voto-abstencao'
+);
+
+if (dados.votacao && dados.votacao.sim !== undefined) {
+  // Se existe uma votação ativa...
+
+  // Atualiza o título com o nome da matéria
+  const tituloComp = cenarioAtualizado.componentes.find(
+    (c) => c.id === 'titulo'
+  );
+  if (tituloComp) {
+    tituloComp.dados = { texto: dados.votacao.materia || 'Votação' };
+  }
+
+  // Garante que os itens de votação estejam visíveis e atualiza seus valores
+  if (votacaoSimComp) {
+    votacaoSimComp.visible = true;
+    if (!votacaoSimComp.props) { votacaoSimComp.props = {}; } // Garante que 'props' existe
+    votacaoSimComp.props.valor = dados.votacao.sim;
+  }
+  if (votacaoNaoComp) {
+    votacaoNaoComp.visible = true;
+    if (!votacaoNaoComp.props) { votacaoNaoComp.props = {}; } // Garante que 'props' existe
+    votacaoNaoComp.props.valor = dados.votacao.nao;
+  }
+  if (votacaoAbstencaoComp) {
+    votacaoAbstencaoComp.visible = true;
+    if (!votacaoAbstencaoComp.props) { votacaoAbstencaoComp.props = {}; } // Garante que 'props' existe
+    votacaoAbstencaoComp.props.valor = dados.votacao.abstencao;
+  }
+} else {
+  // Se NÃO existe uma votação ativa...
+  // Esconde os itens de votação
+  if (votacaoSimComp) {
+    votacaoSimComp.visible = false;
+  }
+  if (votacaoNaoComp) {
+    votacaoNaoComp.visible = false;
+  }
+  if (votacaoAbstencaoComp) {
+    votacaoAbstencaoComp.visible = false;
+  }
 }
+
+    this.cenarioParaExibir = cenarioAtualizado;
+  }
 
   ngAfterViewInit(): void {
     setTimeout(() => this.ajustarEscala(), 0);
