@@ -6,6 +6,6 @@
     'font-weight': fontConfig?.weight,
     'font-style': fontConfig?.style
   }">
-    Texto de descrição para entender sobre o que se trata a reunião em questão. Podemos usar até 4 linhas sem alterar a estrutura da interface.
+    {{ dados?.texto || 'Carregando descrição' }}
   </p>
 </div>
