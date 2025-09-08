@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FontConfig } from '../../models/fontes.model';
 import { FonteService } from '../../services/fonte.service';
@@ -11,7 +11,7 @@ import { FonteService } from '../../services/fonte.service';
   styleUrl: './titulo-reuniao.component.css'
 })
 export class TituloReuniaoComponent {
-  
+  @Input() dados: { texto: string } | undefined;
 
   constructor(private fonteService: FonteService) {}
 

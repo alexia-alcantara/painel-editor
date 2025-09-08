@@ -1,11 +1,11 @@
-<!-- app-descricao-reuniao.component.html -->
 <div class="text-center px-4 py-3 max-w-[430px]">
    <h3 class="text-white" [ngStyle]="{
-  'font-family': fontConfig?.family || 'Inter, sans-serif',
-  'font-size.px': fontConfig?.size || 24,
-  'color': fontConfig?.color || '#FFFFFF',
-  'font-weight': fontConfig?.weight || 'bold',
-  'font-style': fontConfig?.style || 'normal'
-  
-}">TÍTULO TESTE DA REUNIÃO</h3>
+     'font-family': fontConfig?.family || 'Inter, sans-serif',
+     'font-size.px': fontConfig?.size || 24,
+     'color': fontConfig?.color || '#FFFFFF',
+     'font-weight': fontConfig?.weight || 'bold',
+     'font-style': fontConfig?.style || 'normal'
+   }">
+     {{ dados?.texto || 'Carregando Título...' }}
+   </h3>
 </div>
