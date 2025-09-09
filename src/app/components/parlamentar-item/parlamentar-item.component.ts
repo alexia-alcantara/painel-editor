@@ -20,6 +20,7 @@ export interface DadosParlamentar {
 })
 export class ParlamentarItemComponent {
   @Input() parlamentar!: DadosParlamentar;
+  @Input() paleta: any = {};
   @Input() height = 608;
   @Input() width = 38;
 
@@ -43,4 +44,15 @@ get fontVoto(): FontConfig {
   const fonte = this.fonteService.getFonteByTipo('parlamentar').find(f => f.subId === 'voto');
   return fonte?.font || { ...this.defaultFont, weight: "700" };
 }
+
+//pegar a cor do voto na paleta
+  get corDoStatus(): string {
+    if (this.parlamentar?.status === 'PRESENTE') {
+      return this.paleta['Cor_Presente'] || '#0bef26'; 
+    }
+    if (this.parlamentar?.status === 'AUSENTE') {
+      return this.paleta['Cor_Ausente'] || '#fb0909';
+    }
+    return '#FFFFFF';
+  }
 }

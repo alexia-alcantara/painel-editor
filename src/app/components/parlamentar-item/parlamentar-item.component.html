@@ -38,9 +38,9 @@
     } 
     @else {
       @if(parlamentar.status === 'PRESENTE') {
-        <span class="text-green-400">Presente</span>
+        <span [style.color]="corDoStatus">Presente</span>
       } @else {
-        <span class="text-gray-400">Ausente</span>
+        <span [style.color]="corDoStatus">Ausente</span>
       }
     }
   </div>
