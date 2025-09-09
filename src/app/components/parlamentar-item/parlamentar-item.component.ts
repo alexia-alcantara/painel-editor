@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
-import { Parlamentar } from '../lista-votacao/lista-votacao.component';
 import { FonteService } from '../../services/fonte.service';
 import { FontConfig } from '../../models/fontes.model';
 
