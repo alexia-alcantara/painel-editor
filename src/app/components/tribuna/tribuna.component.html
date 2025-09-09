@@ -1,0 +1,17 @@
+@if (dados) {
+  <div class="tribuna-wrapper text-white">
+    @if (dados.fotoUrl) {
+      <img [src]="dados.fotoUrl" alt="Foto do Orador" class="foto-orador">
+    }
+    <div class="info-orador text-white">
+      <h2 class="orador">{{ dados.orador || 'Orador' }}</h2>
+      <p class="partido">{{ dados.partido || 'Partido' }}</p>
+    </div>
+    @if (dados.materia) {
+      <div class="info-materia text-white">
+        <h3>{{ dados.materia }}</h3>
+        <p>{{ dados.ementa }}</p>
+      </div>
+    }
+  </div>
+}
