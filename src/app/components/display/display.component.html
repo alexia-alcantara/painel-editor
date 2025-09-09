@@ -11,7 +11,7 @@
 
     @switch(item.tipo) {
     @case('parlamentar') {
-    <app-parlamentar-item [parlamentar]="item.dados"></app-parlamentar-item>
+    <app-parlamentar-item [parlamentar]="item.dados" [paleta]="paletaDeCores"></app-parlamentar-item>
     }
     @case('imagem') {
     <app-imagem-reuniao></app-imagem-reuniao>
@@ -44,6 +44,12 @@
     @case('votacao-item') {
     <app-voto-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
       [cor]="item.props?.cor ?? '#FFFFFF'"></app-voto-item>
+    }
+    @case('mensagem') {
+    <app-mensagem [dados]="item.dados" [width]="item.width" [height]="item.height"></app-mensagem>
+    }
+    @case('tribuna') {
+    <app-tribuna [dados]="item.dados"></app-tribuna>
     }
     }
   </div>

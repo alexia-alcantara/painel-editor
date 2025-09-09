@@ -27,6 +27,8 @@ import { StatusReuniaoComponent } from '../status-reuniao/status-reuniao.compone
 import { TemporizadorItemComponent } from '../temporizador-item/temporizador-item.component';
 import { VotoItemComponent } from '../votacao-total/voto-item/voto-item.component';
 import { StatusItemComponent } from '../status-reuniao/status-item/status-item.component';
+import { MensagemComponent } from '../mensagem/mensagem.component';
+import { TribunaComponent } from '../tribuna/tribuna.component';
 
 @Component({
   selector: 'app-display',
@@ -44,6 +46,8 @@ import { StatusItemComponent } from '../status-reuniao/status-item/status-item.c
     TemporizadorItemComponent,
     VotoItemComponent,
     StatusItemComponent,
+    MensagemComponent,
+    TribunaComponent
   ],
   templateUrl: './display.component.html',
   styleUrl: './display.component.css',
@@ -55,6 +59,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private atualizacaoSubscription: Subscription | null = null;
   private readonly PAINEL_IDENTIFICADOR = '15';
+
+  paletaDeCores: any = {}; 
 
   constructor(
     private route: ActivatedRoute,
@@ -113,17 +119,25 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   private atualizarCenarioComDadosReais(dados: any): void {
     if (!this.cenarioParaExibir) return;
 
+    const dadosApiValor = dados;
+
+    if (dadosApiValor.paleta && dadosApiValor.paleta.cores) {
+      this.paletaDeCores = dadosApiValor.paleta.cores.reduce((acc: any, cor: any) => {
+        acc[cor.nome] = cor.valor;
+        return acc;
+      }, {});
+    }
+
     const cenarioAtualizado = structuredClone(this.cenarioParaExibir);
 
     // --- Mapear Parlamentares ---
     let parlamentaresApi: any[] = [];
-    // O caminho correto no JSON é: parlamentares -> presencas (que é um array) -> primeiro item -> membros
     if (
-      dados.parlamentares &&
-      dados.parlamentares.presencas &&
-      dados.parlamentares.presencas.length > 0
+      dadosApiValor.parlamentares &&
+      dadosApiValor.parlamentares.presencas &&
+      dadosApiValor.parlamentares.presencas.length > 0
     ) {
-      const membros = dados.parlamentares.presencas[0].membros;
+      const membros = dadosApiValor.parlamentares.presencas[0].membros;
       if (membros) {
         parlamentaresApi = Array.isArray(membros) ? membros : [membros];
       }
@@ -155,17 +169,44 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     cenarioAtualizado.componentes.forEach((componente) => {
       switch (componente.tipo) {
         case 'titulo':
-          componente.dados = { texto: dados.nomeReuniao || 'Reunião' };
+          componente.dados = { texto: dadosApiValor.nomeReuniao || 'Reunião' };
           break;
         case 'subtitulo':
-          componente.dados = { texto: dados.categoriaReuniao || 'Status' };
+          componente.dados = {
+            texto: dadosApiValor.categoriaReuniao || 'Status',
+          };
           break;
         case 'descricao':
-          componente.dados = { texto: dados.statusReuniao || '' };
+          componente.dados = { texto: dadosApiValor.statusReuniao || '' };
           break;
+        case 'cabecalho':
+          componente.dados = {
+            ...componente.dados,
+            texto: dadosApiValor.nomeCliente,
+          };
+          break;
+
+        case 'mensagem':
+          componente.visible = !!dadosApiValor.telaMensagem;
+          if (dadosApiValor.telaMensagem) {
+            componente.dados = { texto: dadosApiValor.telaMensagem.texto }; // Supondo a estrutura da API
+          }
+          break;
+
+        case 'tribuna':
+          componente.visible = !!dadosApiValor.tribuna;
+          if (dadosApiValor.tribuna) {
+            componente.dados = {
+              orador: dadosApiValor.tribuna.orador?.nome,
+              partido: dadosApiValor.tribuna.orador?.partido,
+              materia: dadosApiValor.tribuna.materia?.titulo,
+            };
+          }
+          break;
+
         case 'status-item':
-          const presencas = dados.parlamentares?.presencas?.[0] || {};
-          const nomesTotalizadores = dados.nomesTotalizadores || {};
+          const presencas = dadosApiValor.parlamentares?.presencas?.[0] || {};
+          const nomesTotalizadores = dadosApiValor.nomesTotalizadores || {};
 
           if (componente.id === 'status-presentes') {
             componente.props = {
@@ -202,56 +243,62 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     });
 
     // Lógica para componentes que dependem da votação
-const votacaoSimComp = cenarioAtualizado.componentes.find(
-  (c) => c.id === 'voto-sim'
-);
-const votacaoNaoComp = cenarioAtualizado.componentes.find(
-  (c) => c.id === 'voto-nao'
-);
-const votacaoAbstencaoComp = cenarioAtualizado.componentes.find(
-  (c) => c.id === 'voto-abstencao'
-);
+    const votacaoSimComp = cenarioAtualizado.componentes.find(
+      (c) => c.id === 'voto-sim'
+    );
+    const votacaoNaoComp = cenarioAtualizado.componentes.find(
+      (c) => c.id === 'voto-nao'
+    );
+    const votacaoAbstencaoComp = cenarioAtualizado.componentes.find(
+      (c) => c.id === 'voto-abstencao'
+    );
 
-if (dados.votacao && dados.votacao.sim !== undefined) {
-  // Se existe uma votação ativa...
+    if (dados.votacao && dados.votacao.sim !== undefined) {
+      // Se existe uma votação ativa...
 
-  // Atualiza o título com o nome da matéria
-  const tituloComp = cenarioAtualizado.componentes.find(
-    (c) => c.id === 'titulo'
-  );
-  if (tituloComp) {
-    tituloComp.dados = { texto: dados.votacao.materia || 'Votação' };
-  }
+      // Atualiza o título com o nome da matéria
+      const tituloComp = cenarioAtualizado.componentes.find(
+        (c) => c.id === 'titulo'
+      );
+      if (tituloComp) {
+        tituloComp.dados = { texto: dados.votacao.materia || 'Votação' };
+      }
 
-  // Garante que os itens de votação estejam visíveis e atualiza seus valores
-  if (votacaoSimComp) {
-    votacaoSimComp.visible = true;
-    if (!votacaoSimComp.props) { votacaoSimComp.props = {}; } // Garante que 'props' existe
-    votacaoSimComp.props.valor = dados.votacao.sim;
-  }
-  if (votacaoNaoComp) {
-    votacaoNaoComp.visible = true;
-    if (!votacaoNaoComp.props) { votacaoNaoComp.props = {}; } // Garante que 'props' existe
-    votacaoNaoComp.props.valor = dados.votacao.nao;
-  }
-  if (votacaoAbstencaoComp) {
-    votacaoAbstencaoComp.visible = true;
-    if (!votacaoAbstencaoComp.props) { votacaoAbstencaoComp.props = {}; } // Garante que 'props' existe
-    votacaoAbstencaoComp.props.valor = dados.votacao.abstencao;
-  }
-} else {
-  // Se NÃO existe uma votação ativa...
-  // Esconde os itens de votação
-  if (votacaoSimComp) {
-    votacaoSimComp.visible = false;
-  }
-  if (votacaoNaoComp) {
-    votacaoNaoComp.visible = false;
-  }
-  if (votacaoAbstencaoComp) {
-    votacaoAbstencaoComp.visible = false;
-  }
-}
+      // Garante que os itens de votação estejam visíveis e atualiza seus valores
+      if (votacaoSimComp) {
+        votacaoSimComp.visible = true;
+        if (!votacaoSimComp.props) {
+          votacaoSimComp.props = {};
+        } // Garante que 'props' existe
+        votacaoSimComp.props.valor = dados.votacao.sim;
+      }
+      if (votacaoNaoComp) {
+        votacaoNaoComp.visible = true;
+        if (!votacaoNaoComp.props) {
+          votacaoNaoComp.props = {};
+        } // Garante que 'props' existe
+        votacaoNaoComp.props.valor = dados.votacao.nao;
+      }
+      if (votacaoAbstencaoComp) {
+        votacaoAbstencaoComp.visible = true;
+        if (!votacaoAbstencaoComp.props) {
+          votacaoAbstencaoComp.props = {};
+        } // Garante que 'props' existe
+        votacaoAbstencaoComp.props.valor = dados.votacao.abstencao;
+      }
+    } else {
+      // Se NÃO existe uma votação ativa...
+      // Esconde os itens de votação
+      if (votacaoSimComp) {
+        votacaoSimComp.visible = false;
+      }
+      if (votacaoNaoComp) {
+        votacaoNaoComp.visible = false;
+      }
+      if (votacaoAbstencaoComp) {
+        votacaoAbstencaoComp.visible = false;
+      }
+    }
 
     this.cenarioParaExibir = cenarioAtualizado;
   }
@@ -270,18 +317,18 @@ if (dados.votacao && dados.votacao.sim !== undefined) {
     this.ajustarEscala();
   }
 
-private ajustarEscala(): void {
-  if (!this.wrapper || !this.cenarioParaExibir) return;
+  private ajustarEscala(): void {
+    if (!this.wrapper || !this.cenarioParaExibir) return;
 
-  const container = this.wrapper.nativeElement.parentElement;
-  const target = this.wrapper.nativeElement;
+    const container = this.wrapper.nativeElement.parentElement;
+    const target = this.wrapper.nativeElement;
 
-  if (!container) return;
+    if (!container) return;
 
-  // Calcula a escala baseada APENAS na largura do container.
-  const scale = container.clientWidth / this.cenarioParaExibir.targetWidth;
+    // Calcula a escala baseada APENAS na largura do container.
+    const scale = container.clientWidth / this.cenarioParaExibir.targetWidth;
 
-  this.renderer.setStyle(target, 'transform-origin', 'top left');
-  this.renderer.setStyle(target, 'transform', `scale(${scale})`);
-}
+    this.renderer.setStyle(target, 'transform-origin', 'top left');
+    this.renderer.setStyle(target, 'transform', `scale(${scale})`);
+  }
 }
