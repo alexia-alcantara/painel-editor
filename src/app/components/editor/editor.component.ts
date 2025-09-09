@@ -25,15 +25,13 @@ import { TimerComponent } from '../timer/timer.component';
 import { StatusReuniaoComponent } from '../status-reuniao/status-reuniao.component';
 import { TemporizadorItemComponent } from '../temporizador-item/temporizador-item.component';
 import {
-  ListaVotacaoComponent,
-  Parlamentar,
+  ListaVotacaoComponent
 } from '../lista-votacao/lista-votacao.component';
 import { DescricaoReuniaoComponent } from '../descricao-reuniao/descricao-reuniao.component';
 import { TituloReuniaoComponent } from '../titulo-reuniao/titulo-reuniao.component';
 import { ContextMenuComponent } from '../context-menu/context-menu.component';
 import { VotoItemComponent } from '../votacao-total/voto-item/voto-item.component';
 import { LayoutExportService } from '../../services/layout-export.service';
-import saveAs from 'file-saver';
 import { ComponenteTipo, FontConfig } from '../../models/fontes.model';
 import { DistribuirConfig } from '../../dialogs/distribuir-parlamentares/distribuir-parlamentares.component';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -112,7 +110,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     private layoutExport: LayoutExportService,
     private fonteService: FonteService,
     private renderer: Renderer2,
-    private hostElement: ElementRef
   ) {}
 
   @HostListener('window:resize')
