@@ -16,7 +16,9 @@ export interface ComponenteEditor {
     | 'titulo'
     | 'subtitulo'
     | 'temporizador-item'
-    | 'multimidia';
+    | 'multimidia'
+    | 'mensagem'
+    | 'tribuna';
   dados?: any;
   x: number;
   y: number;
