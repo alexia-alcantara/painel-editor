@@ -24,9 +24,7 @@ import { VotacaoTotalComponent } from '../votacao-total/votacao-total.component'
 import { TimerComponent } from '../timer/timer.component';
 import { StatusReuniaoComponent } from '../status-reuniao/status-reuniao.component';
 import { TemporizadorItemComponent } from '../temporizador-item/temporizador-item.component';
-import {
-  ListaVotacaoComponent
-} from '../lista-votacao/lista-votacao.component';
+import { ListaVotacaoComponent } from '../lista-votacao/lista-votacao.component';
 import { DescricaoReuniaoComponent } from '../descricao-reuniao/descricao-reuniao.component';
 import { TituloReuniaoComponent } from '../titulo-reuniao/titulo-reuniao.component';
 import { ContextMenuComponent } from '../context-menu/context-menu.component';
@@ -45,6 +43,8 @@ import { FormsModule } from '@angular/forms';
 import { FonteService } from '../../services/fonte.service';
 import { StatusItemComponent } from '../status-reuniao/status-item/status-item.component';
 import { SubtituloReuniaoComponent } from '../subtitulo-reuniao/subtitulo-reuniao.component';
+import { MensagemComponent } from '../mensagem/mensagem.component';
+import { TribunaComponent } from '../tribuna/tribuna.component';
 
 @Component({
   selector: 'app-editor',
@@ -73,6 +73,8 @@ import { SubtituloReuniaoComponent } from '../subtitulo-reuniao/subtitulo-reunia
     MatIconModule,
     ControleVisibilidadeComponent,
     StatusItemComponent,
+    MensagemComponent,
+    TribunaComponent,
   ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
@@ -86,6 +88,10 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   router = inject(Router);
   layout: ComponenteEditor[] = [];
 
+  isEditingMode = false;
+  cenarioId: string | null = null;
+  cenarioAtual!: Cenario;
+
   votacaoMock = {
     sim: 10,
     nao: 5,
@@ -94,22 +100,14 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
   componentes = signal<ComponenteEditor[]>([]);
   mostrarControleVisibilidade = false;
-
-  cenarioAtual: Cenario = {
-    id: `cenario_${Date.now()}`,
-    nome: 'Novo Cenário',
-    targetWidth: 1920,
-    targetHeight: 1080,
-    backgroundImage: '',
-    componentes: [],
-  };
+  private routeSub: Subscription | undefined;
 
   constructor(
     private layoutService: LayoutService,
     private route: ActivatedRoute,
     private layoutExport: LayoutExportService,
     private fonteService: FonteService,
-    private renderer: Renderer2,
+    private renderer: Renderer2
   ) {}
 
   @HostListener('window:resize')
@@ -171,31 +169,31 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  private routeSub: Subscription | undefined;
-
   ngOnInit() {
-    this.routeSub = this.route.params.subscribe((params) => {
-      const idDoCenario = params['id'];
-      let cenarioCarregado = null;
-      if (idDoCenario) {
-        cenarioCarregado = this.layoutService.carregarCenario(idDoCenario);
-      }
+    this.routeSub = this.route.paramMap.subscribe((params) => {
+      if (params.has('id')) {
+        // MODO DE EDIÇÃO: A URL tem um ID
+        this.isEditingMode = true;
+        this.cenarioId = params.get('id');
+        console.log(`Modo de Edição. Carregando cenário: ${this.cenarioId}`);
 
-      if (cenarioCarregado) {
-        this.cenarioAtual = cenarioCarregado;
-      } else {
-        this.cenarioAtual = this.montarLayoutInicial();
-        if (idDoCenario) {
-          this.cenarioAtual.id = idDoCenario;
+        const cenarioCarregado = this.layoutService.carregarCenario(
+          this.cenarioId!
+        );
+        if (cenarioCarregado) {
+          this.cenarioAtual = cenarioCarregado;
+        } else {
+          alert('Cenário não encontrado! Redirecionando para um novo cenário.');
+          this.router.navigate(['/editor']);
         }
+      } else {
+        this.isEditingMode = false;
+        this.cenarioId = null;
+        console.log('Modo cenário novo');
+        this.cenarioAtual = this.montarLayoutInicial();
       }
-      this.onItemChange();
 
-      const imagemTemporaria = localStorage.getItem('bg_temporary');
-      if (imagemTemporaria && !this.cenarioAtual.backgroundImage) {
-        console.log('Imagem de fundo encontrada. Aplicando...');
-        this.cenarioAtual.backgroundImage = imagemTemporaria;
-      }
+      this.onItemChange();
       this.dispararAutosave();
     });
   }
@@ -309,16 +307,21 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private montarLayoutInicial(): Cenario {
+    const larguraTela = 1660;
+    const alturaTela = 1080;
+
     const larguraImagem = 650;
     const alturaImagem = 365;
-    const xImagem = 750;
+    const xImagem = 850;
     const yImagem = 70;
 
-    const espacamentoHorizontal = 85;
-    const espacamentoTemporizador = 42;
+    const espacamentoHorizontalBlocos = 85; 
+    const espacamentoInternoComponentes = 20; 
+    const espacamentoTemporizador = 42; 
+
     const xBase = 235;
 
-    // Alturas fixas dos blocos
+
     const cabecalhoHeight = 50;
     const tituloHeight = 25;
     const subtituloHeight = 20;
@@ -329,7 +332,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     const larguraVotacaoItem = 223;
     const alturaVotacaoItem = 30;
 
-    let yAtual = yImagem;
+    let yAtualEsquerda = yImagem;
 
     const defaultFont: FontConfig = {
       family: 'Inter, sans-serif',
@@ -354,20 +357,20 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       id: 'cabecalho',
       tipo: 'cabecalho',
       x: xBase,
-      y: yAtual,
-      width: xImagem - espacamentoHorizontal,
+      y: yAtualEsquerda,
+      width: xImagem - espacamentoHorizontalBlocos,
       height: cabecalhoHeight,
       visible: true,
     };
-    yAtual += cabecalho.height + 12;
+    yAtualEsquerda += cabecalho.height + espacamentoInternoComponentes;
 
     // Título
     const titulo: ComponenteEditor = {
       id: 'titulo',
       tipo: 'titulo',
       x: xBase,
-      y: yAtual,
-      width: xImagem - espacamentoHorizontal,
+      y: yAtualEsquerda,
+      width: cabecalho.width,
       height: tituloHeight,
       visible: true,
       dados: { texto: 'Título da Reunião' },
@@ -379,15 +382,15 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         },
       ],
     };
-    yAtual += titulo.height + 12;
+    yAtualEsquerda += titulo.height + espacamentoInternoComponentes;
 
     // Subtítulo
     const subtitulo: ComponenteEditor = {
       id: 'subtitulo',
       tipo: 'subtitulo',
       x: xBase,
-      y: yAtual,
-      width: xImagem - espacamentoHorizontal,
+      y: yAtualEsquerda,
+      width: cabecalho.width,
       height: subtituloHeight,
       visible: true,
       dados: { texto: 'Subtítulo da Reunião' },
@@ -399,14 +402,14 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         },
       ],
     };
-    yAtual += subtitulo.height + 12;
+    yAtualEsquerda += subtitulo.height + espacamentoInternoComponentes;
 
     // Descrição
     const descricao: ComponenteEditor = {
       id: 'descricao',
       tipo: 'descricao',
       x: cabecalho.x,
-      y: yAtual,
+      y: yAtualEsquerda,
       width: cabecalho.width,
       height: descricaoHeight,
       dados: { texto: 'Status da Reunião' },
@@ -419,14 +422,14 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       ],
       visible: true,
     };
-    yAtual += descricao.height + 12;
+    yAtualEsquerda += descricao.height + espacamentoInternoComponentes;
 
     // Totalizadores
     const totalizadores: ComponenteEditor = {
       id: 'totalizadores',
       tipo: 'totalizadores',
       x: xBase,
-      y: yAtual,
+      y: yAtualEsquerda,
       width: 172,
       height: totalizadoresHeight,
       dados: this.votacaoMock,
@@ -476,19 +479,22 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       visible: true,
     };
 
+    const larguraStatusReuniao = 250; // Largura do bloco de status
+    const xStatusReuniao = totalizadores.x + totalizadores.width + 150;
+
     const statusReuniao: ComponenteEditor = {
       id: 'status-reuniao',
       tipo: 'status-reuniao',
-      x: xBase + totalizadores.width + espacamentoHorizontal,
-      y: yAtual,
-      width: 223,
+      x: xStatusReuniao,
+      y: yAtualEsquerda,
+      width: larguraStatusReuniao,
       height: statusReuniaoHeight,
       visible: true,
     };
 
     const baseXStatus = statusReuniao.x + 15;
     const baseYStatus = statusReuniao.y + 15;
-    const larguraStatusItem = statusReuniao.width - 30;
+    const larguraStatusItem = statusReuniao.width - 55;
     const alturaStatusItem = 25;
     const espacoVerticalStatus = 10;
 
@@ -534,7 +540,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       width: larguraStatusItem,
       height: alturaStatusItem,
       props: { label: 'QUORUM', valor: 13 },
-      visible: true,
+      visible: false,
     };
 
     const statusLicenciados: ComponenteEditor = {
@@ -545,7 +551,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       width: larguraStatusItem,
       height: alturaStatusItem,
       props: { label: 'LICENCIADOS', valor: 0 },
-      visible: true,
+      visible: false,
     };
 
     const statusObstrucao: ComponenteEditor = {
@@ -556,7 +562,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       width: larguraStatusItem,
       height: alturaStatusItem,
       props: { label: 'OBSTRUÇÃO', valor: 0 },
-      visible: true,
+      visible: false,
     };
 
     // Temporizadores
@@ -584,10 +590,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       },
     ];
 
-    const alturaTemporizadores = Math.max(
-      ...temporizadoresBase.map((t) => t.height)
-    );
-    const yTemporizadores = yImagem + alturaImagem - alturaTemporizadores;
+  const yTemporizadores = yAtualEsquerda + Math.max(totalizadores.height, statusReuniao.height) + 30;
 
     const temporizadores: ComponenteEditor[] = temporizadoresBase.map(
       (item, index) => {
@@ -613,7 +616,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     );
 
-    const margemParlamentares = 45;
+    const margemParlamentares = 200;
     const yParlamentares = yImagem + alturaImagem + margemParlamentares;
     const defaultConfig: DistribuirConfig = {
       qtdePorColuna: 5,
@@ -625,6 +628,32 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       exibirDe: 0,
       exibirAte: 0,
       offsetInicial: 0,
+    };
+
+    const mensagem: ComponenteEditor = {
+      id: 'mensagem-principal',
+      tipo: 'mensagem',
+      x: 1200,
+      y: 450,
+      width: 300,
+      height: 200,
+      visible: true,
+      dados: { texto: 'Mensagem em Tela' },
+    };
+
+    const tribuna: ComponenteEditor = {
+      id: 'tribuna-principal',
+      tipo: 'tribuna',
+      x: 900,
+      y: 465, 
+      width: 800,
+      height: 150, 
+      visible: true,
+      dados: {
+        orador: 'Nome do Orador',
+        partido: 'PARTIDO',
+        materia: 'Tema em Discussão',
+      },
     };
 
     const parlamentares = this.montarComponentesParlamentares(
@@ -649,6 +678,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       votacaoSim,
       votacaoNao,
       votacaoAbstencao,
+      mensagem,
+      tribuna,
       ...temporizadores,
       ...parlamentares,
     ];
@@ -656,8 +687,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     const cenarioPadrao: Cenario = {
       id: `cenario_${Date.now()}`,
       nome: 'Novo Cenário',
-      targetWidth: 1920,
-      targetHeight: 1080,
+      targetWidth: larguraTela,
+      targetHeight: alturaTela,
       backgroundImage: '',
       componentes: componentesIniciais,
     };
@@ -720,35 +751,44 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   async salvar() {
-  const nomeCenario = prompt(
-    'Digite um nome para o cenário:',
-    this.cenarioAtual.nome || 'novo-cenario'
-  );
+    const nomeCenario = prompt(
+      'Digite um nome para o cenário:',
+      this.cenarioAtual.nome || 'novo-cenario'
+    );
 
-  if (!nomeCenario) {
-    return;
+    if (!nomeCenario) {
+      return;
+    }
+
+    this.cenarioAtual.nome = nomeCenario;
+
+    if (this.isEditingMode) {
+      try {
+        // O cenarioAtual já tem o ID correto, apenas o atualizamos
+        this.layoutService.salvarCenario(this.cenarioAtual);
+        alert(`Cenário "${nomeCenario}" atualizado com sucesso!`);
+      } catch (error) {
+        console.error('Falha ao atualizar o cenário:', error);
+        alert('Ocorreu um erro ao atualizar o cenário.');
+      }
+    } else {
+      try {
+        // A API/serviço deve gerar o ID e nos retornar
+        // Por enquanto, vamos simular a geração do ID aqui, como antes
+        const novoId = `cenario_${Date.now()}`;
+        this.cenarioAtual.id = novoId;
+
+        this.layoutService.salvarCenario(this.cenarioAtual);
+
+        alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
+
+        this.router.navigate(['/editor', novoId]);
+      } catch (error) {
+        console.error('Falha grave ao salvar o cenário:', error);
+        alert('Ocorreu um erro ao salvar o cenário.');
+      }
+    }
   }
-
-  // 1. Cria uma cópia segura do cenário atual
-  const cenarioParaSalvar = structuredClone(this.cenarioAtual);
-  
-  // 2. Gera um ID NOVO e único para este cenário
-  const novoId = `cenario_${Date.now()}`;
-  cenarioParaSalvar.id = novoId;
-  cenarioParaSalvar.nome = nomeCenario;
-
-  try {
-    this.layoutService.salvarCenario(cenarioParaSalvar);
-
-    alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
-
-    this.router.navigate(['/editor', novoId]);
-
-  } catch (error) {
-    console.error('Falha grave ao salvar o cenário:', error);
-    alert('Ocorreu um erro ao salvar o cenário.');
-  }
-}
 
   private dispararAutosave(): void {
     this.componentes.set(this.cenarioAtual.componentes);

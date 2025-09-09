@@ -12,7 +12,7 @@
 </div>
 
 <div class="editor-container">
-<div #editorWrapper class="editor-wrapper"
+<div #editorWrapper class="editor-wrapper overflow-x-hidden"
        [style.background-image]="cenarioAtual.backgroundImage ? 'url(' + cenarioAtual.backgroundImage + ')' : 'none'"
        [style.width.px]="cenarioAtual.targetWidth"
        [style.height.px]="cenarioAtual.targetHeight">
@@ -65,6 +65,12 @@
       <app-status-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
         [height]="item.height">
       </app-status-item>
+      }
+       @case ('mensagem') {
+        <app-mensagem [dados]="item.dados" [width]="item.width" [height]="item.height"></app-mensagem>
+      }
+       @case ('tribuna') {
+        <app-tribuna [dados]="item.dados"></app-tribuna>
       }
 
       @default {
