@@ -18,7 +18,8 @@ export interface ComponenteEditor {
     | 'temporizador-item'
     | 'multimidia'
     | 'mensagem'
-    | 'tribuna';
+    | 'tribuna'
+    | 'resultado-votacao'
   dados?: any;
   x: number;
   y: number;
