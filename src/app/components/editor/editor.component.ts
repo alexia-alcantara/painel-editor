@@ -172,7 +172,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnInit() {
     this.routeSub = this.route.paramMap.subscribe((params) => {
       if (params.has('id')) {
-        // MODO DE EDIÇÃO: A URL tem um ID
+        // MODO DE EDIÇÃO
         this.isEditingMode = true;
         this.cenarioId = params.get('id');
         console.log(`Modo de Edição. Carregando cenário: ${this.cenarioId}`);
@@ -646,7 +646,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       tipo: 'tribuna',
       x: 900,
       y: 465, 
-      width: 800,
+      width: 400,
       height: 150, 
       visible: true,
       dados: {
@@ -764,7 +764,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
     if (this.isEditingMode) {
       try {
-        // O cenarioAtual já tem o ID correto, apenas o atualizamos
         this.layoutService.salvarCenario(this.cenarioAtual);
         alert(`Cenário "${nomeCenario}" atualizado com sucesso!`);
       } catch (error) {
@@ -773,8 +772,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     } else {
       try {
-        // A API/serviço deve gerar o ID e nos retornar
-        // Por enquanto, vamos simular a geração do ID aqui, como antes
+        // A APIdeve gerar o ID e nos retornar
         const novoId = `cenario_${Date.now()}`;
         this.cenarioAtual.id = novoId;
 

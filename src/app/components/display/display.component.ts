@@ -47,7 +47,7 @@ import { TribunaComponent } from '../tribuna/tribuna.component';
     VotoItemComponent,
     StatusItemComponent,
     MensagemComponent,
-    TribunaComponent
+    TribunaComponent,
   ],
   templateUrl: './display.component.html',
   styleUrl: './display.component.css',
@@ -60,7 +60,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   private atualizacaoSubscription: Subscription | null = null;
   private readonly PAINEL_IDENTIFICADOR = '15';
 
-  paletaDeCores: any = {}; 
+  paletaDeCores: any = {};
+  private painelSubscription: Subscription | undefined;
 
   constructor(
     private route: ActivatedRoute,
@@ -80,28 +81,22 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private iniciarAtualizacaoAutomatica(): void {
-    this.buscarEAtualizarDados();
+    const ipDoPainel = '15';
+    const frequenciaMs = 2000;
 
-    /*
-    this.atualizacaoSubscription = interval(5000).subscribe(() => {
-      this.buscarEAtualizarDados();
-    });
-    */
+    this.atualizacaoSubscription = this.painelService
+      .getDadosPainelEmTempoReal(ipDoPainel, frequenciaMs)
+      .subscribe((dadosDaApi) => {
+        if (dadosDaApi && dadosDaApi['valor']) {
+          this.atualizarCenarioComDadosReais(dadosDaApi['valor']);
+        }
+      });
   }
 
   private buscarEAtualizarDados(): void {
     this.painelService.getDadosPainel(this.PAINEL_IDENTIFICADOR).subscribe({
       next: (dadosDaApi) => {
         console.log('Dados recebidos da API:', dadosDaApi);
-
-        // if (dadosDaApi['valor']) {
-        //   dadosDaApi['valor'].votacao = {
-        //     materia: 'PL 123/2025 - PROJETO TESTE DE VOTAÇÃO',
-        //     sim: 42,
-        //     nao: 15,
-        //     abstencao: 3,
-        //   };
-        // }
 
         // Verifica se recebe dados válidos no campo 'valor'
         if (this.cenarioParaExibir && dadosDaApi && dadosDaApi['valor']) {
@@ -119,13 +114,23 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   private atualizarCenarioComDadosReais(dados: any): void {
     if (!this.cenarioParaExibir) return;
 
+    console.log(
+      'ESTRUTURA DOS COMPONENTES:',
+      this.cenarioParaExibir.componentes
+    );
+
     const dadosApiValor = dados;
 
+    console.log('OBJETO VOTACAO RECEBIDO:', dadosApiValor.votacao);
+
     if (dadosApiValor.paleta && dadosApiValor.paleta.cores) {
-      this.paletaDeCores = dadosApiValor.paleta.cores.reduce((acc: any, cor: any) => {
-        acc[cor.nome] = cor.valor;
-        return acc;
-      }, {});
+      this.paletaDeCores = dadosApiValor.paleta.cores.reduce(
+        (acc: any, cor: any) => {
+          acc[cor.nome] = cor.valor;
+          return acc;
+        },
+        {}
+      );
     }
 
     const cenarioAtualizado = structuredClone(this.cenarioParaExibir);
@@ -153,7 +158,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         parlamentaresLayout[index].dados = {
           nome: parlamentarApi.nome || 'Nome não informado',
           partido: parlamentarApi.partido || '-',
-          voto: parlamentarApi.voto?.status || '-', // O 'voto' pode ser nulo
+          voto: parlamentarApi.voto?.status || '-',
           status: parlamentarApi.status,
           cor: parlamentarApi.cor,
         };
@@ -161,16 +166,12 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     });
 
-    // Esconde os componentes de parlamentar que não receberam dados da API
     for (let i = parlamentaresApi.length; i < parlamentaresLayout.length; i++) {
       parlamentaresLayout[i].visible = false;
     }
 
     cenarioAtualizado.componentes.forEach((componente) => {
       switch (componente.tipo) {
-        case 'titulo':
-          componente.dados = { texto: dadosApiValor.nomeReuniao || 'Reunião' };
-          break;
         case 'subtitulo':
           componente.dados = {
             texto: dadosApiValor.categoriaReuniao || 'Status',
@@ -188,8 +189,40 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
         case 'mensagem':
           componente.visible = !!dadosApiValor.telaMensagem;
-          if (dadosApiValor.telaMensagem) {
-            componente.dados = { texto: dadosApiValor.telaMensagem.texto }; // Supondo a estrutura da API
+          if (
+            dadosApiValor.telaMensagem &&
+            dadosApiValor.telaMensagem.conteudo
+          ) {
+            try {
+              const conteudoMensagem = JSON.parse(
+                dadosApiValor.telaMensagem.conteudo
+              );
+
+              if (
+                Array.isArray(conteudoMensagem) &&
+                conteudoMensagem.length > 0
+              ) {
+                // Pega o texto da primeira linha (ex: "Votação")
+                const linhaTitulo = conteudoMensagem[0]?.texto || '';
+
+                // Pega o texto da última linha (ex: "Aberta")
+                const linhaStatus =
+                  conteudoMensagem[conteudoMensagem.length - 1]?.texto || '';
+
+                // Combina apenas o título e o status, ignorando o nome da votação que já está no título principal.
+                const textoFinal = [linhaTitulo, linhaStatus]
+                  .filter(Boolean)
+                  .join('\n');
+
+                componente.dados = { texto: textoFinal };
+              } else {
+                // Se o formato não for o esperado, esconde o componente para evitar erros.
+                componente.visible = false;
+              }
+            } catch (e) {
+              console.error('Erro ao processar o conteúdo da telaMensagem:', e);
+              componente.visible = false;
+            }
           }
           break;
 
@@ -197,9 +230,9 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           componente.visible = !!dadosApiValor.tribuna;
           if (dadosApiValor.tribuna) {
             componente.dados = {
-              orador: dadosApiValor.tribuna.orador?.nome,
-              partido: dadosApiValor.tribuna.orador?.partido,
-              materia: dadosApiValor.tribuna.materia?.titulo,
+              orador: dadosApiValor.tribuna.nome,
+              partido: dadosApiValor.tribuna.partido,
+              materia: ' ',
             };
           }
           break;
@@ -242,7 +275,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     });
 
-    // Lógica para componentes que dependem da votação
+    const votacaoAtiva = !!dadosApiValor.votacao;
+
     const votacaoSimComp = cenarioAtualizado.componentes.find(
       (c) => c.id === 'voto-sim'
     );
@@ -252,51 +286,43 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     const votacaoAbstencaoComp = cenarioAtualizado.componentes.find(
       (c) => c.id === 'voto-abstencao'
     );
+    const tituloComp = cenarioAtualizado.componentes.find(
+      (c) => c.tipo === 'titulo'
+    );
 
-    if (dados.votacao && dados.votacao.sim !== undefined) {
-      // Se existe uma votação ativa...
+    if (tituloComp) {
+      if (votacaoAtiva) {
+        // Se a votação está ativa, mostra o nome do projeto
+        const nomeVotacao = dadosApiValor.votacao.nome || 'Votação';
+        const statusVotacao =
+          dadosApiValor.votacao.status?.replace('_', ' ') || ''; // Transforma "CHAMADA_1" em "CHAMADA 1"
+        tituloComp.dados = { texto: `${nomeVotacao} (${statusVotacao})` };
+      } else {
+        // Se não há votação, mostra o nome da reunião normal
+        tituloComp.dados = { texto: dadosApiValor.nomeReuniao || 'Reunião' };
+      }
+    }
 
-      // Atualiza o título com o nome da matéria
-      const tituloComp = cenarioAtualizado.componentes.find(
-        (c) => c.id === 'titulo'
-      );
-      if (tituloComp) {
-        tituloComp.dados = { texto: dados.votacao.materia || 'Votação' };
+    // Atualiza os componentes de Votação (Sim, Não, Abstenção)
+    if (votacaoSimComp) {
+      votacaoSimComp.visible = votacaoAtiva;
+      if (votacaoAtiva) {
+        if (!votacaoSimComp.props) votacaoSimComp.props = {};
+        votacaoSimComp.props.valor = dadosApiValor.votacao.sim;
       }
-
-      // Garante que os itens de votação estejam visíveis e atualiza seus valores
-      if (votacaoSimComp) {
-        votacaoSimComp.visible = true;
-        if (!votacaoSimComp.props) {
-          votacaoSimComp.props = {};
-        } // Garante que 'props' existe
-        votacaoSimComp.props.valor = dados.votacao.sim;
+    }
+    if (votacaoNaoComp) {
+      votacaoNaoComp.visible = votacaoAtiva;
+      if (votacaoAtiva) {
+        if (!votacaoNaoComp.props) votacaoNaoComp.props = {};
+        votacaoNaoComp.props.valor = dadosApiValor.votacao.nao;
       }
-      if (votacaoNaoComp) {
-        votacaoNaoComp.visible = true;
-        if (!votacaoNaoComp.props) {
-          votacaoNaoComp.props = {};
-        } // Garante que 'props' existe
-        votacaoNaoComp.props.valor = dados.votacao.nao;
-      }
-      if (votacaoAbstencaoComp) {
-        votacaoAbstencaoComp.visible = true;
-        if (!votacaoAbstencaoComp.props) {
-          votacaoAbstencaoComp.props = {};
-        } // Garante que 'props' existe
-        votacaoAbstencaoComp.props.valor = dados.votacao.abstencao;
-      }
-    } else {
-      // Se NÃO existe uma votação ativa...
-      // Esconde os itens de votação
-      if (votacaoSimComp) {
-        votacaoSimComp.visible = false;
-      }
-      if (votacaoNaoComp) {
-        votacaoNaoComp.visible = false;
-      }
-      if (votacaoAbstencaoComp) {
-        votacaoAbstencaoComp.visible = false;
+    }
+    if (votacaoAbstencaoComp) {
+      votacaoAbstencaoComp.visible = votacaoAtiva;
+      if (votacaoAtiva) {
+        if (!votacaoAbstencaoComp.props) votacaoAbstencaoComp.props = {};
+        votacaoAbstencaoComp.props.valor = dadosApiValor.votacao.abstencao;
       }
     }
 
@@ -325,7 +351,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (!container) return;
 
-    // Calcula a escala baseada APENAS na largura do container.
+    // Calcula a escala baseada na largura do container.
     const scale = container.clientWidth / this.cenarioParaExibir.targetWidth;
 
     this.renderer.setStyle(target, 'transform-origin', 'top left');

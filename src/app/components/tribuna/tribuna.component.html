@@ -1,5 +1,7 @@
 @if (dados) {
-  <div class="tribuna-wrapper text-white">
+  <div class="tribuna-wrapper text-white"
+  [style.width.px]="width"
+    [style.height.px]="height">
     @if (dados.fotoUrl) {
       <img [src]="dados.fotoUrl" alt="Foto do Orador" class="foto-orador">
     }

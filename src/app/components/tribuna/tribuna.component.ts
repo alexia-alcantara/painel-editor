@@ -17,6 +17,7 @@ export interface TribunaData{
   styleUrl: './tribuna.component.css'
 })
 export class TribunaComponent {
-
+  @Input() width: number = 300;
+  @Input() height: number = 100;
   @Input() dados?: TribunaData;
 }
