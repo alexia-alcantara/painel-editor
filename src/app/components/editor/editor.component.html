@@ -7,6 +7,9 @@
   <label>Altura:</label>
   <input type="number" [(ngModel)]="cenarioAtual.targetHeight" class="bg-gray-700 p-1 rounded w-20">
 
+  <label>ID/IP do Painel:</label>
+  <input type="text" [(ngModel)]="cenarioAtual.idPainel" class="bg-gray-700 p-1 rounded w-20">
+  
   <label>Imagem de Fundo:</label>
   <input type="file" (change)="onFileSelected($event)" class="text-sm">
 </div>

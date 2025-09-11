@@ -8,21 +8,21 @@ export class LayoutService {
   private cenariosAtualizados = new Subject<Cenario[]>();
   cenarios$ = this.cenariosAtualizados.asObservable();
 
-  // Chave para o cenário de trabalho atual 
   private LAYOUT_ATUAL_KEY = 'layout_editor_atual';
   
-  // Chave para a LISTA de todos os cenários salvos
   private CENARIOS_KEY = 'cenarios_editor_salvos';
 
-// Chave para a configuração do modal de distribuição
   private DIST_CONFIG_KEY = 'distribuicao_config';
 
- //salva o cenario completo q está sendo editado
-  salvarLayoutAtual(cenario: Cenario): void {
-    localStorage.setItem(this.LAYOUT_ATUAL_KEY, JSON.stringify(cenario));
-  }
+salvarLayoutAtual(layout: Cenario): void {
+  const layoutParaSalvar = { ...layout };
 
- //Carrega o último cenário que estava sendo editado
+  delete (layoutParaSalvar as any).imagemFundoId;
+  delete (layoutParaSalvar as any).imagemFundoFile; 
+
+  localStorage.setItem('layout_editor_atual', JSON.stringify(layoutParaSalvar));
+}
+
    carregarLayoutAtual(): Cenario | null {
     try {
       const cenarioString = localStorage.getItem(this.LAYOUT_ATUAL_KEY);
@@ -45,16 +45,15 @@ export class LayoutService {
       }
       localStorage.setItem(this.CENARIOS_KEY, JSON.stringify(cenarios));
       
-      // 3. Avise a todos que a lista mudou
       this.cenariosAtualizados.next(cenarios); 
     } catch (e) {
       console.error("Erro ao salvar cenário no localStorage", e);
     }
   }
 
-   carregarCenario(id: string): Cenario | null {
+   carregarCenario(slug: string): Cenario | null {
     const cenarios = this.listarCenarios();
-    return cenarios.find(c => c.id === id) || null;
+    return cenarios.find(c => c.slug === slug || c.id === slug) || null;
   }
 
   listarCenarios(): Cenario[] {

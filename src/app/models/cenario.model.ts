@@ -7,4 +7,7 @@ export interface Cenario {
   targetHeight: number;
   backgroundImage: string; // Armazenará a imagem em base64
   componentes: ComponenteEditor[];
+  imagemFundoId?: string; 
+  idPainel: string;
+  slug: string;
 }

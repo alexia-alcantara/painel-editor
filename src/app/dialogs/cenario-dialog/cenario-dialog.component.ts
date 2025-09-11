@@ -43,13 +43,17 @@ export class CenarioDialogComponent implements OnInit {
     this.cenarios = this.layoutService.listarCenarios();
   }
 
- carregarCenario(id: string): void {
-  // Gera a URL para a rota de exibição 
-  const url = this.router.serializeUrl(
-    this.router.createUrlTree(['/display', id])
-  );
-  window.open(url, '_blank');
-  this.dialogRef.close(); 
+carregarCenario(cenario: Cenario): void {
+  if (cenario && cenario.slug) {
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/display', cenario.slug])
+    );
+    window.open(url, '_blank');
+    this.dialogRef.close();
+  } else {
+    console.error('Cenário inválido ou sem slug:', cenario);
+    alert('Não foi possível carregar o cenário pois o slug não foi encontrado.');
+  }
 }
 
   removerCenario(id: string, nome: string): void {

@@ -45,6 +45,7 @@ import { StatusItemComponent } from '../status-reuniao/status-item/status-item.c
 import { SubtituloReuniaoComponent } from '../subtitulo-reuniao/subtitulo-reuniao.component';
 import { MensagemComponent } from '../mensagem/mensagem.component';
 import { TribunaComponent } from '../tribuna/tribuna.component';
+import { ImagemStorageService } from '../../services/imagem-storage.service';
 
 @Component({
   selector: 'app-editor',
@@ -102,12 +103,15 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   mostrarControleVisibilidade = false;
   private routeSub: Subscription | undefined;
 
+  private imagemFundoAtual: File | null = null;
+
   constructor(
     private layoutService: LayoutService,
     private route: ActivatedRoute,
     private layoutExport: LayoutExportService,
     private fonteService: FonteService,
-    private renderer: Renderer2
+    private renderer: Renderer2,
+    private imagemStorageService: ImagemStorageService
   ) {}
 
   @HostListener('window:resize')
@@ -257,24 +261,16 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   redistribuirParlamentares(config: DistribuirConfig) {
-    const componentesAtuais = this.cenarioAtual.componentes;
-    const componentesSemParlamentares = componentesAtuais.filter(
+    const componentesSemParlamentares = this.cenarioAtual.componentes.filter(
       (c) => c.tipo !== 'parlamentar'
     );
-    const yBaseComponenteImagem =
-      componentesAtuais.find((c) => c.tipo === 'imagem')?.y ?? 70;
-    const alturaComponenteImagem =
-      componentesAtuais.find((c) => c.tipo === 'imagem')?.height ?? 421;
-    const yBaseParlamentares =
-      yBaseComponenteImagem + alturaComponenteImagem + 45;
 
-    const novosParlamentares = this.montarComponentesParlamentares(
-      yBaseParlamentares,
-      config
-    );
-    const layoutFinal = [...componentesSemParlamentares, ...novosParlamentares];
-    this.cenarioAtual.componentes = layoutFinal;
+    const novosParlamentares = this.montarComponentesParlamentares(config);
 
+    this.cenarioAtual.componentes = [
+      ...componentesSemParlamentares,
+      ...novosParlamentares,
+    ];
     this.dispararAutosave();
   }
 
@@ -306,6 +302,16 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  private gerarSlug(texto: string): string {
+    return texto
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-');
+  }
+
   private montarLayoutInicial(): Cenario {
     const larguraTela = 1660;
     const alturaTela = 1080;
@@ -315,12 +321,11 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     const xImagem = 850;
     const yImagem = 70;
 
-    const espacamentoHorizontalBlocos = 85; 
-    const espacamentoInternoComponentes = 20; 
-    const espacamentoTemporizador = 42; 
+    const espacamentoHorizontalBlocos = 85;
+    const espacamentoInternoComponentes = 20;
+    const espacamentoTemporizador = 42;
 
     const xBase = 235;
-
 
     const cabecalhoHeight = 50;
     const tituloHeight = 25;
@@ -590,7 +595,10 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       },
     ];
 
-  const yTemporizadores = yAtualEsquerda + Math.max(totalizadores.height, statusReuniao.height) + 30;
+    const yTemporizadores =
+      yAtualEsquerda +
+      Math.max(totalizadores.height, statusReuniao.height) +
+      30;
 
     const temporizadores: ComponenteEditor[] = temporizadoresBase.map(
       (item, index) => {
@@ -628,6 +636,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       exibirDe: 0,
       exibirAte: 0,
       offsetInicial: 0,
+      posicaoX: 230,
+      posicaoY: 700,
     };
 
     const mensagem: ComponenteEditor = {
@@ -645,9 +655,9 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       id: 'tribuna-principal',
       tipo: 'tribuna',
       x: 900,
-      y: 465, 
+      y: 465,
       width: 400,
-      height: 150, 
+      height: 150,
       visible: true,
       dados: {
         orador: 'Nome do Orador',
@@ -656,10 +666,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       },
     };
 
-    const parlamentares = this.montarComponentesParlamentares(
-      yParlamentares,
-      defaultConfig
-    );
+    const parlamentares = this.montarComponentesParlamentares(defaultConfig);
 
     const componentesIniciais = [
       imagem,
@@ -684,20 +691,22 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       ...parlamentares,
     ];
 
+    const nomePadrao = 'Novo Cenário';
     const cenarioPadrao: Cenario = {
       id: `cenario_${Date.now()}`,
-      nome: 'Novo Cenário',
+      nome: nomePadrao,
       targetWidth: larguraTela,
       targetHeight: alturaTela,
       backgroundImage: '',
       componentes: componentesIniciais,
+      idPainel: '15',
+      slug: this.gerarSlug(nomePadrao)
     };
 
     return cenarioPadrao;
   }
 
   private montarComponentesParlamentares(
-    yBase: number = 480,
     config: DistribuirConfig
   ): ComponenteEditor[] {
     const itensPorColuna = config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
@@ -718,19 +727,17 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
     const larguraItem = 608;
     const alturaItem = 20;
-    const xBase = 234;
 
     return parlamentaresDeExemplo.map((parlamentar, i) => {
       const colunaAtual = Math.floor(i / itensPorColuna);
       const linhaAtual = i % itensPorColuna;
 
       const posX =
-        xBase +
-        config.margemEsquerda +
+        config.posicaoX +
         colunaAtual * (larguraItem + config.espacamentoHorizontal);
+
       const posY =
-        yBase +
-        config.margemSuperior +
+        config.posicaoY +
         linhaAtual * (alturaItem + config.espacamentoVertical);
 
       return {
@@ -762,6 +769,31 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
     this.cenarioAtual.nome = nomeCenario;
 
+     this.cenarioAtual.slug = this.gerarSlug(nomeCenario);
+
+    if (this.imagemFundoAtual) {
+      if (!this.cenarioAtual.id) {
+        this.cenarioAtual.id = `cenario_${Date.now()}`;
+      }
+
+      this.cenarioAtual.imagemFundoId = this.cenarioAtual.id;
+
+      try {
+        console.log(`Salvando imagem com ID: ${this.cenarioAtual.id}`);
+        await this.imagemStorageService.salvarImagem(
+          this.cenarioAtual.id,
+          this.imagemFundoAtual
+        );
+        this.imagemFundoAtual = null;
+      } catch (err) {
+        console.error('Falha ao salvar a imagem de fundo:', err);
+        alert(
+          'Ocorreu um erro grave ao salvar a imagem de fundo. O cenário será salvo sem ela.'
+        );
+        delete this.cenarioAtual.imagemFundoId;
+      }
+    }
+
     if (this.isEditingMode) {
       try {
         this.layoutService.salvarCenario(this.cenarioAtual);
@@ -780,7 +812,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
         alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
 
-        this.router.navigate(['/editor', novoId]);
+        this.router.navigate(['/editor', this.cenarioAtual.slug]);
       } catch (error) {
         console.error('Falha grave ao salvar o cenário:', error);
         alert('Ocorreu um erro ao salvar o cenário.');

@@ -1,5 +1,6 @@
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   HostListener,
@@ -29,6 +30,7 @@ import { VotoItemComponent } from '../votacao-total/voto-item/voto-item.componen
 import { StatusItemComponent } from '../status-reuniao/status-item/status-item.component';
 import { MensagemComponent } from '../mensagem/mensagem.component';
 import { TribunaComponent } from '../tribuna/tribuna.component';
+import { ImagemStorageService } from '../../services/imagem-storage.service';
 
 @Component({
   selector: 'app-display',
@@ -67,22 +69,59 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     private route: ActivatedRoute,
     private layoutService: LayoutService,
     private painelService: PainelService,
-    private renderer: Renderer2
+    private renderer: Renderer2,
+    private imagemStorageService: ImagemStorageService,
+    private cdRef: ChangeDetectorRef
   ) {}
+
+  // Em display.component.ts
 
   ngOnInit(): void {
     const idCenario = this.route.snapshot.paramMap.get('id');
+
     if (idCenario) {
       this.cenarioParaExibir = this.layoutService.carregarCenario(idCenario);
-    }
-    if (this.cenarioParaExibir) {
-      this.iniciarAtualizacaoAutomatica();
+
+      if (this.cenarioParaExibir) {
+        if (this.cenarioParaExibir.imagemFundoId) {
+          this.carregarImagemDeFundo(this.cenarioParaExibir.imagemFundoId);
+        }
+
+        this.iniciarAtualizacaoAutomatica();
+      }
     }
   }
 
+  // VERSÃO CORRIGIDA E DINÂMICA
   private iniciarAtualizacaoAutomatica(): void {
-    const ipDoPainel = '15';
+    // 1. Tenta pegar o ID/IP do parâmetro da URL (ex: ...?ip=15)
+    const ipDaUrl = this.route.snapshot.queryParamMap.get('ip');
+
+    // 2. Se não houver na URL, pega o ID/IP que está salvo no cenário
+    const ipDoCenario = this.cenarioParaExibir?.idPainel;
+
+    // 3. Decide qual usar: o da URL tem prioridade para testes rápidos.
+    const ipDoPainel = ipDaUrl || ipDoCenario;
+
+    // 4. Se nenhum dos dois existir, para a execução e avisa no console.
+    if (!ipDoPainel) {
+      console.error(
+        'ERRO: Nenhum ID de Painel foi encontrado no cenário ou na URL!'
+      );
+      return;
+    }
+
     const frequenciaMs = 2000;
+
+    // Cancela a inscrição anterior para evitar múltiplas chamadas
+    if (this.atualizacaoSubscription) {
+      this.atualizacaoSubscription.unsubscribe();
+    }
+
+    console.log(
+      `%cIniciando busca de dados para o painel: ${ipDoPainel}`,
+      'color: yellow; font-weight: bold;'
+    );
 
     this.atualizacaoSubscription = this.painelService
       .getDadosPainelEmTempoReal(ipDoPainel, frequenciaMs)
@@ -92,6 +131,19 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       });
   }
+
+  // private iniciarAtualizacaoAutomatica(): void {
+  //   const ipDoPainel = '15';
+  //   const frequenciaMs = 2000;
+
+  //   this.atualizacaoSubscription = this.painelService
+  //     .getDadosPainelEmTempoReal(ipDoPainel, frequenciaMs)
+  //     .subscribe((dadosDaApi) => {
+  //       if (dadosDaApi && dadosDaApi['valor']) {
+  //         this.atualizarCenarioComDadosReais(dadosDaApi['valor']);
+  //       }
+  //     });
+  // }
 
   private buscarEAtualizarDados(): void {
     this.painelService.getDadosPainel(this.PAINEL_IDENTIFICADOR).subscribe({
@@ -114,13 +166,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   private atualizarCenarioComDadosReais(dados: any): void {
     if (!this.cenarioParaExibir) return;
 
-    console.log(
-      'ESTRUTURA DOS COMPONENTES:',
-      this.cenarioParaExibir.componentes
-    );
-
     const dadosApiValor = dados;
-
     console.log('OBJETO VOTACAO RECEBIDO:', dadosApiValor.votacao);
 
     if (dadosApiValor.paleta && dadosApiValor.paleta.cores) {
@@ -133,15 +179,20 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       );
     }
 
+    // Cria um mapa para consultar rapidamente a visibilidade original salva no editor.
+    const visibilidadeOriginal = this.cenarioParaExibir.componentes.reduce(
+      (map: { [key: string]: boolean }, comp) => {
+        map[comp.id] = comp.visible;
+        return map;
+      },
+      {}
+    );
+
     const cenarioAtualizado = structuredClone(this.cenarioParaExibir);
 
-    // --- Mapear Parlamentares ---
+    // --- Mapeamento de Parlamentares ---
     let parlamentaresApi: any[] = [];
-    if (
-      dadosApiValor.parlamentares &&
-      dadosApiValor.parlamentares.presencas &&
-      dadosApiValor.parlamentares.presencas.length > 0
-    ) {
+    if (dadosApiValor.parlamentares?.presencas?.length > 0) {
       const membros = dadosApiValor.parlamentares.presencas[0].membros;
       if (membros) {
         parlamentaresApi = Array.isArray(membros) ? membros : [membros];
@@ -154,22 +205,29 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     parlamentaresApi.forEach((membro: any, index: number) => {
       const parlamentarApi = membro.titular;
-      if (parlamentaresLayout[index] && parlamentarApi) {
-        parlamentaresLayout[index].dados = {
-          nome: parlamentarApi.nome || 'Nome não informado',
-          partido: parlamentarApi.partido || '-',
-          voto: parlamentarApi.voto?.status || '-',
-          status: parlamentarApi.status,
-          cor: parlamentarApi.cor,
-        };
-        parlamentaresLayout[index].visible = true; // Garante que o componente seja visível
+      const parlamentarLayoutComp = parlamentaresLayout[index];
+      if (parlamentarLayoutComp && parlamentarApi) {
+        // Garante que o parlamentar só seja visível se o seu componente de layout estiver marcado como visível.
+        parlamentarLayoutComp.visible =
+          visibilidadeOriginal[parlamentarLayoutComp.id] ?? false;
+        if (parlamentarLayoutComp.visible) {
+          parlamentarLayoutComp.dados = {
+            nome: parlamentarApi.nome || 'Nome não informado',
+            partido: parlamentarApi.partido || '-',
+            voto: parlamentarApi.voto?.status || '-',
+            status: parlamentarApi.status,
+            cor: parlamentarApi.cor,
+          };
+        }
       }
     });
 
+    // Oculta componentes de parlamentares que não têm dados correspondentes na API
     for (let i = parlamentaresApi.length; i < parlamentaresLayout.length; i++) {
       parlamentaresLayout[i].visible = false;
     }
 
+    // --- Lógica Geral dos Componentes ---
     cenarioAtualizado.componentes.forEach((componente) => {
       switch (componente.tipo) {
         case 'subtitulo':
@@ -177,9 +235,11 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
             texto: dadosApiValor.categoriaReuniao || 'Status',
           };
           break;
+
         case 'descricao':
           componente.dados = { texto: dadosApiValor.statusReuniao || '' };
           break;
+
         case 'cabecalho':
           componente.dados = {
             ...componente.dados,
@@ -188,47 +248,28 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           break;
 
         case 'mensagem':
-          componente.visible = !!dadosApiValor.telaMensagem;
-          if (
-            dadosApiValor.telaMensagem &&
-            dadosApiValor.telaMensagem.conteudo
-          ) {
+          // CORREÇÃO: Visível apenas se habilitado no editor E se a API mandar dados
+          componente.visible =
+            visibilidadeOriginal[componente.id] &&
+            !!dadosApiValor.telaMensagem?.conteudo;
+          if (componente.visible) {
             try {
-              const conteudoMensagem = JSON.parse(
-                dadosApiValor.telaMensagem.conteudo
-              );
-
-              if (
-                Array.isArray(conteudoMensagem) &&
-                conteudoMensagem.length > 0
-              ) {
-                // Pega o texto da primeira linha (ex: "Votação")
-                const linhaTitulo = conteudoMensagem[0]?.texto || '';
-
-                // Pega o texto da última linha (ex: "Aberta")
-                const linhaStatus =
-                  conteudoMensagem[conteudoMensagem.length - 1]?.texto || '';
-
-                // Combina apenas o título e o status, ignorando o nome da votação que já está no título principal.
-                const textoFinal = [linhaTitulo, linhaStatus]
-                  .filter(Boolean)
-                  .join('\n');
-
-                componente.dados = { texto: textoFinal };
-              } else {
-                // Se o formato não for o esperado, esconde o componente para evitar erros.
-                componente.visible = false;
-              }
+              const conteudo = JSON.parse(dadosApiValor.telaMensagem.conteudo);
+              componente.dados = {
+                texto: conteudo.map((item: any) => item.texto).join('\n'),
+              };
             } catch (e) {
-              console.error('Erro ao processar o conteúdo da telaMensagem:', e);
-              componente.visible = false;
+              console.error('Erro ao processar telaMensagem:', e);
+              componente.visible = false; // Oculta se houver erro no parse
             }
           }
           break;
 
         case 'tribuna':
-          componente.visible = !!dadosApiValor.tribuna;
-          if (dadosApiValor.tribuna) {
+          // CORREÇÃO: Visível apenas se habilitado no editor E se a API mandar dados
+          componente.visible =
+            visibilidadeOriginal[componente.id] && !!dadosApiValor.tribuna;
+          if (componente.visible) {
             componente.dados = {
               orador: dadosApiValor.tribuna.nome,
               partido: dadosApiValor.tribuna.partido,
@@ -253,12 +294,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
               valor: presencas.ausentes || 0,
             };
           }
-          if (componente.id === 'status-quorum') {
-            componente.props = {
-              label: nomesTotalizadores.QUORUM || 'QUORUM',
-              valor: presencas.quorum || 0,
-            };
-          }
           if (componente.id === 'status-licenciados') {
             componente.props = {
               label: nomesTotalizadores.LICENCIADOS || 'LICENCIADOS',
@@ -271,62 +306,73 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
               valor: presencas.obstrucao || 0,
             };
           }
+          if (componente.id === 'status-quorum') {
+            componente.props = {
+              label: nomesTotalizadores.QUORUM || 'QUORUM',
+              valor: presencas.quorum || 0,
+            };
+          }
+          if (componente.id === 'status-votos') {
+            componente.props = {
+              label: nomesTotalizadores.VOTOS || 'VOTOS',
+              valor: dadosApiValor.votacao?.totalvotos ?? 0,
+            };
+          }
           break;
       }
     });
 
-    const votacaoAtiva = !!dadosApiValor.votacao;
+    // --- Lógica de Votação  ---
+    const votacaoAtiva =
+      dadosApiValor.votacao && dadosApiValor.votacao.votando === true;
 
-    const votacaoSimComp = cenarioAtualizado.componentes.find(
-      (c) => c.id === 'voto-sim'
-    );
-    const votacaoNaoComp = cenarioAtualizado.componentes.find(
-      (c) => c.id === 'voto-nao'
-    );
-    const votacaoAbstencaoComp = cenarioAtualizado.componentes.find(
-      (c) => c.id === 'voto-abstencao'
-    );
+    // Atualiza o título principal
     const tituloComp = cenarioAtualizado.componentes.find(
       (c) => c.tipo === 'titulo'
     );
-
     if (tituloComp) {
       if (votacaoAtiva) {
-        // Se a votação está ativa, mostra o nome do projeto
         const nomeVotacao = dadosApiValor.votacao.nome || 'Votação';
         const statusVotacao =
-          dadosApiValor.votacao.status?.replace('_', ' ') || ''; // Transforma "CHAMADA_1" em "CHAMADA 1"
+          dadosApiValor.votacao.status?.replace('_', ' ') || '';
         tituloComp.dados = { texto: `${nomeVotacao} (${statusVotacao})` };
       } else {
-        // Se não há votação, mostra o nome da reunião normal
         tituloComp.dados = { texto: dadosApiValor.nomeReuniao || 'Reunião' };
       }
     }
 
     // Atualiza os componentes de Votação (Sim, Não, Abstenção)
-    if (votacaoSimComp) {
-      votacaoSimComp.visible = votacaoAtiva;
-      if (votacaoAtiva) {
-        if (!votacaoSimComp.props) votacaoSimComp.props = {};
-        votacaoSimComp.props.valor = dadosApiValor.votacao.sim;
+    ['voto-sim', 'voto-nao', 'voto-abstencao'].forEach((id) => {
+      const comp = cenarioAtualizado.componentes.find((c) => c.id === id);
+      if (comp) {
+        // CORREÇÃO: Visível apenas se habilitado no editor E se a votação está ativa
+        comp.visible = visibilidadeOriginal[comp.id] && votacaoAtiva;
+        if (comp.visible) {
+          if (!comp.props) comp.props = {};
+          // Mapeia o ID do componente para a chave de dados correta (ex: 'voto-sim' -> 'sim')
+          const dataKey = id.split('-')[1];
+          comp.props.valor = dadosApiValor.votacao[dataKey];
+        }
       }
-    }
-    if (votacaoNaoComp) {
-      votacaoNaoComp.visible = votacaoAtiva;
-      if (votacaoAtiva) {
-        if (!votacaoNaoComp.props) votacaoNaoComp.props = {};
-        votacaoNaoComp.props.valor = dadosApiValor.votacao.nao;
-      }
-    }
-    if (votacaoAbstencaoComp) {
-      votacaoAbstencaoComp.visible = votacaoAtiva;
-      if (votacaoAtiva) {
-        if (!votacaoAbstencaoComp.props) votacaoAbstencaoComp.props = {};
-        votacaoAbstencaoComp.props.valor = dadosApiValor.votacao.abstencao;
+    });
+
+    const resultadoComp = cenarioAtualizado.componentes.find(
+      (c) => c.id === 'resultado-votacao'
+    );
+
+    if (resultadoComp) {
+      const textoResultado = dadosApiValor.votacao?.resultado_texto;
+      const deveExibir =
+        (visibilidadeOriginal[resultadoComp.id] ?? false) && !!textoResultado;
+
+      resultadoComp.visible = deveExibir;
+      if (deveExibir) {
+        resultadoComp.dados = { texto: textoResultado };
       }
     }
 
     this.cenarioParaExibir = cenarioAtualizado;
+    this.cdRef.detectChanges();
   }
 
   ngAfterViewInit(): void {
@@ -356,5 +402,30 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.renderer.setStyle(target, 'transform-origin', 'top left');
     this.renderer.setStyle(target, 'transform', `scale(${scale})`);
+  }
+
+  private async carregarImagemDeFundo(id: string): Promise<void> {
+    try {
+      const arquivo = await this.imagemStorageService.carregarImagem(id);
+
+      if (arquivo) {
+        // Cria uma URL local para o arquivo vindo do IndexedDB
+        const url = URL.createObjectURL(arquivo);
+
+        // Usa o Renderer2 para aplicar o estilo de fundo de forma segura
+        this.renderer.setStyle(
+          this.wrapper.nativeElement,
+          'backgroundImage',
+          `url(${url})`
+        );
+        console.log(`Imagem de fundo com ID ${id} carregada.`);
+      } else {
+        console.warn(
+          `Imagem de fundo com ID ${id} não encontrada no banco de dados.`
+        );
+      }
+    } catch (err) {
+      console.error('Erro ao carregar imagem de fundo do IndexedDB:', err);
+    }
   }
 }
