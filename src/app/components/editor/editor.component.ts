@@ -46,6 +46,7 @@ import { SubtituloReuniaoComponent } from '../subtitulo-reuniao/subtitulo-reunia
 import { MensagemComponent } from '../mensagem/mensagem.component';
 import { TribunaComponent } from '../tribuna/tribuna.component';
 import { ImagemStorageService } from '../../services/imagem-storage.service';
+import { ResultadoVotacaoComponent } from "../resultado-votacao/resultado-votacao.component";
 
 @Component({
   selector: 'app-editor',
@@ -76,7 +77,8 @@ import { ImagemStorageService } from '../../services/imagem-storage.service';
     StatusItemComponent,
     MensagemComponent,
     TribunaComponent,
-  ],
+    ResultadoVotacaoComponent
+],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
 })
@@ -666,6 +668,17 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       },
     };
 
+    const resultadoVotacao: ComponenteEditor = {
+      id: 'resultado-votacao',
+      tipo: 'resultado-votacao',
+      x: 700,
+      y: 600,
+      width: 300,
+      height: 100,
+      visible: true,
+      dados: { texto: 'Resultado da Votação' },
+    }
+
     const parlamentares = this.montarComponentesParlamentares(defaultConfig);
 
     const componentesIniciais = [
@@ -687,6 +700,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       votacaoAbstencao,
       mensagem,
       tribuna,
+      resultadoVotacao,
       ...temporizadores,
       ...parlamentares,
     ];

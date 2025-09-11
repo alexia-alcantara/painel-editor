@@ -9,96 +9,93 @@
 
   <label>ID/IP do Painel:</label>
   <input type="text" [(ngModel)]="cenarioAtual.idPainel" class="bg-gray-700 p-1 rounded w-20">
-  
+
   <label>Imagem de Fundo:</label>
   <input type="file" (change)="onFileSelected($event)" class="text-sm">
 </div>
 
 <div class="editor-container">
-<div #editorWrapper class="editor-wrapper overflow-x-hidden"
-       [style.background-image]="cenarioAtual.backgroundImage ? 'url(' + cenarioAtual.backgroundImage + ')' : 'none'"
-       [style.width.px]="cenarioAtual.targetWidth"
-       [style.height.px]="cenarioAtual.targetHeight">
+  <div #editorWrapper class="editor-wrapper overflow-x-hidden"
+    [style.background-image]="cenarioAtual.backgroundImage ? 'url(' + cenarioAtual.backgroundImage + ')' : 'none'"
+    [style.width.px]="cenarioAtual.targetWidth" [style.height.px]="cenarioAtual.targetHeight">
 
-  @for (item of cenarioAtual.componentes; track item.id) {
-  @if (item) {
-  <ng-container>
-    <div class="componente-box absolute rounded cursor-grab " cdkDrag
-      [style.display]="item.visible ? 'block' : 'none'"
-      (contextmenu)="onRightClick($event, item)"
-      [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }"
-      (cdkDragEnded)="onDragEnd($event, item)"
-      [style.width.px]="item.width"
-      [style.height.px]="item.height"
-      cdkDragBoundary=".editor-wrapper">
-      @switch(item.tipo) {
-      @case('parlamentar') {
-      <app-parlamentar-item [parlamentar]="item.dados"></app-parlamentar-item>
-      }
-      @case('totalizadores') {
-      <app-votacao-total [dados]="item.dados"></app-votacao-total>
-      }
-      @case('imagem') {
-      <app-imagem-reuniao></app-imagem-reuniao>
-      }
-      @case('cabecalho') {
-      <app-header-reuniao></app-header-reuniao>
-      }
-      @case('descricao') {
-      <app-descricao-reuniao [dados]="item.dados"></app-descricao-reuniao>
-      }
-      @case('titulo') {
-      <app-titulo-reuniao [dados]="item.dados"></app-titulo-reuniao>
-      }
-      @case('subtitulo') {
-      <app-subtitulo-reuniao [dados]="item.dados"></app-subtitulo-reuniao>
-      }
-      @case('status-reuniao') {
-      <app-status-reuniao></app-status-reuniao>
-      }
-      @case('temporizador-item') {
-      <app-temporizador-item [tempo]="item.props?.tempo ?? '00:00'"
-        [icon]="item.props?.icon ?? false"></app-temporizador-item>
-      }
-      @case('votacao-item') {
-      <app-voto-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
-        [cor]="item.props?.cor ?? '#FFFFFF'"  [height]="item.height"></app-voto-item>
-      }
-      @case('status-item') {
-      <app-status-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
-        [height]="item.height">
-      </app-status-item>
-      }
-       @case ('mensagem') {
+    @for (item of cenarioAtual.componentes; track item.id) {
+    @if (item) {
+    <ng-container>
+      <div class="componente-box absolute rounded cursor-grab " cdkDrag
+        [style.display]="item.visible ? 'block' : 'none'" (contextmenu)="onRightClick($event, item)"
+        [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }" (cdkDragEnded)="onDragEnd($event, item)"
+        [style.width.px]="item.width" [style.height.px]="item.height" cdkDragBoundary=".editor-wrapper">
+        @switch(item.tipo) {
+        @case('parlamentar') {
+        <app-parlamentar-item [parlamentar]="item.dados"></app-parlamentar-item>
+        }
+        @case('totalizadores') {
+        <app-votacao-total [dados]="item.dados"></app-votacao-total>
+        }
+        @case('imagem') {
+        <app-imagem-reuniao></app-imagem-reuniao>
+        }
+        @case('cabecalho') {
+        <app-header-reuniao></app-header-reuniao>
+        }
+        @case('descricao') {
+        <app-descricao-reuniao [dados]="item.dados"></app-descricao-reuniao>
+        }
+        @case('titulo') {
+        <app-titulo-reuniao [dados]="item.dados"></app-titulo-reuniao>
+        }
+        @case('subtitulo') {
+        <app-subtitulo-reuniao [dados]="item.dados"></app-subtitulo-reuniao>
+        }
+        @case('status-reuniao') {
+        <app-status-reuniao></app-status-reuniao>
+        }
+        @case('temporizador-item') {
+        <app-temporizador-item [tempo]="item.props?.tempo ?? '00:00'"
+          [icon]="item.props?.icon ?? false"></app-temporizador-item>
+        }
+        @case('votacao-item') {
+        <app-voto-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
+          [cor]="item.props?.cor ?? '#FFFFFF'" [height]="item.height"></app-voto-item>
+        }
+        @case('status-item') {
+        <app-status-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0" [height]="item.height">
+        </app-status-item>
+        }
+        @case ('mensagem') {
         <app-mensagem [dados]="item.dados" [width]="item.width" [height]="item.height"></app-mensagem>
-      }
-       @case ('tribuna') {
+        }
+        @case ('tribuna') {
         <app-tribuna [dados]="item.dados"></app-tribuna>
-      }
+        }
+        @case ('resultado-votacao') {
+        <app-resultado-votacao [dados]="item.dados"></app-resultado-votacao>
+        }
 
-      @default {
+        @default {
 
-      }
-      }
-    </div>
-  </ng-container>
-  }
-  }
+        }
+        }
+      </div>
+    </ng-container>
+    }
+    }
 
 
-  <button (click)="toggleControleVisibilidade()" class="text-white absolute top-4 right-4 p-2 rounded 
+    <button (click)="toggleControleVisibilidade()" class="text-white absolute top-4 right-4 p-2 rounded 
   flex items-center gap-2">
-    <i class="fa-solid fa-wrench">
-    </i>
-  </button>
+      <i class="fa-solid fa-wrench">
+      </i>
+    </button>
 
-  @if (mostrarControleVisibilidade) {
-  <app-controle-visibilidade [componentes]="cenarioAtual.componentes"
-    (visibilityChanged)="onComponentVisibilityChange($event)">
-  </app-controle-visibilidade>
-  }
-  <app-context-menu #contextMenu (action)="onMenuAction($event)"></app-context-menu>
-</div>
+    @if (mostrarControleVisibilidade) {
+    <app-controle-visibilidade [componentes]="cenarioAtual.componentes"
+      (visibilityChanged)="onComponentVisibilityChange($event)">
+    </app-controle-visibilidade>
+    }
+    <app-context-menu #contextMenu (action)="onMenuAction($event)"></app-context-menu>
+  </div>
 </div>
 
 

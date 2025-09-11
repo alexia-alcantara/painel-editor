@@ -31,6 +31,7 @@ import { StatusItemComponent } from '../status-reuniao/status-item/status-item.c
 import { MensagemComponent } from '../mensagem/mensagem.component';
 import { TribunaComponent } from '../tribuna/tribuna.component';
 import { ImagemStorageService } from '../../services/imagem-storage.service';
+import { ResultadoVotacaoComponent } from '../resultado-votacao/resultado-votacao.component';
 
 @Component({
   selector: 'app-display',
@@ -50,6 +51,7 @@ import { ImagemStorageService } from '../../services/imagem-storage.service';
     StatusItemComponent,
     MensagemComponent,
     TribunaComponent,
+    ResultadoVotacaoComponent
   ],
   templateUrl: './display.component.html',
   styleUrl: './display.component.css',
@@ -132,36 +134,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
-  // private iniciarAtualizacaoAutomatica(): void {
-  //   const ipDoPainel = '15';
-  //   const frequenciaMs = 2000;
-
-  //   this.atualizacaoSubscription = this.painelService
-  //     .getDadosPainelEmTempoReal(ipDoPainel, frequenciaMs)
-  //     .subscribe((dadosDaApi) => {
-  //       if (dadosDaApi && dadosDaApi['valor']) {
-  //         this.atualizarCenarioComDadosReais(dadosDaApi['valor']);
-  //       }
-  //     });
-  // }
-
-  private buscarEAtualizarDados(): void {
-    this.painelService.getDadosPainel(this.PAINEL_IDENTIFICADOR).subscribe({
-      next: (dadosDaApi) => {
-        console.log('Dados recebidos da API:', dadosDaApi);
-
-        // Verifica se recebe dados válidos no campo 'valor'
-        if (this.cenarioParaExibir && dadosDaApi && dadosDaApi['valor']) {
-          this.atualizarCenarioComDadosReais(dadosDaApi['valor']);
-        } else {
-          console.warn(
-            'Backend respondeu com sucesso, mas sem dados de painel .'
-          );
-        }
-      },
-      error: (err) => console.error('Erro ao buscar dados do painel:', err),
-    });
-  }
 
   private atualizarCenarioComDadosReais(dados: any): void {
     if (!this.cenarioParaExibir) return;
@@ -278,6 +250,15 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           }
           break;
 
+        case 'resultado-votacao':
+          const textoResultado = dadosApiValor.votacao?.resultado_texto;
+          componente.visible =
+            visibilidadeOriginal[componente.id] && !!textoResultado;
+          if (componente.visible) {
+            componente.dados = { texto: textoResultado };
+          }
+          break;
+
         case 'status-item':
           const presencas = dadosApiValor.parlamentares?.presencas?.[0] || {};
           const nomesTotalizadores = dadosApiValor.nomesTotalizadores || {};
@@ -326,12 +307,14 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     const votacaoAtiva =
       dadosApiValor.votacao && dadosApiValor.votacao.votando === true;
 
+    const existeVotacao = !!dadosApiValor.votacao;
+
     // Atualiza o título principal
     const tituloComp = cenarioAtualizado.componentes.find(
       (c) => c.tipo === 'titulo'
     );
     if (tituloComp) {
-      if (votacaoAtiva) {
+      if (existeVotacao) {
         const nomeVotacao = dadosApiValor.votacao.nome || 'Votação';
         const statusVotacao =
           dadosApiValor.votacao.status?.replace('_', ' ') || '';
@@ -345,8 +328,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     ['voto-sim', 'voto-nao', 'voto-abstencao'].forEach((id) => {
       const comp = cenarioAtualizado.componentes.find((c) => c.id === id);
       if (comp) {
-        // CORREÇÃO: Visível apenas se habilitado no editor E se a votação está ativa
-        comp.visible = visibilidadeOriginal[comp.id] && votacaoAtiva;
+        comp.visible = visibilidadeOriginal[comp.id] && existeVotacao;
         if (comp.visible) {
           if (!comp.props) comp.props = {};
           // Mapeia o ID do componente para a chave de dados correta (ex: 'voto-sim' -> 'sim')
