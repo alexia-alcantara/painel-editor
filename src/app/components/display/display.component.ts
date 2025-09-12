@@ -51,7 +51,7 @@ import { ResultadoVotacaoComponent } from '../resultado-votacao/resultado-votaca
     StatusItemComponent,
     MensagemComponent,
     TribunaComponent,
-    ResultadoVotacaoComponent
+    ResultadoVotacaoComponent,
   ],
   templateUrl: './display.component.html',
   styleUrl: './display.component.css',
@@ -134,12 +134,11 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
-
   private atualizarCenarioComDadosReais(dados: any): void {
     if (!this.cenarioParaExibir) return;
 
     const dadosApiValor = dados;
-    console.log('OBJETO VOTACAO RECEBIDO:', dadosApiValor.votacao);
+    // console.log('OBJETO VOTACAO RECEBIDO:', dadosApiValor.votacao);
 
     if (dadosApiValor.paleta && dadosApiValor.paleta.cores) {
       this.paletaDeCores = dadosApiValor.paleta.cores.reduce(
@@ -151,7 +150,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       );
     }
 
-    // Cria um mapa para consultar rapidamente a visibilidade original salva no editor.
     const visibilidadeOriginal = this.cenarioParaExibir.componentes.reduce(
       (map: { [key: string]: boolean }, comp) => {
         map[comp.id] = comp.visible;
@@ -201,15 +199,22 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // --- Lógica Geral dos Componentes ---
     cenarioAtualizado.componentes.forEach((componente) => {
+      componente.visible = visibilidadeOriginal[componente.id] ?? false;
+
       switch (componente.tipo) {
         case 'subtitulo':
           componente.dados = {
-            texto: dadosApiValor.categoriaReuniao || 'Status',
+            texto: dadosApiValor.categoriaReuniao || '',
           };
           break;
 
         case 'descricao':
-          componente.dados = { texto: dadosApiValor.statusReuniao || '' };
+          // SE HOUVER VOTAÇÃO, MOSTRA A EMENTA. SENÃO, O STATUS DA REUNIÃO.
+          if (dadosApiValor.votacao && dadosApiValor.votacao.ementa) {
+            componente.dados = { texto: dadosApiValor.votacao.ementa };
+          } else {
+            componente.dados = { texto: dadosApiValor.statusReuniao || '' };
+          }
           break;
 
         case 'cabecalho':
@@ -220,7 +225,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           break;
 
         case 'mensagem':
-          // CORREÇÃO: Visível apenas se habilitado no editor E se a API mandar dados
           componente.visible =
             visibilidadeOriginal[componente.id] &&
             !!dadosApiValor.telaMensagem?.conteudo;
@@ -232,13 +236,12 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
               };
             } catch (e) {
               console.error('Erro ao processar telaMensagem:', e);
-              componente.visible = false; // Oculta se houver erro no parse
+              componente.visible = false;
             }
           }
           break;
 
         case 'tribuna':
-          // CORREÇÃO: Visível apenas se habilitado no editor E se a API mandar dados
           componente.visible =
             visibilidadeOriginal[componente.id] && !!dadosApiValor.tribuna;
           if (componente.visible) {
@@ -251,13 +254,14 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           break;
 
         case 'resultado-votacao':
-          const textoResultado = dadosApiValor.votacao?.resultado_texto;
-          componente.visible =
-            visibilidadeOriginal[componente.id] && !!textoResultado;
-          if (componente.visible) {
-            componente.dados = { texto: textoResultado };
-          }
-          break;
+            const votacaoFinalizada = dadosApiValor.votacao && !dadosApiValor.votacao.votando;
+            const textoResultado = dadosApiValor.votacao?.resultado_texto;
+            componente.visible = visibilidadeOriginal[componente.id] && votacaoFinalizada && !!textoResultado;
+            
+            if (componente.visible) {
+                componente.dados = { texto: textoResultado };
+            }
+            break;
 
         case 'status-item':
           const presencas = dadosApiValor.parlamentares?.presencas?.[0] || {};
@@ -304,9 +308,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     });
 
     // --- Lógica de Votação  ---
-    const votacaoAtiva =
-      dadosApiValor.votacao && dadosApiValor.votacao.votando === true;
-
     const existeVotacao = !!dadosApiValor.votacao;
 
     // Atualiza o título principal
@@ -315,10 +316,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     );
     if (tituloComp) {
       if (existeVotacao) {
-        const nomeVotacao = dadosApiValor.votacao.nome || 'Votação';
-        const statusVotacao =
-          dadosApiValor.votacao.status?.replace('_', ' ') || '';
-        tituloComp.dados = { texto: `${nomeVotacao} (${statusVotacao})` };
+        tituloComp.dados = { texto: dadosApiValor.votacao.nome || 'Votação' };
       } else {
         tituloComp.dados = { texto: dadosApiValor.nomeReuniao || 'Reunião' };
       }
@@ -328,30 +326,15 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     ['voto-sim', 'voto-nao', 'voto-abstencao'].forEach((id) => {
       const comp = cenarioAtualizado.componentes.find((c) => c.id === id);
       if (comp) {
+        // Os contadores são visíveis sempre que existe uma votação (ativa ou finalizada)
         comp.visible = visibilidadeOriginal[comp.id] && existeVotacao;
         if (comp.visible) {
           if (!comp.props) comp.props = {};
-          // Mapeia o ID do componente para a chave de dados correta (ex: 'voto-sim' -> 'sim')
-          const dataKey = id.split('-')[1];
-          comp.props.valor = dadosApiValor.votacao[dataKey];
+          const dataKey = id.split('-')[1]; // 'sim', 'nao', 'abstencao'
+          comp.props.valor = dadosApiValor.votacao[dataKey] ?? 0;
         }
       }
     });
-
-    const resultadoComp = cenarioAtualizado.componentes.find(
-      (c) => c.id === 'resultado-votacao'
-    );
-
-    if (resultadoComp) {
-      const textoResultado = dadosApiValor.votacao?.resultado_texto;
-      const deveExibir =
-        (visibilidadeOriginal[resultadoComp.id] ?? false) && !!textoResultado;
-
-      resultadoComp.visible = deveExibir;
-      if (deveExibir) {
-        resultadoComp.dados = { texto: textoResultado };
-      }
-    }
 
     this.cenarioParaExibir = cenarioAtualizado;
     this.cdRef.detectChanges();

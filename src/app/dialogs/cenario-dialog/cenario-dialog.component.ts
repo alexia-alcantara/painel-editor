@@ -10,6 +10,7 @@ import { LayoutExportService } from '../../services/layout-export.service';
 import saveAs from 'file-saver';
 import { Cenario } from '../../models/cenario.model';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs'; 
 
 @Component({
   selector: 'app-cenario-dialog',
@@ -26,6 +27,7 @@ import { Router } from '@angular/router';
 })
 export class CenarioDialogComponent implements OnInit {
   cenarios: Cenario[] = [];
+  private cenariosSub!: Subscription;
 
   constructor(
     public dialogRef: MatDialogRef<CenarioDialogComponent>,
@@ -36,33 +38,43 @@ export class CenarioDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.carregarListaDeCenarios();
-  }
-
-  carregarListaDeCenarios(): void {
+      // 1. Carrega a lista inicial de cenários
     this.cenarios = this.layoutService.listarCenarios();
+
+    // 2. Se inscreve para ouvir futuras atualizações na lista
+    this.cenariosSub = this.layoutService.cenarios$.subscribe(cenariosAtualizados => {
+      console.log('Lista de cenários atualizada recebida!', cenariosAtualizados);
+      this.cenarios = cenariosAtualizados;
+    });
   }
 
-carregarCenario(cenario: Cenario): void {
-  if (cenario && cenario.slug) {
-    const url = this.router.serializeUrl(
-      this.router.createUrlTree(['/display', cenario.slug])
-    );
-    window.open(url, '_blank');
-    this.dialogRef.close();
-  } else {
-    console.error('Cenário inválido ou sem slug:', cenario);
-    alert('Não foi possível carregar o cenário pois o slug não foi encontrado.');
+    ngOnDestroy(): void {
+    if (this.cenariosSub) {
+      this.cenariosSub.unsubscribe();
+    }
   }
-}
+
+  abrirDisplay(cenario: Cenario): void { // Renomeado de carregarCenario para abrirDisplay para clareza
+    const identificadorUrl = cenario.slug || cenario.id;
+
+    if (identificadorUrl) {
+      const url = this.router.serializeUrl(
+        this.router.createUrlTree(['/display', identificadorUrl])
+      );
+      window.open(url, '_blank');
+      this.dialogRef.close();
+    } else {
+      alert('Não foi possível carregar o cenário pois o slug/id não foi encontrado.');
+    }
+  }
 
   removerCenario(id: string, nome: string): void {
     if (confirm(`Tem certeza que deseja remover o cenário "${nome}"?`)) {
       this.layoutService.removerCenario(id);
-      this.carregarListaDeCenarios();
+      // 6. A chamada para carregarListaDeCenarios() foi removida daqui,
+      // pois a atualização agora é automática via subscribe.
     }
   }
-
   exportarLayout(): void {
     const json = this.layoutExportService.converterParaFormatoOriginal(
       this.data.layoutAtual

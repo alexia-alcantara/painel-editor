@@ -377,7 +377,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       tipo: 'titulo',
       x: xBase,
       y: yAtualEsquerda,
-      width: cabecalho.width,
+      width: 420,
       height: tituloHeight,
       visible: true,
       dados: { texto: 'Título da Reunião' },
@@ -648,7 +648,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       x: 1200,
       y: 450,
       width: 300,
-      height: 200,
+      height: 0,
       visible: true,
       dados: { texto: 'Mensagem em Tela' },
     };

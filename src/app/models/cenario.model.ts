@@ -1,4 +1,5 @@
 import { ComponenteEditor } from "./components.model";
+import { FonteGrupo } from "./fontes.model";
 
 export interface Cenario {
   id: string;
@@ -10,4 +11,5 @@ export interface Cenario {
   imagemFundoId?: string; 
   idPainel: string;
   slug: string;
+  fontes?: FonteGrupo[];
 }

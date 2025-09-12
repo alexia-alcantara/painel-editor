@@ -1,4 +1,5 @@
-<div class="text-center px-4 py-3 max-w-[430px]">
+<div class="text-center " [style.width.px]="width"
+    [style.height.px]="height">
    <h3 class="text-white" [ngStyle]="{
      'font-family': fontConfig?.family || 'Inter, sans-serif',
      'font-size.px': fontConfig?.size || 24,
