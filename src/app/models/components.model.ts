@@ -20,6 +20,7 @@ export interface ComponenteEditor {
     | 'mensagem'
     | 'tribuna'
     | 'resultado-votacao'
+    | 'relogio'
   dados?: any;
   x: number;
   y: number;
