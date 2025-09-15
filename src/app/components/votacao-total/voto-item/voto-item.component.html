@@ -1,15 +1,17 @@
 <div class="flex justify-between items-center voto-item w-full" [style.height.px]="height">
   <span [ngStyle]="{
-    'font-family': fontLabel.family,
-    'font-size.px': fontLabel.size,
-    'font-weight': fontLabel.weight,
-    'font-style': fontLabel.style,
-    'color': cor || fontLabel.color
-  }">{{ label }}</span>  <span [ngStyle]="{
-    'font-family': fontValor.family,
-    'font-size.px': fontValor.size,
-    'font-weight': fontValor.weight,
-    'font-style': fontValor.style,
-    'color': cor || fontValor.color
+    'font-family': fontLabel()?.family,
+    'font-size.px': fontLabel()?.size,
+    'font-weight': fontLabel()?.weight,
+    'font-style': fontLabel()?.style,
+    'color': cor || fontLabel()?.color
+  }">{{ label }}</span>
+
+  <span [ngStyle]="{
+    'font-family': fontValor()?.family,
+    'font-size.px': fontValor()?.size,
+    'font-weight': fontValor()?.weight,
+    'font-style': fontValor()?.style,
+    'color': cor || fontValor()?.color
   }">{{ valor | number:'2.0' }}</span>
 </div>
