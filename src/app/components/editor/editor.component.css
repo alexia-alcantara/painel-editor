@@ -1,29 +1,21 @@
-:host {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
-}
-
-.config-panel {
-  flex-shrink: 0;
-}
-
 .editor-container {
   flex-grow: 1;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  height: calc(100vh - 80px);
-  padding: 20px;
-  overflow: auto;
+  align-items: center;
+  overflow: auto; 
   background-color: #1a202c;
 }
 
 .editor-wrapper {
-  position: relative !important;
-  transform-origin: top center; 
+position: relative;
+  width: 1660px;
+  height: 100vh;
+  flex-shrink: 0;
+  /* A transformação de escala partirá do canto superior esquerdo */
+  transform-origin: top left;
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+
 }

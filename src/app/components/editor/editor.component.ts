@@ -108,6 +108,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   private routeSub: Subscription | undefined;
 
   private imagemFundoAtual: File | null = null;
+   scale = 1;
 
   constructor(
     private layoutService: LayoutService,
@@ -118,35 +119,12 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     private imagemStorageService: ImagemStorageService
   ) {}
 
-  @HostListener('window:resize')
-  onResize(): void {
-    this.ajustarEscala();
-  }
+  // @HostListener('window:resize')
+  // onResize(): void {
+  //   this.ajustarEscala();
+  // }
 
-  private ajustarEscala(): void {
-    const wrapperRef = this.editorWrapperRef;
-    if (!wrapperRef || !this.cenarioAtual) {
-      return;
-    }
 
-    const container = wrapperRef.nativeElement.parentElement;
-    const target = wrapperRef.nativeElement;
-
-    if (!container) return;
-
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
-    const targetWidth = this.cenarioAtual.targetWidth;
-    const targetHeight = this.cenarioAtual.targetHeight;
-
-    const scaleX = (containerWidth * 1.1) / targetWidth;
-    const scaleY = (containerHeight * 1.1) / targetHeight;
-
-    const scale = Math.min(scaleX, scaleY);
-
-    this.renderer.setStyle(target, 'transform', `scale(${scale})`);
-    this.renderer.setStyle(target, 'transform-origin', 'top left');
-  }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -178,6 +156,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit() {
+    this.updateScale();
+
     this.routeSub = this.route.paramMap.subscribe((params) => {
       if (params.has('id')) {
         // MODO DE EDIÇÃO
@@ -206,8 +186,25 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
+    @HostListener('window:resize')
+  onResize() {
+    this.updateScale();
+  }
+
+  
+  updateScale() {
+    const baseWidth = 1660;
+    const baseHeight = 1080;
+
+    const scaleX = window.innerWidth / baseWidth;
+    const scaleY = window.innerHeight / baseHeight;
+
+    // pega o menor para caber na tela inteira
+    this.scale = Math.min(scaleX, scaleY);
+  }
+
   ngAfterViewInit(): void {
-    setTimeout(() => this.ajustarEscala(), 0);
+    // setTimeout(() => this.ajustarEscala(), 0);
   }
 
   ngOnDestroy() {
