@@ -20,27 +20,33 @@ export class VotoItemComponent {
 
   fontLabel = computed(() => {
     const fonte = this.fonteService.getFonte('votacao-item', 'label');
-    return (
-      fonte?.font || {
-        family: 'Inter, sans-serif',
-        size: 18,
-        weight: '600',
-        color: '#FFFFFF',
-        style: 'normal',
-      }
-    );
+    return fonte?.font || { family: 'Inter, sans-serif', size: 18, weight: '600', color: '#FFFFFF', style: 'normal' };
   });
 
   fontValor = computed(() => {
     const fonte = this.fonteService.getFonte('votacao-item', 'valor');
-    return (
-      fonte?.font || {
-        family: 'Inter, sans-serif',
-        size: 18,
-        weight: '600',
-        color: '#FFFFFF',
-        style: 'normal',
-      }
-    );
+    return fonte?.font || { family: 'Inter, sans-serif', size: 18, weight: '600', color: '#FFFFFF', style: 'normal' };
+  });
+
+    labelStyle = computed(() => {
+    const config = this.fontLabel();
+    return {
+      'font-family': config.family,
+      'font-size.px': config.size,
+      'font-weight': config.weight,
+      'font-style': config.style,
+      'color': this.cor || config.color 
+    };
+  });
+
+    valorStyle = computed(() => {
+    const config = this.fontValor();
+    return {
+      'font-family': config.family,
+      'font-size.px': config.size,
+      'font-weight': config.weight,
+      'font-style': config.style,
+      'color': this.cor || config.color 
+    };
   });
 }
