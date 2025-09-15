@@ -46,7 +46,8 @@ import { SubtituloReuniaoComponent } from '../subtitulo-reuniao/subtitulo-reunia
 import { MensagemComponent } from '../mensagem/mensagem.component';
 import { TribunaComponent } from '../tribuna/tribuna.component';
 import { ImagemStorageService } from '../../services/imagem-storage.service';
-import { ResultadoVotacaoComponent } from "../resultado-votacao/resultado-votacao.component";
+import { ResultadoVotacaoComponent } from '../resultado-votacao/resultado-votacao.component';
+import { RelogioComponent } from '../relogio/relogio.component';
 
 @Component({
   selector: 'app-editor',
@@ -77,8 +78,9 @@ import { ResultadoVotacaoComponent } from "../resultado-votacao/resultado-votaca
     StatusItemComponent,
     MensagemComponent,
     TribunaComponent,
-    ResultadoVotacaoComponent
-],
+    ResultadoVotacaoComponent,
+    RelogioComponent,
+  ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
 })
@@ -442,6 +444,15 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       dados: this.votacaoMock,
       visible: true,
     };
+    const relogioSistema: ComponenteEditor = {
+      id: 'relogio-sistema',
+      tipo: 'relogio',
+      x: 573, // Posição X do antigo timer principal
+      y: 456, // Posição Y do antigo timer principal
+      width: 172,
+      height: 35,
+      visible: true,
+    };
 
     const margemInternaX = 10; // margem lateral dentro da caixa
     const margemInternaY = 10; // margem superior
@@ -588,13 +599,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         tempo: '00:00',
         icon: false,
       },
-      {
-        id: 'temporizador-3',
-        width: 172,
-        height: 35,
-        tempo: '08:45:10',
-        icon: true,
-      },
     ];
 
     const yTemporizadores =
@@ -677,7 +681,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       height: 100,
       visible: true,
       dados: { texto: 'Resultado da Votação' },
-    }
+    };
 
     const parlamentares = this.montarComponentesParlamentares(defaultConfig);
 
@@ -703,6 +707,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       resultadoVotacao,
       ...temporizadores,
       ...parlamentares,
+      relogioSistema
     ];
 
     const nomePadrao = 'Novo Cenário';
@@ -714,7 +719,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       backgroundImage: '',
       componentes: componentesIniciais,
       idPainel: '15',
-      slug: this.gerarSlug(nomePadrao)
+      slug: this.gerarSlug(nomePadrao),
     };
 
     return cenarioPadrao;
@@ -783,7 +788,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
     this.cenarioAtual.nome = nomeCenario;
 
-     this.cenarioAtual.slug = this.gerarSlug(nomeCenario);
+    this.cenarioAtual.slug = this.gerarSlug(nomeCenario);
 
     if (this.imagemFundoAtual) {
       if (!this.cenarioAtual.id) {
