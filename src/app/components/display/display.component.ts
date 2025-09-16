@@ -278,6 +278,20 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           }
           break;
 
+        case 'totalizadores': {
+
+          const isVisibleInEditor =
+            visibilidadeOriginal[componente.id] ?? false;
+          const hasVotingData = !!dadosApiValor.votacao; 
+
+          componente.visible = isVisibleInEditor && hasVotingData;
+
+          if (componente.visible) {
+            componente.dados = dadosApiValor.votacao;
+          }
+          break;
+        }
+
         case 'temporizador-item':
           const idCompleto = componente.id; // ex: "temporizador-1"
           let idNumericoApi: number | null = null;
@@ -345,7 +359,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           break;
       }
     });
-
 
     // Atualiza os componentes de Votação (Sim, Não, Abstenção)
     const existeVotacao = !!dadosApiValor.votacao;
