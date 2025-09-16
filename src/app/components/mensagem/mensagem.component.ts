@@ -14,7 +14,4 @@ export interface MensagemData{
 })
 export class MensagemComponent {
   @Input() dados?: MensagemData;
-
-  @Input() width: number = 300;
-  @Input() height: number = 100;
 }

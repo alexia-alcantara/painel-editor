@@ -1,0 +1,14 @@
+.mensagem-container {
+  padding: 12px 16px;
+  
+  display: inline-block; 
+  min-width: 200px;      
+  max-width: 500px;      
+  
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.text-white {
+  white-space: pre-wrap; 
+}
