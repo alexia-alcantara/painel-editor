@@ -12,6 +12,7 @@ import { FonteService } from '../../services/fonte.service';
 })
 export class DescricaoReuniaoComponent {
   @Input() dados: { texto: string } | undefined;
+
   
   constructor(private fonteService: FonteService) {}
 
