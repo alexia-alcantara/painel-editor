@@ -416,7 +416,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       tipo: 'descricao',
       x: cabecalho.x,
       y: yAtualEsquerda,
-      width: cabecalho.width,
+      width: 420,
       height: descricaoHeight,
       dados: { texto: 'Status da Reunião' },
       fontes: [
@@ -649,7 +649,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       x: 1200,
       y: 450,
       width: 300,
-      height: 0,
+      height: 100,
       visible: true,
       dados: { texto: 'Mensagem em Tela' },
     };
