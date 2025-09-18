@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`TituloReuniaoComponent should match the snapshot 1`] = `
+<div>
+  <div
+    class="text-center"
+    style="width: 500px; height: 100px;"
+  >
+    <h3
+      class="text-white"
+      style="font-family: Inter, sans-serif; font-size: 24px; color: rgb(255, 255, 255); font-weight: bold; font-style: normal;"
+    >
+       um título qualquer para o snapshot 
+    </h3>
+  </div>
+</div>
+`;

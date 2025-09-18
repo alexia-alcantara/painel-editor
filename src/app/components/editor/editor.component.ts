@@ -95,7 +95,17 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
   isEditingMode = false;
   cenarioId: string | null = null;
-  cenarioAtual!: Cenario;
+  cenarioAtual: Cenario = {
+    id: '',
+    nome: '',
+    targetWidth: 0,
+    targetHeight: 0,
+    backgroundImage: '',
+    componentes: [],
+    idPainel: '',
+    slug: '',
+    imagemFundoId: undefined,
+  }
 
   votacaoMock = {
     sim: 10,
