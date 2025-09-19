@@ -455,7 +455,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       id: 'relogio-sistema',
       tipo: 'relogio',
       x: 573, // Posição X do antigo timer principal
-      y: 456, // Posição Y do antigo timer principal
+      y: 590, // Posição Y do antigo timer principal
       width: 172,
       height: 35,
       visible: true,
@@ -682,7 +682,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     const resultadoVotacao: ComponenteEditor = {
       id: 'resultado-votacao',
       tipo: 'resultado-votacao',
-      x: 700,
+      x: 795,
       y: 600,
       width: 300,
       height: 100,
