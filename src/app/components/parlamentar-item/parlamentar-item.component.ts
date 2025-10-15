@@ -37,7 +37,16 @@ get fontNome(): FontConfig {
 
 get fontPartido(): FontConfig {
   const fonte = this.fonteService.getFonteByTipo('parlamentar').find(f => f.subId === 'partido');
-  return fonte?.font || { ...this.defaultFont, weight: "500" };
+  const baseFont = fonte?.font || { ...this.defaultFont, weight: "500" };
+
+  const limiteCaracteres = 7; // Se o nome tiver mais de 7 caracteres, a fonte diminui.
+  const fontSize = 11; // Novo tamanho da fonte para nomes longos.
+
+  if (this.parlamentar?.partido && this.parlamentar.partido.length > limiteCaracteres) {
+    return { ...baseFont, size: fontSize };
+  }
+
+  return baseFont;
 }
 
 get fontVoto(): FontConfig {
