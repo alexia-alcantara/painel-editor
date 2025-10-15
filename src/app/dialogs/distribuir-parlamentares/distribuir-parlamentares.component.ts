@@ -18,6 +18,8 @@ export interface DistribuirConfig {
   exibirDe: number;
   exibirAte: number;
   offsetInicial: number;
+  posicaoX: number;
+  posicaoY: number;
 }
 
 @Component({
@@ -40,7 +42,15 @@ export class DistribuirParlamentaresComponent {
   constructor(
     public dialogRef: MatDialogRef<DistribuirParlamentaresComponent>,
     @Inject(MAT_DIALOG_DATA) public data: DistribuirConfig
-  ){}
+  ){
+    //definir valores para as novas propriedades
+    if(this.data.posicaoX === undefined){
+      this.data.posicaoX = 100;
+    }
+    if(this.data.posicaoY === undefined){
+      this.data.posicaoY = 100;
+    }
+  }
 
   onCancel(): void {
     this.dialogRef.close();

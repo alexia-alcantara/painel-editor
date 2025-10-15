@@ -9,7 +9,9 @@ export type ComponenteTipo =
   | 'subtitulo'
   | 'status-reuniao'
   | 'temporizador-item'
-  | 'votacao-item';
+  | 'votacao-item'
+  | 'tribuna'
+  | 'resultado-votacao';
 
 export interface FontConfig {
   family: string;

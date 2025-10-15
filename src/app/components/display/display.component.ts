@@ -1,19 +1,22 @@
-import { FormsModule } from '@angular/forms';
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   HostListener,
+  OnDestroy,
   OnInit,
   Renderer2,
   ViewChild,
 } from '@angular/core';
-import { Cenario } from '../../models/cenario.model';
 import { ActivatedRoute } from '@angular/router';
-import { LayoutService } from '../../services/layout.service';
 import { CommonModule } from '@angular/common';
-import { CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
-import { ComponenteEditor } from '../../models/components.model';
+import { Cenario } from '../../models/cenario.model';
+import { LayoutService } from '../../services/layout.service';
+import { PainelService } from '../../services/painel.service';
+import { Subscription, interval } from 'rxjs';
+
+// Imports dos seus componentes visuais
 import { HeaderReuniaoComponent } from '../header-reuniao/header-reuniao.component';
 import { ImagemReuniaoComponent } from '../imagem-reuniao/imagem-reuniao.component';
 import { ParlamentarItemComponent } from '../parlamentar-item/parlamentar-item.component';
@@ -25,19 +28,17 @@ import { StatusReuniaoComponent } from '../status-reuniao/status-reuniao.compone
 import { TemporizadorItemComponent } from '../temporizador-item/temporizador-item.component';
 import { VotoItemComponent } from '../votacao-total/voto-item/voto-item.component';
 import { StatusItemComponent } from '../status-reuniao/status-item/status-item.component';
-import { ContextMenuComponent } from '../context-menu/context-menu.component';
-import { ControleVisibilidadeComponent } from '../../controle-visibilidade/controle-visibilidade.component';
-import { Parlamentar } from '../lista-votacao/lista-votacao.component';
-import { DistribuirConfig } from '../../dialogs/distribuir-parlamentares/distribuir-parlamentares.component';
+import { MensagemComponent } from '../mensagem/mensagem.component';
+import { TribunaComponent } from '../tribuna/tribuna.component';
+import { ImagemStorageService } from '../../services/imagem-storage.service';
+import { ResultadoVotacaoComponent } from '../resultado-votacao/resultado-votacao.component';
+import { RelogioComponent } from '../relogio/relogio.component';
 
 @Component({
   selector: 'app-display',
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
-    DragDropModule,
-    ContextMenuComponent,
     HeaderReuniaoComponent,
     ImagemReuniaoComponent,
     ParlamentarItemComponent,
@@ -49,222 +50,385 @@ import { DistribuirConfig } from '../../dialogs/distribuir-parlamentares/distrib
     TemporizadorItemComponent,
     VotoItemComponent,
     StatusItemComponent,
-    ControleVisibilidadeComponent,
+    MensagemComponent,
+    TribunaComponent,
+    ResultadoVotacaoComponent,
+    RelogioComponent,
   ],
   templateUrl: './display.component.html',
   styleUrl: './display.component.css',
 })
-export class DisplayComponent implements OnInit, AfterViewInit {
-  @ViewChild('contextMenu') contextMenu!: ContextMenuComponent;
+export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('wrapper') wrapper!: ElementRef<HTMLDivElement>;
 
   cenarioParaExibir: Cenario | null = null;
-  mostrarControleVisibilidade = false;
 
-  toggleControleVisibilidade(): void {
-    this.mostrarControleVisibilidade = !this.mostrarControleVisibilidade;
-  }
+  private atualizacaoSubscription: Subscription | null = null;
+  private readonly PAINEL_IDENTIFICADOR = '15';
 
-  parlamentaresMock: Parlamentar[] = [
-    { nome: 'Arlene McCoy', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Devon Lane', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Floyd Miles', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Darlene Robertson', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Marvin McKinney', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Kathryn Murphy', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Brooklyn Simmons', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Annette Black', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Esther Howard', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Guy Hawkins', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Albert Flores', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Jerome Bell', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Savannah Nguyen', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Wade Warren', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Dianne Russell', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Cameron Williamson', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Courtney Henry', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Bessie Cooper', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Jacob Jones', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Jane Cooper', partido: 'PARTIDO', voto: 'S' },
-  ];
+  paletaDeCores: any = {};
+  private painelSubscription: Subscription | undefined;
 
   constructor(
     private route: ActivatedRoute,
     private layoutService: LayoutService,
+    private painelService: PainelService,
     private renderer: Renderer2,
-    private hostElement: ElementRef
+    private imagemStorageService: ImagemStorageService,
+    private cdRef: ChangeDetectorRef
   ) {}
 
+  // Em display.component.ts
+
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      const cenarioOriginal = this.layoutService.carregarCenario(id);
-      if (cenarioOriginal) {
-        this.cenarioParaExibir = structuredClone(cenarioOriginal);
+    const idCenario = this.route.snapshot.paramMap.get('id');
+
+    if (idCenario) {
+      this.cenarioParaExibir = this.layoutService.carregarCenario(idCenario);
+
+      if (this.cenarioParaExibir) {
+        if (this.cenarioParaExibir.imagemFundoId) {
+          this.carregarImagemDeFundo(this.cenarioParaExibir.imagemFundoId);
+        }
+
+        this.iniciarAtualizacaoAutomatica();
       }
     }
   }
 
-  onComponentVisibilityChange(event: { id: string; visivel: boolean }) {
-    const compIndex = this.cenarioParaExibir?.componentes.findIndex(
-      (c) => c.id === event.id
+  // VERSÃO CORRIGIDA E DINÂMICA
+  private iniciarAtualizacaoAutomatica(): void {
+    // 1. Tenta pegar o ID/IP do parâmetro da URL (ex: ...?ip=15)
+    const ipDaUrl = this.route.snapshot.queryParamMap.get('ip');
+
+    // 2. Se não houver na URL, pega o ID/IP que está salvo no cenário
+    const ipDoCenario = this.cenarioParaExibir?.idPainel;
+
+    // 3. Decide qual usar: o da URL tem prioridade para testes rápidos.
+    const ipDoPainel = ipDaUrl || ipDoCenario;
+
+    // 4. Se nenhum dos dois existir, para a execução e avisa no console.
+    if (!ipDoPainel) {
+      console.error(
+        'ERRO: Nenhum ID de Painel foi encontrado no cenário ou na URL!'
+      );
+      return;
+    }
+
+    const frequenciaMs = 2000;
+
+    // Cancela a inscrição anterior para evitar múltiplas chamadas
+    if (this.atualizacaoSubscription) {
+      this.atualizacaoSubscription.unsubscribe();
+    }
+
+    console.log(
+      `%cIniciando busca de dados para o painel: ${ipDoPainel}`,
+      'color: yellow; font-weight: bold;'
     );
 
-    if (this.cenarioParaExibir && compIndex !== undefined && compIndex > -1) {
-      this.cenarioParaExibir.componentes[compIndex].visible = event.visivel;
+    this.atualizacaoSubscription = this.painelService
+      .getDadosPainelEmTempoReal(ipDoPainel, frequenciaMs)
+      .subscribe((dadosDaApi) => {
+        if (dadosDaApi && dadosDaApi['valor']) {
+          this.atualizarCenarioComDadosReais(dadosDaApi['valor']);
+        }
+      });
+  }
+
+  private atualizarCenarioComDadosReais(dados: any): void {
+    if (!this.cenarioParaExibir) return;
+
+    const dadosApiValor = dados;
+    // console.log('OBJETO VOTACAO RECEBIDO:', dadosApiValor.votacao);
+
+    if (dadosApiValor.paleta && dadosApiValor.paleta.cores) {
+      this.paletaDeCores = dadosApiValor.paleta.cores.reduce(
+        (acc: any, cor: any) => {
+          acc[cor.nome] = cor.valor;
+          return acc;
+        },
+        {}
+      );
     }
+
+    const visibilidadeOriginal = this.cenarioParaExibir.componentes.reduce(
+      (map: { [key: string]: boolean }, comp) => {
+        map[comp.id] = comp.visible;
+        return map;
+      },
+      {}
+    );
+
+    const cenarioAtualizado = structuredClone(this.cenarioParaExibir);
+
+    // --- Mapeamento de Parlamentares ---
+    let parlamentaresApi: any[] = [];
+    if (dadosApiValor.parlamentares?.presencas?.length > 0) {
+      const membros = dadosApiValor.parlamentares.presencas[0].membros;
+      if (membros) {
+        parlamentaresApi = Array.isArray(membros) ? membros : [membros];
+      }
+    }
+
+    const parlamentaresLayout = cenarioAtualizado.componentes.filter(
+      (c) => c.tipo === 'parlamentar'
+    );
+
+    parlamentaresApi.forEach((membro: any, index: number) => {
+      const parlamentarApi = membro.titular;
+      const parlamentarLayoutComp = parlamentaresLayout[index];
+      if (parlamentarLayoutComp && parlamentarApi) {
+        // Garante que o parlamentar só seja visível se o seu componente de layout estiver marcado como visível.
+        parlamentarLayoutComp.visible =
+          visibilidadeOriginal[parlamentarLayoutComp.id] ?? false;
+        if (parlamentarLayoutComp.visible) {
+          parlamentarLayoutComp.dados = {
+            nome: parlamentarApi.nome || 'Nome não informado',
+            partido: parlamentarApi.partido || '-',
+            voto: parlamentarApi.voto?.status || '-',
+            status: parlamentarApi.status,
+            cor: parlamentarApi.cor,
+          };
+        }
+      }
+    });
+
+    // Oculta componentes de parlamentares que não têm dados correspondentes na API
+    for (let i = parlamentaresApi.length; i < parlamentaresLayout.length; i++) {
+      parlamentaresLayout[i].visible = false;
+    }
+
+    // --- Lógica Geral dos Componentes ---
+    cenarioAtualizado.componentes.forEach((componente) => {
+      componente.visible = visibilidadeOriginal[componente.id] ?? false;
+
+      switch (componente.tipo) {
+        case 'titulo':
+          componente.dados = { texto: dadosApiValor.nomeReuniao || 'Reunião' };
+          componente.visible = visibilidadeOriginal[componente.id] ?? false;
+          break;
+
+        case 'subtitulo':
+          // O subtítulo mostra o nome da VOTAÇÃO se ela existir, senão mostra a CATEGORIA da reunião.
+          if (dadosApiValor.votacao && dadosApiValor.votacao.nome) {
+            componente.dados = { texto: dadosApiValor.votacao.nome };
+          } else {
+            componente.dados = { texto: dadosApiValor.categoriaReuniao || '' };
+          }
+          componente.visible = visibilidadeOriginal[componente.id] ?? false;
+          break;
+
+        case 'descricao':
+          // SE HOUVER VOTAÇÃO, MOSTRA A EMENTA. SENÃO, O STATUS DA REUNIÃO.
+          if (dadosApiValor.votacao && dadosApiValor.votacao.ementa) {
+            componente.dados = { texto: dadosApiValor.votacao.ementa };
+          } else {
+            componente.dados = { texto: dadosApiValor.statusReuniao || '' };
+          }
+          break;
+
+        case 'cabecalho':
+          componente.dados = {
+            ...componente.dados,
+            texto: dadosApiValor.nomeCliente,
+          };
+          break;
+
+        case 'mensagem':
+          componente.visible =
+            visibilidadeOriginal[componente.id] &&
+            !!dadosApiValor.telaMensagem?.conteudo;
+          if (componente.visible) {
+            try {
+              const conteudo = JSON.parse(dadosApiValor.telaMensagem.conteudo);
+              componente.dados = {
+                texto: conteudo.map((item: any) => item.texto).join('\n'),
+              };
+            } catch (e) {
+              console.error('Erro ao processar telaMensagem:', e);
+              componente.visible = false;
+            }
+          }
+          break;
+
+        case 'tribuna':
+          componente.visible =
+            visibilidadeOriginal[componente.id] && !!dadosApiValor.tribuna;
+          if (componente.visible) {
+            componente.dados = {
+              orador: dadosApiValor.tribuna.nome,
+              partido: dadosApiValor.tribuna.partido,
+              materia: ' ',
+            };
+          }
+          break;
+
+        case 'resultado-votacao':
+          const votacaoFinalizada =
+            dadosApiValor.votacao && !dadosApiValor.votacao.votando;
+          const textoResultado = dadosApiValor.votacao?.resultado_texto;
+          componente.visible =
+            visibilidadeOriginal[componente.id] &&
+            votacaoFinalizada &&
+            !!textoResultado;
+
+          if (componente.visible) {
+            componente.dados = { texto: textoResultado };
+          }
+          break;
+
+        case 'totalizadores': {
+
+          const isVisibleInEditor =
+            visibilidadeOriginal[componente.id] ?? false;
+          const hasVotingData = !!dadosApiValor.votacao; 
+
+          componente.visible = isVisibleInEditor && hasVotingData;
+
+          if (componente.visible) {
+            componente.dados = dadosApiValor.votacao;
+          }
+          break;
+        }
+
+        case 'temporizador-item':
+          const idCompleto = componente.id; // ex: "temporizador-1"
+          let idNumericoApi: number | null = null;
+
+          // Mapeia o ID do seu componente para o ID do cronômetro da API
+          if (idCompleto === 'temporizador-1') {
+            idNumericoApi = 1;
+          } else if (idCompleto === 'temporizador-2') {
+            idNumericoApi = 2;
+          } else if (idCompleto === 'temporizador-3') {
+            idNumericoApi = 4;
+          }
+
+          if (idNumericoApi !== null) {
+            const dadosCronometro = dadosApiValor.cronometro?.find(
+              (c: any) => c.cronometro === idNumericoApi
+            );
+
+            if (dadosCronometro) {
+              componente.dados = dadosCronometro;
+            }
+          }
+          break;
+
+        case 'status-item':
+          const presencas = dadosApiValor.parlamentares?.presencas?.[0] || {};
+          const nomesTotalizadores = dadosApiValor.nomesTotalizadores || {};
+
+          if (componente.id === 'status-presentes') {
+            componente.props = {
+              label: nomesTotalizadores.PRESENTES || 'PRESENTES',
+              valor: presencas.presentes || 0,
+            };
+          }
+          if (componente.id === 'status-ausentes') {
+            componente.props = {
+              label: nomesTotalizadores.AUSENTES || 'AUSENTES',
+              valor: presencas.ausentes || 0,
+            };
+          }
+          if (componente.id === 'status-licenciados') {
+            componente.props = {
+              label: nomesTotalizadores.LICENCIADOS || 'LICENCIADOS',
+              valor: presencas.licenciados || 0,
+            };
+          }
+          if (componente.id === 'status-obstrucao') {
+            componente.props = {
+              label: nomesTotalizadores.OBSTRUCAO || 'OBSTRUCAO',
+              valor: presencas.obstrucao || 0,
+            };
+          }
+          if (componente.id === 'status-quorum') {
+            componente.props = {
+              label: nomesTotalizadores.QUORUM || 'QUORUM',
+              valor: presencas.quorum || 0,
+            };
+          }
+          if (componente.id === 'status-votos') {
+            componente.props = {
+              label: nomesTotalizadores.VOTOS || 'VOTOS',
+              valor: dadosApiValor.votacao?.totalvotos ?? 0,
+            };
+          }
+          break;
+      }
+    });
+
+    // Atualiza os componentes de Votação (Sim, Não, Abstenção)
+    const existeVotacao = !!dadosApiValor.votacao;
+    ['voto-sim', 'voto-nao', 'voto-abstencao'].forEach((id) => {
+      const comp = cenarioAtualizado.componentes.find((c) => c.id === id);
+      if (comp) {
+        comp.visible = visibilidadeOriginal[comp.id] && existeVotacao;
+        if (comp.visible) {
+          if (!comp.props) comp.props = {};
+          const dataKey = id.split('-')[1]; // 'sim', 'nao', 'abstencao'
+          comp.props.valor = dadosApiValor.votacao[dataKey] ?? 0;
+        }
+      }
+    });
+
+    this.cenarioParaExibir = cenarioAtualizado;
+    this.cdRef.detectChanges();
   }
 
   ngAfterViewInit(): void {
     setTimeout(() => this.ajustarEscala(), 0);
   }
 
-  @HostListener('window:resize')
-  onResize(): void {
+  ngOnDestroy(): void {
+    if (this.atualizacaoSubscription) {
+      this.atualizacaoSubscription.unsubscribe();
+    }
+  }
+
+  @HostListener('window:resize') onResize(): void {
     this.ajustarEscala();
   }
 
-private ajustarEscala(): void {
-  const wrapperRef = (this as any).editorWrapperRef || (this as any).wrapper;
-  
-  const cenario = (this as any).cenarioAtual || (this as any).cenarioParaExibir;
+  private ajustarEscala(): void {
+    if (!this.wrapper || !this.cenarioParaExibir) return;
 
-  if (!wrapperRef || !cenario) {
-    return;
+    const container = this.wrapper.nativeElement.parentElement;
+    const target = this.wrapper.nativeElement;
+
+    if (!container) return;
+
+    // Calcula a escala baseada na largura do container.
+    const scale = container.clientWidth / this.cenarioParaExibir.targetWidth;
+
+    this.renderer.setStyle(target, 'transform-origin', 'top left');
+    this.renderer.setStyle(target, 'transform', `scale(${scale})`);
   }
 
-  const container = wrapperRef.nativeElement.parentElement;
-  const target = wrapperRef.nativeElement;
+  private async carregarImagemDeFundo(id: string): Promise<void> {
+    try {
+      const arquivo = await this.imagemStorageService.carregarImagem(id);
 
-  if (!container) return;
+      if (arquivo) {
+        // Cria uma URL local para o arquivo vindo do IndexedDB
+        const url = URL.createObjectURL(arquivo);
 
-  const containerWidth = container.clientWidth;
-  const containerHeight = container.clientHeight;
-
-  const targetWidth = cenario.targetWidth;
-  const targetHeight = cenario.targetHeight;
-
-  const scaleX = containerWidth / targetWidth;
-  const scaleY = containerHeight / targetHeight;
-
-  const scale = Math.min(scaleX, scaleY);
-
-  this.renderer.setStyle(target, 'transform', `scale(${scale})`);
-}
-
-  onDragEnd(event: CdkDragEnd, item: ComponenteEditor) {
-    const position = event.source.getFreeDragPosition();
-    item.x = Math.round(position.x);
-    item.y = Math.round(position.y);
-  }
-
-  onRightClick(event: MouseEvent, component: ComponenteEditor) {
-    event.preventDefault();
-    if (this.contextMenu) {
-      this.contextMenu.open(
-        event,
-        component,
-        this.cenarioParaExibir?.componentes ?? [],
-        false
-      );
+        // Usa o Renderer2 para aplicar o estilo de fundo de forma segura
+        this.renderer.setStyle(
+          this.wrapper.nativeElement,
+          'backgroundImage',
+          `url(${url})`
+        );
+        console.log(`Imagem de fundo com ID ${id} carregada.`);
+      } else {
+        console.warn(
+          `Imagem de fundo com ID ${id} não encontrada no banco de dados.`
+        );
+      }
+    } catch (err) {
+      console.error('Erro ao carregar imagem de fundo do IndexedDB:', err);
     }
   }
-
-  onMenuAction(event: {
-    action: string;
-    data?: any;
-    component?: ComponenteEditor | null;
-  }) {
-    if (!this.cenarioParaExibir) return;
-
-    switch (event.action) {
-      case 'toggleVisibility':
-        if (event.component) {
-          const compIndex = this.cenarioParaExibir.componentes.findIndex(
-            (c) => c.id === event.component?.id
-          );
-          if (compIndex > -1) {
-            this.cenarioParaExibir.componentes[compIndex].visible =
-              !this.cenarioParaExibir.componentes[compIndex].visible;
-          }
-        }
-        break;
-
-      case 'distributeParliamentarians':
-        this.redistribuirParlamentares(event.data);
-        break;
-    }
-  }
-
-  toggleVisibility(item: ComponenteEditor) {
-    item.visible = !item.visible;
-  }
-
- redistribuirParlamentares(config: DistribuirConfig) {
-    if (!this.cenarioParaExibir) return;
-
-    const componentesAtuais = this.cenarioParaExibir.componentes;
-    const componentesSemParlamentares = componentesAtuais.filter(
-      (c) => c.tipo !== 'parlamentar'
-    );
-    const yBaseComponenteImagem =
-      componentesAtuais.find((c) => c.tipo === 'imagem')?.y ?? 70;
-    const alturaComponenteImagem =
-      componentesAtuais.find((c) => c.tipo === 'imagem')?.height ?? 421;
-    const yBaseParlamentares =
-      yBaseComponenteImagem + alturaComponenteImagem + 45;
-
-    const novosParlamentares = this.montarComponentesParlamentares(
-      yBaseParlamentares,
-      config
-    );
-    const layoutFinal = [...componentesSemParlamentares, ...novosParlamentares];
-    this.cenarioParaExibir.componentes = layoutFinal;
-  }
-
-  private montarComponentesParlamentares(
-  yBase: number = 480,
-  config: DistribuirConfig
-): ComponenteEditor[] {
-  const itensPorColuna = config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
-  const totalDeParlamentares = config.qntTotal;
-
-  const parlamentaresParaExibir = this.parlamentaresMock.slice(
-    0,
-    totalDeParlamentares
-  );
-
-  if (parlamentaresParaExibir.length === 0) {
-    return [];
-  }
-
-  const larguraItem = 608;
-  const alturaItem = 20;
-  const xBase = 234;
-
-  return parlamentaresParaExibir.map((parlamentar, i) => {
-    const colunaAtual = Math.floor(i / itensPorColuna);
-    const linhaAtual = i % itensPorColuna;
-
-    const posX =
-      xBase +
-      config.margemEsquerda +
-      colunaAtual * (larguraItem + config.espacamentoHorizontal);
-    const posY =
-      yBase +
-      config.margemSuperior +
-      linhaAtual * (alturaItem + config.espacamentoVertical);
-      
-    return {
-      id: `parlamentar-${i}`,
-      tipo: 'parlamentar',
-      x: posX,
-      y: posY,
-      width: larguraItem,
-      height: alturaItem,
-      dados: parlamentar,
-      visible: true,
-    };
-  });
-}
 }

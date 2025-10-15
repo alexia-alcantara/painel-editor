@@ -1,7 +1,7 @@
-<div class="font-dialog p-4 w-[420px] rounded-xl shadow-xl bg-white">
-  <h2 class="text-lg font-semibold mb-3 border-b pb-1">Fonte</h2>
+<div class="font-dialog p-4 w-[420px] rounded-xl shadow-xl bg-white text-gray-800">
+  <h2 class="text-lg font-semibold mb-4 border-b pb-2">Fonte</h2>
 
-  <div class="grid grid-cols-3 gap-3">
+  <div class="grid grid-cols-3 gap-4">
     <div class="flex flex-col">
       <label class="text-xs mb-1">Fonte:</label>
       <select [(ngModel)]="selectedFont" size="6" class="border rounded p-1 h-32 focus:ring-2 focus:ring-blue-500">
@@ -15,12 +15,10 @@
       <label class="text-xs mb-1">Estilo da fonte:</label>
       <select [(ngModel)]="selectedStyle" size="6" class="border rounded p-1 h-32 focus:ring-2 focus:ring-blue-500">
         @for (style of styles; track style) {
-          <option
-            [ngStyle]="{
-              'font-weight': style.includes('Bold') ? 'bold' : 'normal',
-              'font-style': style.includes('Italic') ? 'italic' : 'normal'
-            }"
-          >
+          <option [ngStyle]="{
+            'font-weight': style.includes('Bold') ? 'bold' : 'normal',
+            'font-style': style.includes('Italic') ? 'italic' : 'normal'
+          }">
             {{ style }}
           </option>
         }
@@ -31,36 +29,27 @@
       <label class="text-xs mb-1">Tamanho:</label>
       <select [(ngModel)]="selectedSize" size="6" class="border rounded p-1 h-32 focus:ring-2 focus:ring-blue-500">
         @for (size of sizes; track size) {
-          <option>{{ size }}</option>
+          <option [value]="size">{{ size }}</option>
         }
       </select>
     </div>
   </div>
 
-  <div class="mt-3">
+  <div class="mt-4">
     <label class="text-xs block mb-1">Exemplo</label>
-    <div
-      class="border p-3 text-center rounded-md bg-gray-50"
+    <div class="border p-3 text-center rounded-md bg-gray-100"
       [ngStyle]="{
         'font-family': selectedFont,
         'font-size.px': selectedSize,
         'font-weight': selectedStyle.includes('Bold') ? 'bold' : 'normal',
-        'font-style': selectedStyle.includes('Italic') ? 'italic' : 'normal'
-      }"
-    >
-      AaBbYyZz
+        'font-style': selectedStyle.includes('Italic') ? 'italic' : 'normal',
+        'color': '#000000' 
+      }">
+      <span>AaBbYyZz</span>
     </div>
   </div>
 
-  <div class="mt-3">
-    <label class="text-xs block mb-1">Script:</label>
-    <select class="border rounded p-1 w-full">
-      <option>Ocidental</option>
-      <option>Latim</option>
-    </select>
-  </div>
-
-  <div class="flex justify-end gap-2 mt-4">
+  <div class="flex justify-end gap-2 mt-6">
     <button mat-button (click)="dialogRef.close()">Cancelar</button>
     <button mat-flat-button color="primary" (click)="close()">OK</button>
   </div>

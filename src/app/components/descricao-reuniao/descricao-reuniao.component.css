@@ -1,0 +1,12 @@
+.descricao-container {
+  padding: 8px;
+
+  display: inline-block;
+  max-width: 650px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+p {
+  margin: 0;
+}

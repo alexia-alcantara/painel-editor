@@ -113,6 +113,8 @@ async ngOnInit() {
       exibirDe: 0,
       exibirAte: 0,
       offsetInicial: 0,
+      posicaoX: 100,
+      posicaoY: 100,
     };
 
     const dialogRef = this.dialog.open(DistribuirParlamentaresComponent, {

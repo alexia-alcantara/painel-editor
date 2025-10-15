@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CenarioDialogComponent } from './cenario-dialog.component';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
 describe('CenarioDialogComponent', () => {
   let component: CenarioDialogComponent;
@@ -8,7 +9,11 @@ describe('CenarioDialogComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [CenarioDialogComponent]
+      imports: [CenarioDialogComponent],
+      providers: [
+        {provide: MatDialogRef, useValue: {}},
+        {provide: MAT_DIALOG_DATA, useValue: {}}
+      ]
     })
     .compileComponents();
 

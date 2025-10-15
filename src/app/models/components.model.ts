@@ -16,7 +16,11 @@ export interface ComponenteEditor {
     | 'titulo'
     | 'subtitulo'
     | 'temporizador-item'
-    | 'multimidia';
+    | 'multimidia'
+    | 'mensagem'
+    | 'tribuna'
+    | 'resultado-votacao'
+    | 'relogio'
   dados?: any;
   x: number;
   y: number;

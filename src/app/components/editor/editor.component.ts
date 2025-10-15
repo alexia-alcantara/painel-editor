@@ -24,17 +24,12 @@ import { VotacaoTotalComponent } from '../votacao-total/votacao-total.component'
 import { TimerComponent } from '../timer/timer.component';
 import { StatusReuniaoComponent } from '../status-reuniao/status-reuniao.component';
 import { TemporizadorItemComponent } from '../temporizador-item/temporizador-item.component';
-import {
-  ListaVotacaoComponent,
-  Parlamentar,
-} from '../lista-votacao/lista-votacao.component';
+import { ListaVotacaoComponent } from '../lista-votacao/lista-votacao.component';
 import { DescricaoReuniaoComponent } from '../descricao-reuniao/descricao-reuniao.component';
 import { TituloReuniaoComponent } from '../titulo-reuniao/titulo-reuniao.component';
-import { SubtituloReuniaoComponent } from '../subtitulo-reuniao/subtitulo-reuniao.component';
 import { ContextMenuComponent } from '../context-menu/context-menu.component';
 import { VotoItemComponent } from '../votacao-total/voto-item/voto-item.component';
 import { LayoutExportService } from '../../services/layout-export.service';
-import saveAs from 'file-saver';
 import { ComponenteTipo, FontConfig } from '../../models/fontes.model';
 import { DistribuirConfig } from '../../dialogs/distribuir-parlamentares/distribuir-parlamentares.component';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -47,6 +42,12 @@ import { Cenario } from '../../models/cenario.model';
 import { FormsModule } from '@angular/forms';
 import { FonteService } from '../../services/fonte.service';
 import { StatusItemComponent } from '../status-reuniao/status-item/status-item.component';
+import { SubtituloReuniaoComponent } from '../subtitulo-reuniao/subtitulo-reuniao.component';
+import { MensagemComponent } from '../mensagem/mensagem.component';
+import { TribunaComponent } from '../tribuna/tribuna.component';
+import { ImagemStorageService } from '../../services/imagem-storage.service';
+import { ResultadoVotacaoComponent } from '../resultado-votacao/resultado-votacao.component';
+import { RelogioComponent } from '../relogio/relogio.component';
 
 @Component({
   selector: 'app-editor',
@@ -75,6 +76,10 @@ import { StatusItemComponent } from '../status-reuniao/status-item/status-item.c
     MatIconModule,
     ControleVisibilidadeComponent,
     StatusItemComponent,
+    MensagemComponent,
+    TribunaComponent,
+    ResultadoVotacaoComponent,
+    RelogioComponent,
   ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
@@ -88,28 +93,19 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   router = inject(Router);
   layout: ComponenteEditor[] = [];
 
-  parlamentaresMock: Parlamentar[] = [
-    { nome: 'Arlene McCoy', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Devon Lane', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Floyd Miles', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Darlene Robertson', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Marvin McKinney', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Kathryn Murphy', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Brooklyn Simmons', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Annette Black', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Esther Howard', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Guy Hawkins', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Albert Flores', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Jerome Bell', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Savannah Nguyen', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Wade Warren', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Dianne Russell', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Cameron Williamson', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Courtney Henry', partido: 'PARTIDO', voto: '-' },
-    { nome: 'Bessie Cooper', partido: 'PARTIDO', voto: 'S' },
-    { nome: 'Jacob Jones', partido: 'PARTIDO', voto: 'N' },
-    { nome: 'Jane Cooper', partido: 'PARTIDO', voto: 'S' },
-  ];
+  isEditingMode = false;
+  cenarioId: string | null = null;
+  cenarioAtual: Cenario = {
+    id: '',
+    nome: '',
+    targetWidth: 0,
+    targetHeight: 0,
+    backgroundImage: '',
+    componentes: [],
+    idPainel: '',
+    slug: '',
+    imagemFundoId: undefined,
+  }
 
   votacaoMock = {
     sim: 10,
@@ -119,15 +115,10 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
   componentes = signal<ComponenteEditor[]>([]);
   mostrarControleVisibilidade = false;
+  private routeSub: Subscription | undefined;
 
-  cenarioAtual: Cenario = {
-    id: `cenario_${Date.now()}`,
-    nome: 'Novo Cenário',
-    targetWidth: 1920,
-    targetHeight: 1080,
-    backgroundImage: '',
-    componentes: [],
-  };
+  private imagemFundoAtual: File | null = null;
+   scale = 1;
 
   constructor(
     private layoutService: LayoutService,
@@ -135,33 +126,15 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     private layoutExport: LayoutExportService,
     private fonteService: FonteService,
     private renderer: Renderer2,
-    private hostElement: ElementRef
+    private imagemStorageService: ImagemStorageService
   ) {}
 
+  // @HostListener('window:resize')
+  // onResize(): void {
+  //   this.ajustarEscala();
+  // }
 
-  @HostListener('window:resize')
-  onResize(): void {
-    this.ajustarEscala();
-  }
 
-private ajustarEscala(): void {
-  const wrapperRef = this.editorWrapperRef;
-  if (!wrapperRef || !this.cenarioAtual) {
-    return;
-  }
-
-  const container = wrapperRef.nativeElement.parentElement;
-  const target = wrapperRef.nativeElement;
-
-  if (!container) return;
-
-  const containerWidth = container.clientWidth;
-  const targetWidth = this.cenarioAtual.targetWidth;
-
-  const scale = containerWidth / targetWidth;
-
-  this.renderer.setStyle(target, 'transform', `scale(${scale})`);
-}
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -192,46 +165,63 @@ private ajustarEscala(): void {
     }
   }
 
-  private routeSub: Subscription | undefined;
-
   ngOnInit() {
-    this.routeSub = this.route.params.subscribe((params) => {
-      const idDoCenario = params['id'];
-      let cenarioCarregado = null;
-      if (idDoCenario) {
-        cenarioCarregado = this.layoutService.carregarCenario(idDoCenario);
-      }
+    this.updateScale();
 
-      if (cenarioCarregado) {
-        this.cenarioAtual = cenarioCarregado;
-      } else {
-        this.cenarioAtual = this.montarLayoutInicial();
-        if (idDoCenario) {
-          this.cenarioAtual.id = idDoCenario;
+    this.routeSub = this.route.paramMap.subscribe((params) => {
+      if (params.has('id')) {
+        // MODO DE EDIÇÃO
+        this.isEditingMode = true;
+        this.cenarioId = params.get('id');
+        console.log(`Modo de Edição. Carregando cenário: ${this.cenarioId}`);
+
+        const cenarioCarregado = this.layoutService.carregarCenario(
+          this.cenarioId!
+        );
+        if (cenarioCarregado) {
+          this.cenarioAtual = cenarioCarregado;
+        } else {
+          alert('Cenário não encontrado! Redirecionando para um novo cenário.');
+          this.router.navigate(['/editor']);
         }
+      } else {
+        this.isEditingMode = false;
+        this.cenarioId = null;
+        console.log('Modo cenário novo');
+        this.cenarioAtual = this.montarLayoutInicial();
       }
-      this.onItemChange();
 
-      const imagemTemporaria = localStorage.getItem('bg_temporary');
-      if (imagemTemporaria && !this.cenarioAtual.backgroundImage) {
-        console.log('Imagem de fundo encontrada. Aplicando...');
-        this.cenarioAtual.backgroundImage = imagemTemporaria;
-      }
+      this.onItemChange();
       this.dispararAutosave();
     });
   }
 
-   ngAfterViewInit(): void {
-    setTimeout(() => this.ajustarEscala(), 0);
+    @HostListener('window:resize')
+  onResize() {
+    this.updateScale();
   }
 
+  
+  updateScale() {
+    const baseWidth = 1660;
+    const baseHeight = 1080;
+
+    const scaleX = window.innerWidth / baseWidth;
+    const scaleY = window.innerHeight / baseHeight;
+
+    // pega o menor para caber na tela inteira
+    this.scale = Math.min(scaleX, scaleY);
+  }
+
+  ngAfterViewInit(): void {
+    // setTimeout(() => this.ajustarEscala(), 0);
+  }
 
   ngOnDestroy() {
     if (this.routeSub) {
       this.routeSub.unsubscribe();
     }
   }
-
 
   toggleControleVisibilidade(): void {
     this.mostrarControleVisibilidade = !this.mostrarControleVisibilidade;
@@ -256,9 +246,14 @@ private ajustarEscala(): void {
         if (Array.isArray(event.data)) {
           layoutFinal = event.data;
         } else {
+          const tempParlamentaresMock = Array.from({ length: 24 }, (_, i) => ({
+            nome: `Parlamentar ${i + 1}`,
+            partido: 'PART',
+            voto: '-',
+          }));
           layoutFinal = this.layoutExport.converterDoFormatoOriginal(
             event.data,
-            this.parlamentaresMock,
+            tempParlamentaresMock,
             this.votacaoMock
           );
         }
@@ -277,40 +272,38 @@ private ajustarEscala(): void {
   }
 
   redistribuirParlamentares(config: DistribuirConfig) {
-    const componentesAtuais = this.cenarioAtual.componentes;
-    const componentesSemParlamentares = componentesAtuais.filter(
+    const componentesSemParlamentares = this.cenarioAtual.componentes.filter(
       (c) => c.tipo !== 'parlamentar'
     );
-    const yBaseComponenteImagem =
-      componentesAtuais.find((c) => c.tipo === 'imagem')?.y ?? 70;
-    const alturaComponenteImagem =
-      componentesAtuais.find((c) => c.tipo === 'imagem')?.height ?? 421;
-    const yBaseParlamentares =
-      yBaseComponenteImagem + alturaComponenteImagem + 45;
 
-    const novosParlamentares = this.montarComponentesParlamentares(
-      yBaseParlamentares,
-      config
+    const novosParlamentares = this.montarComponentesParlamentares(config);
+
+    this.cenarioAtual.componentes = [
+      ...componentesSemParlamentares,
+      ...novosParlamentares,
+    ];
+    this.dispararAutosave();
+  }
+
+  onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
+    const novaPosicao = event.source.getFreeDragPosition();
+
+    console.log(
+      `[DRAG END] Item: ${itemArrastado.id}, Nova Posição: X=${Math.round(
+        novaPosicao.x
+      )}, Y=${Math.round(novaPosicao.y)}`
     );
-    const layoutFinal = [...componentesSemParlamentares, ...novosParlamentares];
-    this.cenarioAtual.componentes = layoutFinal;
 
-    this.dispararAutosave();
+    const index = this.cenarioAtual.componentes.findIndex(
+      (c) => c.id === itemArrastado.id
+    );
+    if (index !== -1) {
+      this.cenarioAtual.componentes[index].x = Math.round(novaPosicao.x);
+      this.cenarioAtual.componentes[index].y = Math.round(novaPosicao.y);
+      this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
+      this.dispararAutosave();
+    }
   }
-
-onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
-  const novaPosicao = event.source.getFreeDragPosition();
-
-  console.log(`[DRAG END] Item: ${itemArrastado.id}, Nova Posição: X=${Math.round(novaPosicao.x)}, Y=${Math.round(novaPosicao.y)}`);
-
-  const index = this.cenarioAtual.componentes.findIndex(c => c.id === itemArrastado.id);
-  if (index !== -1) {
-    this.cenarioAtual.componentes[index].x = Math.round(novaPosicao.x);
-    this.cenarioAtual.componentes[index].y = Math.round(novaPosicao.y);
-    this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
-    this.dispararAutosave();
-  }
-}
 
   onRightClick(event: MouseEvent, component: ComponenteEditor) {
     event.preventDefault();
@@ -320,28 +313,42 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
     }
   }
 
+  private gerarSlug(texto: string): string {
+    return texto
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-');
+  }
+
   private montarLayoutInicial(): Cenario {
-    const larguraImagem = 750;
-    const alturaImagem = 421;
-    const xImagem = 750;
+    const larguraTela = 1660;
+    const alturaTela = 1080;
+
+    const larguraImagem = 650;
+    const alturaImagem = 365;
+    const xImagem = 850;
     const yImagem = 70;
 
-    const espacamentoHorizontal = 85;
+    const espacamentoHorizontalBlocos = 85;
+    const espacamentoInternoComponentes = 20;
     const espacamentoTemporizador = 42;
+
     const xBase = 235;
 
-    // Alturas fixas dos blocos
     const cabecalhoHeight = 50;
     const tituloHeight = 25;
     const subtituloHeight = 20;
     const descricaoHeight = 90;
     const totalizadoresHeight = 135;
-    const statusReuniaoHeight = 135;
+    const statusReuniaoHeight = 220;
 
     const larguraVotacaoItem = 223;
     const alturaVotacaoItem = 30;
 
-    let yAtual = yImagem;
+    let yAtualEsquerda = yImagem;
 
     const defaultFont: FontConfig = {
       family: 'Inter, sans-serif',
@@ -366,22 +373,23 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
       id: 'cabecalho',
       tipo: 'cabecalho',
       x: xBase,
-      y: yAtual,
-      width: xImagem - espacamentoHorizontal,
+      y: yAtualEsquerda,
+      width: xImagem - espacamentoHorizontalBlocos,
       height: cabecalhoHeight,
       visible: true,
     };
-    yAtual += cabecalho.height + 12;
+    yAtualEsquerda += cabecalho.height + espacamentoInternoComponentes;
 
     // Título
     const titulo: ComponenteEditor = {
       id: 'titulo',
       tipo: 'titulo',
       x: xBase,
-      y: yAtual,
-      width: xImagem - espacamentoHorizontal,
+      y: yAtualEsquerda,
+      width: 420,
       height: tituloHeight,
       visible: true,
+      dados: { texto: 'Título da Reunião' },
       fontes: [
         {
           subId: 'titulo-texto',
@@ -390,17 +398,18 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
         },
       ],
     };
-    yAtual += titulo.height + 12;
+    yAtualEsquerda += titulo.height + espacamentoInternoComponentes;
 
     // Subtítulo
     const subtitulo: ComponenteEditor = {
       id: 'subtitulo',
       tipo: 'subtitulo',
       x: xBase,
-      y: yAtual,
-      width: xImagem - espacamentoHorizontal,
+      y: yAtualEsquerda,
+      width: cabecalho.width,
       height: subtituloHeight,
       visible: true,
+      dados: { texto: 'Subtítulo da Reunião' },
       fontes: [
         {
           subId: 'subtitulo-texto',
@@ -409,16 +418,17 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
         },
       ],
     };
-    yAtual += subtitulo.height + 12;
+    yAtualEsquerda += subtitulo.height + espacamentoInternoComponentes;
 
     // Descrição
     const descricao: ComponenteEditor = {
       id: 'descricao',
       tipo: 'descricao',
       x: cabecalho.x,
-      y: yAtual,
-      width: cabecalho.width,
+      y: yAtualEsquerda,
+      width: 420,
       height: descricaoHeight,
+      dados: { texto: 'Status da Reunião' },
       fontes: [
         {
           subId: 'descricao-texto',
@@ -428,20 +438,28 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
       ],
       visible: true,
     };
-    yAtual += descricao.height + 12;
+    yAtualEsquerda += descricao.height + espacamentoInternoComponentes;
 
     // Totalizadores
     const totalizadores: ComponenteEditor = {
       id: 'totalizadores',
       tipo: 'totalizadores',
       x: xBase,
-      y: yAtual,
+      y: yAtualEsquerda,
       width: 172,
       height: totalizadoresHeight,
       dados: this.votacaoMock,
       visible: true,
     };
-
+    const relogioSistema: ComponenteEditor = {
+      id: 'relogio-sistema',
+      tipo: 'relogio',
+      x: 573, // Posição X do antigo timer principal
+      y: 590, // Posição Y do antigo timer principal
+      width: 172,
+      height: 35,
+      visible: true,
+    };
 
     const margemInternaX = 10; // margem lateral dentro da caixa
     const margemInternaY = 10; // margem superior
@@ -486,19 +504,22 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
       visible: true,
     };
 
+    const larguraStatusReuniao = 250; // Largura do bloco de status
+    const xStatusReuniao = totalizadores.x + totalizadores.width + 150;
+
     const statusReuniao: ComponenteEditor = {
       id: 'status-reuniao',
       tipo: 'status-reuniao',
-      x: xBase + totalizadores.width + espacamentoHorizontal,
-      y: yAtual,
-      width: 223,
+      x: xStatusReuniao,
+      y: yAtualEsquerda,
+      width: larguraStatusReuniao,
       height: statusReuniaoHeight,
       visible: true,
     };
 
     const baseXStatus = statusReuniao.x + 15;
     const baseYStatus = statusReuniao.y + 15;
-    const larguraStatusItem = statusReuniao.width - 30;
+    const larguraStatusItem = statusReuniao.width - 55;
     const alturaStatusItem = 25;
     const espacoVerticalStatus = 10;
 
@@ -525,7 +546,51 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
       visible: true,
     };
 
-    // Temporizadores 
+    const statusAusentes: ComponenteEditor = {
+      id: 'status-ausentes',
+      tipo: 'status-item',
+      x: baseXStatus,
+      y: baseYStatus + (alturaStatusItem + espacoVerticalStatus) * 2,
+      width: larguraStatusItem,
+      height: alturaStatusItem,
+      props: { label: 'AUSENTES', valor: 23 },
+      visible: true,
+    };
+
+    const statusQuorum: ComponenteEditor = {
+      id: 'status-quorum',
+      tipo: 'status-item',
+      x: baseXStatus,
+      y: baseYStatus + (alturaStatusItem + espacoVerticalStatus) * 3,
+      width: larguraStatusItem,
+      height: alturaStatusItem,
+      props: { label: 'QUORUM', valor: 13 },
+      visible: false,
+    };
+
+    const statusLicenciados: ComponenteEditor = {
+      id: 'status-licenciados',
+      tipo: 'status-item',
+      x: baseXStatus,
+      y: baseYStatus + (alturaStatusItem + espacoVerticalStatus) * 4,
+      width: larguraStatusItem,
+      height: alturaStatusItem,
+      props: { label: 'LICENCIADOS', valor: 0 },
+      visible: false,
+    };
+
+    const statusObstrucao: ComponenteEditor = {
+      id: 'status-obstrucao',
+      tipo: 'status-item',
+      x: baseXStatus,
+      y: baseYStatus + (alturaStatusItem + espacoVerticalStatus) * 5,
+      width: larguraStatusItem,
+      height: alturaStatusItem,
+      props: { label: 'OBSTRUÇÃO', valor: 0 },
+      visible: false,
+    };
+
+    // Temporizadores
     const temporizadoresBase = [
       {
         id: 'temporizador-1',
@@ -541,19 +606,12 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
         tempo: '00:00',
         icon: false,
       },
-      {
-        id: 'temporizador-3',
-        width: 172,
-        height: 35,
-        tempo: '08:45:10',
-        icon: true,
-      },
     ];
 
-    const alturaTemporizadores = Math.max(
-      ...temporizadoresBase.map((t) => t.height)
-    );
-    const yTemporizadores = yImagem + alturaImagem - alturaTemporizadores;
+    const yTemporizadores =
+      yAtualEsquerda +
+      Math.max(totalizadores.height, statusReuniao.height) +
+      30;
 
     const temporizadores: ComponenteEditor[] = temporizadoresBase.map(
       (item, index) => {
@@ -579,7 +637,7 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
       }
     );
 
-    const margemParlamentares = 45;
+    const margemParlamentares = 200;
     const yParlamentares = yImagem + alturaImagem + margemParlamentares;
     const defaultConfig: DistribuirConfig = {
       qtdePorColuna: 5,
@@ -591,12 +649,48 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
       exibirDe: 0,
       exibirAte: 0,
       offsetInicial: 0,
+      posicaoX: 230,
+      posicaoY: 700,
     };
 
-    const parlamentares = this.montarComponentesParlamentares(
-      yParlamentares,
-      defaultConfig
-    );
+    const mensagem: ComponenteEditor = {
+      id: 'mensagem-principal',
+      tipo: 'mensagem',
+      x: 1200,
+      y: 450,
+      width: 300,
+      height: 100,
+      visible: true,
+      dados: { texto: 'Mensagem em Tela' },
+    };
+
+    const tribuna: ComponenteEditor = {
+      id: 'tribuna-principal',
+      tipo: 'tribuna',
+      x: 900,
+      y: 465,
+      width: 400,
+      height: 150,
+      visible: true,
+      dados: {
+        orador: 'Nome do Orador',
+        partido: 'PARTIDO',
+        materia: 'Tema em Discussão',
+      },
+    };
+
+    const resultadoVotacao: ComponenteEditor = {
+      id: 'resultado-votacao',
+      tipo: 'resultado-votacao',
+      x: 795,
+      y: 600,
+      width: 300,
+      height: 100,
+      visible: true,
+      dados: { texto: 'Resultado da Votação' },
+    };
+
+    const parlamentares = this.montarComponentesParlamentares(defaultConfig);
 
     const componentesIniciais = [
       imagem,
@@ -605,61 +699,71 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
       subtitulo,
       descricao,
       totalizadores,
-      // votacaoTotal,
       statusReuniao,
       statusPresentes,
       statusVotos,
-
+      statusAusentes,
+      statusQuorum,
+      statusLicenciados,
+      statusObstrucao,
       votacaoSim,
       votacaoNao,
       votacaoAbstencao,
+      mensagem,
+      tribuna,
+      resultadoVotacao,
       ...temporizadores,
       ...parlamentares,
+      relogioSistema
     ];
 
+    const nomePadrao = 'Novo Cenário';
     const cenarioPadrao: Cenario = {
       id: `cenario_${Date.now()}`,
-      nome: 'Novo Cenário',
-      targetWidth: 1920,
-      targetHeight: 1080,
+      nome: nomePadrao,
+      targetWidth: larguraTela,
+      targetHeight: alturaTela,
       backgroundImage: '',
       componentes: componentesIniciais,
+      idPainel: '15',
+      slug: this.gerarSlug(nomePadrao),
     };
 
     return cenarioPadrao;
   }
 
   private montarComponentesParlamentares(
-    yBase: number = 480,
     config: DistribuirConfig
   ): ComponenteEditor[] {
     const itensPorColuna = config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
     const totalDeParlamentares = config.qntTotal;
 
-    const parlamentaresParaExibir = this.parlamentaresMock.slice(
-      0,
-      totalDeParlamentares
+    const parlamentaresDeExemplo = Array.from(
+      { length: totalDeParlamentares },
+      (_, i) => ({
+        nome: `Parlamentar ${i + 1}`,
+        partido: 'PART',
+        voto: '-',
+      })
     );
 
-    if (parlamentaresParaExibir.length === 0) {
+    if (parlamentaresDeExemplo.length === 0) {
       return [];
     }
 
     const larguraItem = 608;
     const alturaItem = 20;
-    const xBase = 234;
 
-    return parlamentaresParaExibir.map((parlamentar, i) => {
+    return parlamentaresDeExemplo.map((parlamentar, i) => {
       const colunaAtual = Math.floor(i / itensPorColuna);
       const linhaAtual = i % itensPorColuna;
 
       const posX =
-        xBase +
-        config.margemEsquerda +
+        config.posicaoX +
         colunaAtual * (larguraItem + config.espacamentoHorizontal);
+
       const posY =
-        yBase +
-        config.margemSuperior +
+        config.posicaoY +
         linhaAtual * (alturaItem + config.espacamentoVertical);
 
       return {
@@ -679,54 +783,68 @@ onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
     this.layoutService.salvarLayoutAtual(this.cenarioAtual);
   }
 
-async salvar() {
-  const idDoCenarioNaUrl = this.route.snapshot.paramMap.get('id');
-  if (!idDoCenarioNaUrl) {
-    alert('ERRO: Não foi possível identificar o ID do cenário na URL.');
-    return;
-  }
-
-  const nomeCenario = prompt(
-    'Digite um nome para o cenário:',
-    this.cenarioAtual.nome || 'novo-cenario'
-  );
-
-  if (!nomeCenario) {
-    return; // Usuário cancelou
-  }
-
-  // --- INÍCIO DA CORREÇÃO ---
-
-  // 1. Cria uma CÓPIA PROFUNDA e 100% independente do estado atual.
-  //    Nenhum processo "fantasma" pode alterar este clone.
-  const cenarioParaSalvar = structuredClone(this.cenarioAtual);
-
-  // 2. Atualiza a ID e o nome no clone, não no objeto original.
-  cenarioParaSalvar.id = idDoCenarioNaUrl;
-  cenarioParaSalvar.nome = nomeCenario;
-  
-  // --- FIM DA CORREÇÃO ---
-
-  try {
-    // 3. Passa a cópia segura e imutável para o serviço.
-    this.layoutService.salvarCenario(cenarioParaSalvar);
-
-    // 4. LÓGICA DE DOWNLOAD RESTAURADA
-    const layoutParaExportar = this.layoutExport.converterParaFormatoOriginal(
-      cenarioParaSalvar.componentes
+  async salvar() {
+    const nomeCenario = prompt(
+      'Digite um nome para o cenário:',
+      this.cenarioAtual.nome || 'novo-cenario'
     );
-    const blob = new Blob([JSON.stringify(layoutParaExportar, null, 2)], {
-      type: 'application/json',
-    });
-    saveAs(blob, `${nomeCenario}.json`); // Pede para o usuário salvar o arquivo
 
-    alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
+    if (!nomeCenario) {
+      return;
+    }
 
-  } catch (error) {
-    console.error('Falha grave ao salvar o cenário:', error);
-    alert('Ocorreu um erro ao salvar o cenário.');
+    this.cenarioAtual.nome = nomeCenario;
+
+    this.cenarioAtual.slug = this.gerarSlug(nomeCenario);
+
+    if (this.imagemFundoAtual) {
+      if (!this.cenarioAtual.id) {
+        this.cenarioAtual.id = `cenario_${Date.now()}`;
+      }
+
+      this.cenarioAtual.imagemFundoId = this.cenarioAtual.id;
+
+      try {
+        console.log(`Salvando imagem com ID: ${this.cenarioAtual.id}`);
+        await this.imagemStorageService.salvarImagem(
+          this.cenarioAtual.id,
+          this.imagemFundoAtual
+        );
+        this.imagemFundoAtual = null;
+      } catch (err) {
+        console.error('Falha ao salvar a imagem de fundo:', err);
+        alert(
+          'Ocorreu um erro grave ao salvar a imagem de fundo. O cenário será salvo sem ela.'
+        );
+        delete this.cenarioAtual.imagemFundoId;
+      }
+    }
+
+    if (this.isEditingMode) {
+      try {
+        this.layoutService.salvarCenario(this.cenarioAtual);
+        alert(`Cenário "${nomeCenario}" atualizado com sucesso!`);
+      } catch (error) {
+        console.error('Falha ao atualizar o cenário:', error);
+        alert('Ocorreu um erro ao atualizar o cenário.');
+      }
+    } else {
+      try {
+        // A APIdeve gerar o ID e nos retornar
+        const novoId = `cenario_${Date.now()}`;
+        this.cenarioAtual.id = novoId;
+
+        this.layoutService.salvarCenario(this.cenarioAtual);
+
+        alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
+
+        this.router.navigate(['/editor', this.cenarioAtual.slug]);
+      } catch (error) {
+        console.error('Falha grave ao salvar o cenário:', error);
+        alert('Ocorreu um erro ao salvar o cenário.');
+      }
+    }
   }
-}
 
   private dispararAutosave(): void {
     this.componentes.set(this.cenarioAtual.componentes);
