@@ -1,27 +1,36 @@
 # PainelAngular
+## _This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.2.12._
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.2.12.
+[![Angular](https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white)](https://angular.io/) [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/) [![Tested with Jest](https://img.shields.io/badge/tested%20with-Jest-C21325?style=for-the-badge&logo=jest&logoColor=white)](https://jestjs.io/) [![Cypress](https://img.shields.io/badge/Cypress-17202C?style=for-the-badge&logo=cypress&logoColor=white)](https://www.cypress.io/)
 
-## Development server
+## Tecnologias Utilizadas
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+- [Angular](https://angular.io/) - (v18.2.12)
+- [Node.js](https://nodejs.org/) (versão 18.x ou superior)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Cypress](https://www.cypress.io/)
+- [Karma](https://karma-runner.github.io/)
 
-## Code scaffolding
+## Roda a aplicação e Execute os Testes
+- **Angular:** ng serve
+- **Testes Unitários (Karma)**: ng test
+- **Testes End-to-End (Cypress)**: npx cypress open
+- **Modo(CI/CD)**: npx cypress run
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## Instalação
 
-## Build
+É necessário ter o  [Node.js](https://nodejs.org/) v18.x ou superior instalado.
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+```sh
+git clone [URL_DO_REPOSITORIO]
+cd painel-editor
+npm i
+ng serve
+```
 
-## Running unit tests
+Para ambientes de produção - Dev e Prod
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+```sh
+Dev: npm run build
+Prod: ng build --configuration production
+```
