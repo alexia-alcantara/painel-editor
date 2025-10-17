@@ -54,7 +54,7 @@ export class CenarioDialogComponent implements OnInit {
     }
   }
 
-  abrirDisplay(cenario: Cenario): void { // Renomeado de carregarCenario para abrirDisplay para clareza
+  abrirDisplay(cenario: Cenario): void { 
     const identificadorUrl = cenario.slug || cenario.id;
 
     if (identificadorUrl) {
@@ -71,8 +71,6 @@ export class CenarioDialogComponent implements OnInit {
   removerCenario(id: string, nome: string): void {
     if (confirm(`Tem certeza que deseja remover o cenário "${nome}"?`)) {
       this.layoutService.removerCenario(id);
-      // 6. A chamada para carregarListaDeCenarios() foi removida daqui,
-      // pois a atualização agora é automática via subscribe.
     }
   }
   exportarLayout(): void {
@@ -94,7 +92,7 @@ export class CenarioDialogComponent implements OnInit {
       reader.onload = (e) => {
         try {
           const jsonDoArquivo = JSON.parse(e.target?.result as string);
-          this.dialogRef.close({ action: 'import', data: jsonDoArquivo }); // Padronizado para 'data'
+          this.dialogRef.close({ action: 'import', data: jsonDoArquivo }); 
         } catch (error) {
           console.error('Erro ao parsear o JSON:', error);
           alert('Arquivo JSON inválido.');

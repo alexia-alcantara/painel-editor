@@ -1,7 +1,7 @@
 describe('Fluxo de Edição de Cenários', () => {
   beforeEach(() => {
     cy.visit('/editor');
-    // Limpa o storage antes de cada teste
+    // limpa o storage antes de cada teste
     cy.window().then((win) => {
       win.localStorage.clear();
     });
@@ -10,29 +10,28 @@ describe('Fluxo de Edição de Cenários', () => {
   it('deve permitir que um usuário salve um cenário através do prompt', () => {
     const nomeDoCenario = `Cenário Salvo em ${Date.now()}`;
 
-    // Aqui, dizemos damos a instrução ao Cypress para substituir a função 'prompt' do navegador.
-    // Em vez de abrir a caixa de diálogo, ela vai automaticamente retornar o texto que definimos.
+    // cypress substitui a função 'prompt' do navegador
+    // retorna o texto que foi definido
     cy.window().then((win) => {
       cy.stub(win, 'prompt').returns(nomeDoCenario);
     });
 
-    // Clicar no botão Salvar
-    // Usamos o atributo 'title' do seu botão para encontrá-lo de forma segura.
+    // clica no botão salvar
     cy.get('button[title="Salvar Cenário"]').click();
 
   
-    // Garante que a função prompt foi realmente chamada pelo seu código.
+    // Garante que a função prompt foi realmente chamada
     cy.window().its('prompt').should('be.called');
 
-    // Recarregamos a página para ver se o dado foi salvo corretamente no localStorage.
+    // recarrega a página para ver se o dado foi salvo corretamente no localStorage.
     cy.reload();
 
-    // 5. Verificamos diretamente no localStorage se o cenário foi salvo
+    // verifica diretamente no localStorage se o cenário foi salvo
     cy.window()
       .its('localStorage')
       .invoke('getItem', 'cenarios_editor_salvos')
-      .should('exist') // Garante que o item não é nulo
-      .should('include', nomeDoCenario); // Garante que o nome do nosso cenário está dentro do texto salvo
+      .should('exist') 
+      .should('include', nomeDoCenario); // Garante que o nome do cenário está dentro do texto salvo
   });
 
   it('deve carregar um cenário existente e navegar para a página do display', () => {
@@ -64,17 +63,18 @@ describe('Fluxo de Edição de Cenários', () => {
       );
     });
     cy.reload();
+    
+    //simula o que o usuário faria
     cy.get('.componente-box').first().rightclick();
 
-    //espera o menu aparecere clica em configurar tela
     cy.get('.context-menu')
       .should('be.visible')
       .contains('Configurar Tela')
       .click();
 
     cy.window().then((win) => {
-  // Substituímos a função 'open' real por um 'dublê' (stub)
-  // e damos um apelido de '@windowOpen' para poder checá-lo depois
+  // substitui a função 'open' real por um 'dublê' (stub)
+  // apelida de '@windowOpen' para poder checá-lo depois
     cy.stub(win, 'open').as('windowOpen');
   });
 
@@ -88,4 +88,5 @@ describe('Fluxo de Edição de Cenários', () => {
     cy.get('@windowOpen').should('be.calledWith', `/display/${slugDoCenario}`);
 
   });
+
 });
