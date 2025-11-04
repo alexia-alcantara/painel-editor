@@ -1,17 +1,32 @@
-# ASP.NET Core
-# Build and test ASP.NET Core projects targeting .NET Core.
-# Add steps that run tests, create a NuGet package, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+# Arquivo: azure-pipelines.yml
 
 trigger:
-- main
+- main  
 
 pool:
-  vmImage: ubuntu-latest
-
-variables:
-  buildConfiguration: 'Release'
+  vmImage: 'ubuntu-latest' # Linux é o padrão e mais rápido
 
 steps:
-- script: dotnet build --configuration $(buildConfiguration)
-  displayName: 'dotnet build $(buildConfiguration)'
+
+- task: NodeTool@0
+  inputs:
+    versionSpec: '20.x'
+  displayName: 'Install Node.js 20.x'
+
+- script: |
+    npm install
+  displayName: 'npm install'
+
+- script: |
+    npm run test -- --no-watch --no-progress --browsers=ChromeHeadless
+  displayName: 'Run Unit Tests (ng test)'
+
+- script: |
+    npm run build -- --configuration=production
+  displayName: 'Build Angular App (ng build)'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'dist/painel-angular' # <-- Mude isso!
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
