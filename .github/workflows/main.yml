@@ -24,7 +24,7 @@ jobs:
 
     # Etapa 3: Instalar as dependências (npm install)
     - name: Install dependencies
-      run: npm install --legacy-peer-deps
+      run: npm install --force
 
     # Etapa 4: Rodar os Testes Unitários (Karma/Jasmine)
     - name: Run Unit Tests (ng test)
