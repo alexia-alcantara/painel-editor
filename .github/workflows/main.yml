@@ -27,12 +27,11 @@ jobs:
       run: npm install --legacy-peer-deps
 
      # Etapa 3.5: Instalar manualmente a dependência do Rollup
-    - name: Force install Rollup optional dependency
-      run: npm install @rollup/rollup-linux-x64-gnu --legacy-peer-deps
-
-    # ETAPA 3.6: Instalar manualmente a dependência do LightningCSS
-    - name: Force install LightningCSS optional dependency
-      run: npm install lightningcss-linux-x64-gnu --legacy-peer-deps
+    - name: Force install optional platform dependencies
+      run: |
+        npm install @rollup/rollup-linux-x64-gnu --legacy-peer-deps
+        npm install lightningcss-linux-x64-gnu --legacy-peer-deps
+        npm install tailwindcss-oxide-linux-x64-gnu --legacy-peer-deps
 
     # Etapa 4: Rodar os Testes Unitários (Karma/Jasmine)
     - name: Run Unit Tests (ng test)
