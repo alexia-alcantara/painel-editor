@@ -27,7 +27,7 @@ jobs:
       run: npm install --legacy-peer-deps
 
     - name: Force install Rollup optional dependency
-      run: npm install @rollup/rollup-linux-x64-gnu
+      run: npm install @rollup/rollup-linux-x64-gnu --legacy-peer-deps
 
     # Etapa 4: Rodar os Testes Unitários (Karma/Jasmine)
     - name: Run Unit Tests (ng test)
