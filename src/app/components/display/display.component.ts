@@ -96,9 +96,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  // VERSÃO CORRIGIDA E DINÂMICA
   private iniciarAtualizacaoAutomatica(): void {
-    // 1. Tenta pegar o ID/IP do parâmetro da URL (ex: ...?ip=15)
+    // pega o ID/IP do parâmetro da URL (ex: ...?ip=15)
     const ipDaUrl = this.route.snapshot.queryParamMap.get('ip');
 
     // 2. Se não houver na URL, pega o ID/IP que está salvo no cenário
@@ -140,7 +139,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.cenarioParaExibir) return;
 
     const dadosApiValor = dados;
-    // console.log('OBJETO VOTACAO RECEBIDO:', dadosApiValor.votacao);
 
     if (dadosApiValor.paleta && dadosApiValor.paleta.cores) {
       this.paletaDeCores = dadosApiValor.paleta.cores.reduce(

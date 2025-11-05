@@ -23,7 +23,8 @@
     @if (item) {
 
     @if (item.tipo === 'mensagem' || item.tipo === 'descricao') {
-    <div class="componente-box absolute rounded cursor-grab" cdkDrag [style.display]="item.visible ? 'block' : 'none'"
+    <div class="componente-box absolute rounded cursor-grab" cdkDrag
+    [attr.data-testid]="'componente-' + item.tipo" [style.display]="item.visible ? 'block' : 'none'"
       (contextmenu)="onRightClick($event, item)" [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }"
       (cdkDragEnded)="onDragEnd($event, item)" cdkDragBoundary=".editor-wrapper">
 
@@ -34,7 +35,8 @@
     </div>
     } @else {
 
-    <div class="componente-box absolute rounded cursor-grab" cdkDrag [style.display]="item.visible ? 'block' : 'none'"
+    <div class="componente-box absolute rounded cursor-grab" cdkDrag
+    [attr.data-testid]="'componente-' + item.tipo" [style.display]="item.visible ? 'block' : 'none'"
       (contextmenu)="onRightClick($event, item)" [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }"
       (cdkDragEnded)="onDragEnd($event, item)" [style.width.px]="item.width" [style.height.px]="item.height"
       cdkDragBoundary=".editor-wrapper">

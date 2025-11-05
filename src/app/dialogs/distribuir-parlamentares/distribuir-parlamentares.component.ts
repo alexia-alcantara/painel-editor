@@ -43,7 +43,6 @@ export class DistribuirParlamentaresComponent {
     public dialogRef: MatDialogRef<DistribuirParlamentaresComponent>,
     @Inject(MAT_DIALOG_DATA) public data: DistribuirConfig
   ){
-    //definir valores para as novas propriedades
     if(this.data.posicaoX === undefined){
       this.data.posicaoX = 100;
     }

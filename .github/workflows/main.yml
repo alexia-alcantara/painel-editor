@@ -1,0 +1,43 @@
+name: Angular CI Build and Test
+
+on:
+  push:
+    branches: [ "main" ] 
+  pull_request:
+    branches: [ "main" ]  
+
+jobs:
+  build_and_test: 
+    runs-on: ubuntu-latest
+
+    steps:
+    # Etapa 1: Baixar o código do seu repositório
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Etapa 2: Instalar o Node.js
+    - name: Set up Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm' 
+
+    # Etapa 3: Instalar as dependências (npm install)
+    - name: Install dependencies
+      run: npm install --legacy-peer-deps
+
+
+    # Etapa 4: Rodar os Testes Unitários (Karma/Jasmine)
+    - name: Run Unit Tests (ng test)
+      run: npm run test -- --no-watch --no-progress --browsers=ChromeHeadless
+
+    # Etapa 5: Gerar o Build de Produção (ng build)
+    - name: Build Angular App (ng build)
+      run: npm run build -- --configuration=production
+
+    # Etapa 6 (Opcional): Salvar os arquivos do build
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: drop 
+        path: dist/painel-angular 
