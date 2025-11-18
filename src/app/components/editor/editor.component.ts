@@ -48,6 +48,9 @@ import { TribunaComponent } from '../tribuna/tribuna.component';
 import { ImagemStorageService } from '../../services/imagem-storage.service';
 import { ResultadoVotacaoComponent } from '../resultado-votacao/resultado-votacao.component';
 import { RelogioComponent } from '../relogio/relogio.component';
+import { OradorComponent } from '../orador/orador.component';
+import { MateriaComponent } from '../materia/materia.component';
+import { PartidoComponent } from '../partido/partido.component';
 
 @Component({
   selector: 'app-editor',
@@ -77,7 +80,9 @@ import { RelogioComponent } from '../relogio/relogio.component';
     ControleVisibilidadeComponent,
     StatusItemComponent,
     MensagemComponent,
-    TribunaComponent,
+    OradorComponent,
+    MateriaComponent,
+    PartidoComponent,
     ResultadoVotacaoComponent,
     RelogioComponent,
   ],
@@ -664,18 +669,46 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       dados: { texto: 'Mensagem em Tela' },
     };
 
-    const tribuna: ComponenteEditor = {
-      id: 'tribuna-principal',
-      tipo: 'tribuna',
-      x: 900,
-      y: 465,
+    const xTribuna = 900;
+    const yTribunaStart = 465;
+
+    const orador: ComponenteEditor = {
+      id: 'orador-principal',
+      tipo: 'orador',
+      x: xTribuna,
+      y: yTribunaStart, 
       width: 400,
-      height: 150,
+      height: 50, // Altura suficiente para o nome
       visible: true,
-      dados: {
-        orador: 'Nome do Orador',
-        partido: 'PARTIDO',
+      dados: { 
+        orador: 'Nome do Orador' 
+      },
+    };
+
+    const partido: ComponenteEditor = {
+      id: 'partido-principal',
+      tipo: 'partido',
+      x: xTribuna,
+      y: yTribunaStart + 55, // 50 do orador + 5 de margem
+      width: 400,
+      height: 30,
+      visible: true,
+      dados: { 
+        partido: 'PARTIDO' 
+      },
+    };
+
+    const materia: ComponenteEditor = {
+      id: 'materia-principal',
+      tipo: 'materia',
+      x: xTribuna,
+      y: yTribunaStart + 95, // Acumulando alturas
+      width: 400,
+      height: 80,
+      visible: true,
+      dados: { 
         materia: 'Tema em Discussão',
+        ementa: 'Descrição detalhada da matéria em pauta...'
       },
     };
 
@@ -710,7 +743,9 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       votacaoNao,
       votacaoAbstencao,
       mensagem,
-      tribuna,
+      orador,   
+      partido,  
+      materia,
       resultadoVotacao,
       ...temporizadores,
       ...parlamentares,

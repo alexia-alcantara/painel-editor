@@ -1,0 +1,9 @@
+<div class="flex flex-col items-center justify-center h-full w-full text-white">
+    <h3 class="font-semibold text-center" 
+        [style.fontSize.px]="props?.fontSize || 24">
+        {{ dados?.materia || 'Tema em Discussão' }}
+    </h3>
+    <p class="text-sm text-gray-200 text-center mt-1">
+        {{ dados?.ementa }}
+    </p>
+</div>

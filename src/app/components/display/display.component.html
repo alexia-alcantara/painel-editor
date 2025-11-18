@@ -56,8 +56,16 @@
     <app-voto-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
       [cor]="item.props?.cor ?? '#FFFFFF'"></app-voto-item>
     }
-    @case('tribuna') {
-    <app-tribuna [dados]="item.dados"></app-tribuna>
+    @case('orador') {
+    <app-orador [dados]="item.dados" [props]="item.props"></app-orador>
+    }
+
+    @case('partido') {
+    <app-partido [dados]="item.dados" [props]="item.props"></app-partido>
+    }
+
+    @case('materia') {
+    <app-materia [dados]="item.dados" [props]="item.props"></app-materia>
     }
     @case ('resultado-votacao') {
     <app-resultado-votacao [dados]="item.dados"></app-resultado-votacao>

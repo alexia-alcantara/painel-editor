@@ -18,7 +18,9 @@ export interface ComponenteEditor {
     | 'temporizador-item'
     | 'multimidia'
     | 'mensagem'
-    | 'tribuna'
+    | 'orador'
+    | 'partido'
+    | 'materia'
     | 'resultado-votacao'
     | 'relogio'
   dados?: any;

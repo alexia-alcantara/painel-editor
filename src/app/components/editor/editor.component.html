@@ -23,23 +23,22 @@
     @if (item) {
 
     @if (item.tipo === 'mensagem' || item.tipo === 'descricao') {
-    <div class="componente-box absolute rounded cursor-grab" cdkDrag
-    [attr.data-testid]="'componente-' + item.tipo" [style.display]="item.visible ? 'block' : 'none'"
-      (contextmenu)="onRightClick($event, item)" [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }"
-      (cdkDragEnded)="onDragEnd($event, item)" cdkDragBoundary=".editor-wrapper">
+    <div class="componente-box absolute rounded cursor-grab" cdkDrag [attr.data-testid]="'componente-' + item.tipo"
+      [style.display]="item.visible ? 'block' : 'none'" (contextmenu)="onRightClick($event, item)"
+      [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }" (cdkDragEnded)="onDragEnd($event, item)"
+      cdkDragBoundary=".editor-wrapper">
 
-       @switch(item.tipo) {
-           @case('mensagem') { <app-mensagem [dados]="item.dados"></app-mensagem> }
-           @case('descricao') { <app-descricao-reuniao [dados]="item.dados"></app-descricao-reuniao> }
-        }
+      @switch(item.tipo) {
+      @case('mensagem') { <app-mensagem [dados]="item.dados"></app-mensagem> }
+      @case('descricao') { <app-descricao-reuniao [dados]="item.dados"></app-descricao-reuniao> }
+      }
     </div>
     } @else {
 
-    <div class="componente-box absolute rounded cursor-grab" cdkDrag
-    [attr.data-testid]="'componente-' + item.tipo" [style.display]="item.visible ? 'block' : 'none'"
-      (contextmenu)="onRightClick($event, item)" [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }"
-      (cdkDragEnded)="onDragEnd($event, item)" [style.width.px]="item.width" [style.height.px]="item.height"
-      cdkDragBoundary=".editor-wrapper">
+    <div class="componente-box absolute rounded cursor-grab" cdkDrag [attr.data-testid]="'componente-' + item.tipo"
+      [style.display]="item.visible ? 'block' : 'none'" (contextmenu)="onRightClick($event, item)"
+      [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }" (cdkDragEnded)="onDragEnd($event, item)"
+      [style.width.px]="item.width" [style.height.px]="item.height" cdkDragBoundary=".editor-wrapper">
 
       @switch(item.tipo) {
       @case('parlamentar') { <app-parlamentar-item [parlamentar]="item.dados"></app-parlamentar-item> }
@@ -55,7 +54,10 @@
         [cor]="item.props?.cor ?? '#FFFFFF'" [height]="item.height"></app-voto-item> }
       @case('status-item') { <app-status-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
         [height]="item.height"></app-status-item> }
-      @case ('tribuna') { <app-tribuna [dados]="item.dados"></app-tribuna> }
+      @case('orador') { <app-orador [dados]="item.dados" [props]="item.props"></app-orador> }
+      @case('partido') { <app-partido [dados]="item.dados" [props]="item.props"></app-partido> }
+      @case('materia') { <app-materia [dados]="item.dados" [props]="item.props"></app-materia> }
+      <!-- @case ('tribuna') { <app-tribuna [dados]="item.dados"></app-tribuna> } -->
       @case ('resultado-votacao') { <app-resultado-votacao [dados]="item.dados"></app-resultado-votacao> }
       }
     </div>
