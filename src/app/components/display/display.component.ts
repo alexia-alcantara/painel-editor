@@ -33,6 +33,9 @@ import { TribunaComponent } from '../tribuna/tribuna.component';
 import { ImagemStorageService } from '../../services/imagem-storage.service';
 import { ResultadoVotacaoComponent } from '../resultado-votacao/resultado-votacao.component';
 import { RelogioComponent } from '../relogio/relogio.component';
+import { OradorComponent } from "../orador/orador.component";
+import { PartidoComponent } from "../partido/partido.component";
+import { MateriaComponent } from "../materia/materia.component";
 
 @Component({
   selector: 'app-display',
@@ -54,7 +57,10 @@ import { RelogioComponent } from '../relogio/relogio.component';
     TribunaComponent,
     ResultadoVotacaoComponent,
     RelogioComponent,
-  ],
+    OradorComponent,
+    PartidoComponent,
+    MateriaComponent
+],
   templateUrl: './display.component.html',
   styleUrl: './display.component.css',
 })
@@ -250,16 +256,23 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           }
           break;
 
-        case 'tribuna':
-          componente.visible =
-            visibilidadeOriginal[componente.id] && !!dadosApiValor.tribuna;
-          if (componente.visible) {
-            componente.dados = {
-              orador: dadosApiValor.tribuna.nome,
-              partido: dadosApiValor.tribuna.partido,
-              materia: ' ',
-            };
-          }
+        case 'orador':
+          componente.dados = {
+            orador: dadosApiValor.tribuna?.orador || 'Nome do Orador',
+          };
+          break;
+
+        case 'partido':
+          componente.dados = {
+            partido: dadosApiValor.tribuna?.partido || 'PARTIDO',
+          };
+          break;
+
+        case 'materia':
+          componente.dados = {
+            materia: dadosApiValor.tribuna?.materia || 'Tema em Discussão',
+            ementa: dadosApiValor.votacao?.ementa || '', 
+          };
           break;
 
         case 'resultado-votacao':
