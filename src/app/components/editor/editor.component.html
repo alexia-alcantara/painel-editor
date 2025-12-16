@@ -8,8 +8,8 @@
   <input type="number" [(ngModel)]="cenarioAtual.targetHeight" class="bg-gray-700 p-1 rounded w-20">
 
   <label>ID/IP do Painel:</label>
-  <input type="text" [(ngModel)]="cenarioAtual.idPainel" class="bg-gray-700 p-1 rounded w-20">
-
+  <input type="text" [(ngModel)]="cenarioAtual.idPainel" (change)="onIpChanged()" placeholder="Ex: 15"
+    class="bg-gray-700 p-1 rounded w-20">
   <label>Imagem de Fundo:</label>
   <input type="file" (change)="onFileSelected($event)" class="text-sm">
 </div>
@@ -22,25 +22,16 @@
     @for (item of cenarioAtual.componentes; track item.id) {
     @if (item) {
 
-    @if (item.tipo === 'mensagem' || item.tipo === 'descricao') {
     <div class="componente-box absolute rounded cursor-grab" cdkDrag [attr.data-testid]="'componente-' + item.tipo"
-      [style.display]="item.visible ? 'block' : 'none'" (contextmenu)="onRightClick($event, item)"
-      [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }" (cdkDragEnded)="onDragEnd($event, item)"
-      cdkDragBoundary=".editor-wrapper">
+      (contextmenu)="onRightClick($event, item)" [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }"
+      (cdkDragEnded)="onDragEnd($event, item)" cdkDragBoundary=".editor-wrapper"
+      [style.display]="item.visible ? 'block' : 'none'"
+      [style.width.px]="(item.tipo !== 'mensagem' && item.tipo !== 'descricao') ? item.width : null"
+      [style.height.px]="(item.tipo !== 'mensagem' && item.tipo !== 'descricao') ? item.height : null">
 
       @switch(item.tipo) {
       @case('mensagem') { <app-mensagem [dados]="item.dados"></app-mensagem> }
       @case('descricao') { <app-descricao-reuniao [dados]="item.dados"></app-descricao-reuniao> }
-      }
-    </div>
-    } @else {
-
-    <div class="componente-box absolute rounded cursor-grab" cdkDrag [attr.data-testid]="'componente-' + item.tipo"
-      [style.display]="item.visible ? 'block' : 'none'" (contextmenu)="onRightClick($event, item)"
-      [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }" (cdkDragEnded)="onDragEnd($event, item)"
-      [style.width.px]="item.width" [style.height.px]="item.height" cdkDragBoundary=".editor-wrapper">
-
-      @switch(item.tipo) {
       @case('parlamentar') { <app-parlamentar-item [parlamentar]="item.dados"></app-parlamentar-item> }
       @case('totalizadores') { <app-votacao-total [dados]="item.dados"></app-votacao-total> }
       @case('imagem') { <app-imagem-reuniao></app-imagem-reuniao> }
@@ -50,18 +41,21 @@
       @case('status-reuniao') { <app-status-reuniao></app-status-reuniao> }
       @case('temporizador-item') { <app-temporizador-item [dados]="item.dados"></app-temporizador-item> }
       @case('relogio') { <app-relogio></app-relogio> }
-      @case('votacao-item') { <app-voto-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
-        [cor]="item.props?.cor ?? '#FFFFFF'" [height]="item.height"></app-voto-item> }
-      @case('status-item') { <app-status-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
-        [height]="item.height"></app-status-item> }
+      @case('votacao-item') {
+      <app-voto-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
+        [cor]="item.props?.cor ?? '#FFFFFF'" [height]="item.height">
+      </app-voto-item>
+      }
+      @case('status-item') {
+      <app-status-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0" [height]="item.height">
+      </app-status-item>
+      }
       @case('orador') { <app-orador [dados]="item.dados" [props]="item.props"></app-orador> }
       @case('partido') { <app-partido [dados]="item.dados" [props]="item.props"></app-partido> }
       @case('materia') { <app-materia [dados]="item.dados" [props]="item.props"></app-materia> }
-      <!-- @case ('tribuna') { <app-tribuna [dados]="item.dados"></app-tribuna> } -->
       @case ('resultado-votacao') { <app-resultado-votacao [dados]="item.dados"></app-resultado-votacao> }
       }
     </div>
-    }
     }
     }
 

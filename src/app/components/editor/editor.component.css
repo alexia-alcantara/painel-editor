@@ -9,7 +9,7 @@
 
 .editor-wrapper {
 position: relative;
-  width: 1660px;
+  width: 1700px;
   height: 100vh;
   flex-shrink: 0;
   /* A transformação de escala partirá do canto superior esquerdo */

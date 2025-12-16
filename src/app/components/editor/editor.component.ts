@@ -44,7 +44,6 @@ import { FonteService } from '../../services/fonte.service';
 import { StatusItemComponent } from '../status-reuniao/status-item/status-item.component';
 import { SubtituloReuniaoComponent } from '../subtitulo-reuniao/subtitulo-reuniao.component';
 import { MensagemComponent } from '../mensagem/mensagem.component';
-import { TribunaComponent } from '../tribuna/tribuna.component';
 import { ImagemStorageService } from '../../services/imagem-storage.service';
 import { ResultadoVotacaoComponent } from '../resultado-votacao/resultado-votacao.component';
 import { RelogioComponent } from '../relogio/relogio.component';
@@ -52,6 +51,7 @@ import { OradorComponent } from '../orador/orador.component';
 import { MateriaComponent } from '../materia/materia.component';
 import { PartidoComponent } from '../partido/partido.component';
 
+import { PainelService } from '../../services/painel.service';
 @Component({
   selector: 'app-editor',
   standalone: true,
@@ -125,13 +125,17 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   private imagemFundoAtual: File | null = null;
    scale = 1;
 
+  private atualizacaoSubscription: Subscription | undefined;
+
+  private ultimoEstadoJson: string = '';
   constructor(
     private layoutService: LayoutService,
     private route: ActivatedRoute,
     private layoutExport: LayoutExportService,
     private fonteService: FonteService,
     private renderer: Renderer2,
-    private imagemStorageService: ImagemStorageService
+    private imagemStorageService: ImagemStorageService,
+    private painelService: PainelService
   ) {}
 
   // @HostListener('window:resize')
@@ -196,6 +200,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         this.cenarioAtual = this.montarLayoutInicial();
       }
 
+      this.iniciarAtualizacaoAutomatica();
       this.onItemChange();
       this.dispararAutosave();
     });
@@ -206,6 +211,138 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     this.updateScale();
   }
 
+  onIpChanged(): void {
+    this.iniciarAtualizacaoAutomatica();
+  }
+
+  iniciarAtualizacaoAutomatica(): void {
+    const frequenciaMs = 2000; // Mantemos 2s para ser rápido, mas processamos menos
+
+    const ipDaUrl = this.route.snapshot.queryParamMap.get('ip');
+    const ipDoCenario = this.cenarioAtual?.idPainel;
+    const ipParaConectar = ipDaUrl || ipDoCenario;
+
+    if (!ipParaConectar) return;
+
+    if (this.atualizacaoSubscription) {
+      this.atualizacaoSubscription.unsubscribe();
+    }
+
+    console.log(`Conectando ao painel: ${ipParaConectar}...`);
+
+    this.atualizacaoSubscription = this.painelService
+      .getDadosPainelEmTempoReal(ipParaConectar, frequenciaMs)
+      .subscribe({
+        next: (dadosDaApi) => {
+          if (!dadosDaApi) return;
+
+          // Normaliza o dado (pega o 'valor' ou o objeto inteiro)
+          const dadosReais = dadosDaApi['valor'] ? dadosDaApi['valor'] : dadosDaApi;
+
+          // Transformamos o objeto em texto para comparar
+          const estadoAtualJson = JSON.stringify(dadosReais);
+
+          // Se o texto for IGUAL ao último que recebemos, NÃO FAZ NADA.
+          if (this.ultimoEstadoJson === estadoAtualJson) {
+             return; 
+          }
+
+          this.ultimoEstadoJson = estadoAtualJson; // Atualiza o último estado
+          
+          // Agora sim, logamos e atualizamos a tela
+          console.log('dados mudaram! Atualizando tela...', dadosReais);
+          this.atualizarDadosNaTela(dadosReais);
+        },
+        error: (err) => console.error('Erro na conexão:', err) 
+      });
+  }
+
+
+
+  private atualizarDadosNaTela(dadosApi: any) {
+    if (!dadosApi) return;
+
+    // 1. Título e Subtítulo
+    const componenteTitulo = this.cenarioAtual.componentes.find(c => c.tipo === 'titulo');
+    if (componenteTitulo) {
+      componenteTitulo.dados.texto = dadosApi.nomeReuniao || dadosApi.nomeCliente || 'Sem Título';
+    }
+
+    const componenteSubtitulo = this.cenarioAtual.componentes.find(c => c.tipo === 'subtitulo');
+    if (componenteSubtitulo) {
+      componenteSubtitulo.dados.texto = dadosApi.categoriaReuniao || '';
+    }
+
+    // 2. Status da Reunião
+    const componenteDescricao = this.cenarioAtual.componentes.find(c => c.tipo === 'descricao');
+    if (componenteDescricao && dadosApi.statusReuniao) {
+       componenteDescricao.dados.texto = dadosApi.statusReuniao;
+    }
+
+    // 3. Orador
+   // Atualização da lógica do Orador
+const componenteOrador = this.cenarioAtual.componentes.find(c => c.tipo === 'orador');
+
+if (componenteOrador) {
+   if (dadosApi.tribuna) {
+      // Se tem orador, preenche e MOSTRA
+      componenteOrador.visible = true; 
+      componenteOrador.dados.orador = dadosApi.tribuna.nomeParlamentar || dadosApi.tribuna.nome;
+      componenteOrador.dados.partido = dadosApi.tribuna.partido;
+
+      // Se tiver o componente de tema/matéria, atualiza também
+      const componenteMateria = this.cenarioAtual.componentes.find(c => c.tipo === 'materia');
+      if (componenteMateria) {
+         componenteMateria.visible = true;
+      }
+
+   } else {
+      componenteOrador.visible = false;
+
+      const componenteMateria = this.cenarioAtual.componentes.find(c => c.tipo === 'materia');
+      if (componenteMateria) componenteMateria.visible = false;
+
+      const componentePartido = this.cenarioAtual.componentes.find(c => c.tipo === 'partido');
+      if (componentePartido) componentePartido.visible = false;
+   }
+}
+
+    // 4. Parlamentares (Correção: Acessar presencas[0].membros)
+    if (dadosApi.parlamentares && 
+        Array.isArray(dadosApi.parlamentares.presencas) && 
+        dadosApi.parlamentares.presencas.length > 0) {
+      
+      // Entramos no primeiro item de 'presencas' e pegamos a lista de 'membros'
+      const listaMembros = dadosApi.parlamentares.presencas[0].membros;
+
+      if (Array.isArray(listaMembros)) {
+        const componentesParlamentar = this.cenarioAtual.componentes.filter(c => c.tipo === 'parlamentar');
+        
+        componentesParlamentar.forEach((comp, index) => {
+          // Pega o membro correspondente na lista da API
+          const membroApi = listaMembros[index];
+          
+          const dadosReais = membroApi ? membroApi.titular : null;
+          
+          if (dadosReais) {
+            comp.visible = true;
+            comp.dados.nome = dadosReais.nome; 
+            comp.dados.partido = dadosReais.partido;
+            comp.dados.voto = dadosReais.voto;
+            
+            
+
+          } else {
+            comp.visible = false; 
+          }
+        });
+      }
+    }
+
+    // Atualiza a tela
+    this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
+    this.componentes.set(this.cenarioAtual.componentes);
+  }
   
   updateScale() {
     const baseWidth = 1660;
@@ -661,8 +798,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     const mensagem: ComponenteEditor = {
       id: 'mensagem-principal',
       tipo: 'mensagem',
-      x: 1200,
-      y: 450,
+      x: 1300,
+      y: 640,
       width: 300,
       height: 100,
       visible: true,
@@ -715,8 +852,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     const resultadoVotacao: ComponenteEditor = {
       id: 'resultado-votacao',
       tipo: 'resultado-votacao',
-      x: 795,
-      y: 600,
+      x: 650,
+      y: 650,
       width: 300,
       height: 100,
       visible: true,
@@ -760,7 +897,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       targetHeight: alturaTela,
       backgroundImage: '',
       componentes: componentesIniciais,
-      idPainel: '15',
+      idPainel: '',
       slug: this.gerarSlug(nomePadrao),
     };
 
