@@ -661,8 +661,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     const mensagem: ComponenteEditor = {
       id: 'mensagem-principal',
       tipo: 'mensagem',
-      x: 1200,
-      y: 450,
+      x: 1300,
+      y: 640,
       width: 300,
       height: 100,
       visible: true,
@@ -715,8 +715,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     const resultadoVotacao: ComponenteEditor = {
       id: 'resultado-votacao',
       tipo: 'resultado-votacao',
-      x: 795,
-      y: 600,
+      x: 650,
+      y: 650,
       width: 300,
       height: 100,
       visible: true,
