@@ -35,6 +35,7 @@
       @case('parlamentar') { <app-parlamentar-item [parlamentar]="item.dados"></app-parlamentar-item> }
       @case('totalizadores') { <app-votacao-total [dados]="item.dados"></app-votacao-total> }
       @case('imagem') { <app-imagem-reuniao></app-imagem-reuniao> }
+      @case('multimidia') { <app-multimidia [dados]="item.dados"></app-multimidia> }
       @case('cabecalho') { <app-header-reuniao></app-header-reuniao> }
       @case('titulo') { <app-titulo-reuniao [dados]="item.dados"></app-titulo-reuniao> }
       @case('subtitulo') { <app-subtitulo-reuniao [dados]="item.dados"></app-subtitulo-reuniao> }

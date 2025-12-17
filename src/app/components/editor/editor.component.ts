@@ -50,6 +50,7 @@ import { RelogioComponent } from '../relogio/relogio.component';
 import { OradorComponent } from '../orador/orador.component';
 import { MateriaComponent } from '../materia/materia.component';
 import { PartidoComponent } from '../partido/partido.component';
+import { MultimidiaComponent } from '../multimidia/multimidia.component';
 
 import { PainelService } from '../../services/painel.service';
 @Component({
@@ -85,6 +86,7 @@ import { PainelService } from '../../services/painel.service';
     PartidoComponent,
     ResultadoVotacaoComponent,
     RelogioComponent,
+    MultimidiaComponent
   ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
@@ -499,16 +501,27 @@ if (componenteOrador) {
       weight: 'normal',
     };
 
-    // Imagem da reunião
-    const imagem: ComponenteEditor = {
-      id: 'imagem-reuniao',
-      tipo: 'imagem',
-      x: xImagem,
-      y: yImagem,
+    const multimidia: ComponenteEditor = {
+      id: 'multimidia-principal',
+      tipo: 'multimidia',
+      x: xImagem,  // Posição X inicial
+      y: yImagem, // Posição Y inicial
       width: larguraImagem,
-      height: alturaImagem,
+      height: alturaImagem, 
       visible: true,
+      dados: { label: 'Câmera Ao Vivo' }
     };
+
+    // Imagem da reunião
+    // const imagem: ComponenteEditor = {
+    //   id: 'imagem-reuniao',
+    //   tipo: 'imagem',
+    //   x: xImagem,
+    //   y: yImagem,
+    //   width: larguraImagem,
+    //   height: alturaImagem,
+    //   visible: true,
+    // };
 
     // Cabeçalho
     const cabecalho: ComponenteEditor = {
@@ -849,6 +862,7 @@ if (componenteOrador) {
       },
     };
 
+
     const resultadoVotacao: ComponenteEditor = {
       id: 'resultado-votacao',
       tipo: 'resultado-votacao',
@@ -863,7 +877,7 @@ if (componenteOrador) {
     const parlamentares = this.montarComponentesParlamentares(defaultConfig);
 
     const componentesIniciais = [
-      imagem,
+      multimidia,
       cabecalho,
       titulo,
       subtitulo,
