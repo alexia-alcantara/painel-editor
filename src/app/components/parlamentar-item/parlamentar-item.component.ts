@@ -27,7 +27,7 @@ export class ParlamentarItemComponent {
   constructor(private fonteService: FonteService) {}
 
   private get defaultFont(): FontConfig {
-  return { family: 'Inter, sans-serif', size: 14, color: '#FFFFFF' };
+  return { family: 'Inter, sans-serif', size: 18, color: '#FFFFFF' };
 }
 
 get fontNome(): FontConfig {

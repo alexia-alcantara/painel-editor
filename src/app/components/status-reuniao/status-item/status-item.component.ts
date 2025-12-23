@@ -13,4 +13,5 @@ export class StatusItemComponent {
   @Input() height: number = 30;
   @Input() label: string = '';
   @Input() valor: number = 0;
+  @Input() props: any;
 }

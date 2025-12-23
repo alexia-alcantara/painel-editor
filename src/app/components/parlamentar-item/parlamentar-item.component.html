@@ -3,46 +3,40 @@
 <div class="flex items-center w-full bg-slate-700 text-white text-sm rounded overflow-hidden mb-1 transition-opacity duration-300"
      [class.opacity-50]="parlamentar.status === 'AUSENTE'">
 
-  <div class="flex-1 px-4 py-2 border-r-4 border-[#18262D] truncate font-medium" [ngStyle]="{
-      'font-family': fontNome.family,
-      'font-size.px': fontNome.size,
-      'font-weight': fontNome.weight,
-      'font-style': fontNome.style,
-      'color': parlamentar.cor || fontNome.color
-    }">
+  <div class="flex-1 px-4 py-2 border-r-4 border-[#18262D] truncate font-medium" 
+       [ngStyle]="{
+        'font-family': fontNome.family,
+        'font-size.px': fontNome.size,
+        'font-weight': fontNome.weight,
+        'font-style': fontNome.style,
+        'color': parlamentar.cor || fontNome.color
+      }">
     {{ parlamentar.nome }}
   </div>
 
-  <div class="w-28 px-2 py-2 border-r-4 border-[#18262D] text-center text-slate-300" [ngStyle]="{
-      'font-family': fontPartido.family,
-      'font-size.px': fontPartido.size,
-      'font-weight': fontPartido.weight,
-      'font-style': fontPartido.style,
-      'color': fontPartido.color
-    }">
+  <div class="w-28 px-2 py-2 border-r-4 border-[#18262D] text-center text-slate-300" 
+       [ngStyle]="{
+        'font-family': fontPartido.family,
+        'font-size.px': fontPartido.size,
+        'font-weight': fontPartido.weight,
+        'font-style': fontPartido.style,
+        'color': fontPartido.color
+      }">
     {{ parlamentar.partido || 'PARTIDO' }}
   </div>
 
- 
-  <div class="w-28 px-2 py-2 text-center font-bold" [ngStyle]="{
-      'font-family': fontVoto.family,
-      'font-size.px': fontVoto.size,
-      'font-weight': fontVoto.weight,
-      'font-style': fontVoto.style
-    }">
+  <div class="w-28 px-2 py-2 text-center font-bold" 
+       [ngStyle]="{
+        'font-family': fontVoto.family,
+        'font-size.px': fontVoto.size,
+        'font-weight': fontVoto.weight,
+        'font-style': fontVoto.style
+      }">
     
-    @if (parlamentar.voto === 'S' || parlamentar.voto === 'N') {
-      <span [style.color]="parlamentar.voto === 'S' ? '#36C26C' : '#FF6633'">
-        {{ parlamentar.voto === 'S' ? 'Sim' : 'Não' }}
-      </span>
-    } 
-    @else {
-      @if(parlamentar.status === 'PRESENTE') {
-        <span [style.color]="corDoStatus">Presente</span>
-      } @else {
-        <span [style.color]="corDoStatus">Ausente</span>
-      }
-    }
+    <span [style.color]="parlamentar.cor">
+        {{ parlamentar.status }}
+    </span>
+
   </div>
 
 </div>

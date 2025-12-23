@@ -1,0 +1,37 @@
+{
+  "status": { "code": 0, "message": "Sucesso" },
+  "valor": {
+    "instancia": "vsezoom",
+    "nomeCliente": "CÂMARA MUNICIPAL DE TESTE",
+    "configuracaoExibicao": {
+      "exibir": {
+        "PRESENCAS_REUNIAO": true,
+        "VOTOS_PARLAMENTARES": false,
+        "MASCARAR_VOTOS": true,
+        "TOTAIS_PARCIAIS": false
+      }
+    },
+    "nomeReuniao": "2505ª Sessão Ordinária",
+    "statusReuniao": "ABERTA",
+    "parlamentares": {
+      "presencas": [
+        {
+          "presentes": 47,
+          "ausentes": 39,
+          "membros": [
+            { "titular": { "nome": "ALE PORTELA", "partido": "PL", "status": "PRESENTE", "cor": "#00FF00" } },
+            { "titular": { "nome": "ANDREIA DE JESUS", "partido": "PT", "status": "PRESENTE", "cor": "#00FF00" } }
+          ]
+        }
+      ]
+    },
+    "tribuna": {
+      "orador": "JOÃO VITOR XAVIER",
+      "partido": "CIDAD",
+      "materia": "Grande Expediente"
+    },
+    "cronometro": [
+       { "cronometro": 1, "tempo": "00:15:00", "valor": 900 }
+    ]
+  }
+}

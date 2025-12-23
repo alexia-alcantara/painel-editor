@@ -86,7 +86,7 @@ import { PainelService } from '../../services/painel.service';
     PartidoComponent,
     ResultadoVotacaoComponent,
     RelogioComponent,
-    MultimidiaComponent
+    MultimidiaComponent,
   ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
@@ -95,6 +95,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('editorWrapper', { static: true }) editorWrapperRef!: ElementRef;
   @ViewChild(ContextMenuComponent)
   contextMenu!: ContextMenuComponent;
+  private ultimoEstadoJson: string = '';
 
   modoEditor = false;
   router = inject(Router);
@@ -112,7 +113,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     idPainel: '',
     slug: '',
     imagemFundoId: undefined,
-  }
+  };
 
   votacaoMock = {
     sim: 10,
@@ -125,11 +126,10 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   private routeSub: Subscription | undefined;
 
   private imagemFundoAtual: File | null = null;
-   scale = 1;
+  scale = 1;
 
   private atualizacaoSubscription: Subscription | undefined;
 
-  private ultimoEstadoJson: string = '';
   constructor(
     private layoutService: LayoutService,
     private route: ActivatedRoute,
@@ -139,13 +139,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     private imagemStorageService: ImagemStorageService,
     private painelService: PainelService
   ) {}
-
-  // @HostListener('window:resize')
-  // onResize(): void {
-  //   this.ajustarEscala();
-  // }
-
-
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -208,7 +201,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
-    @HostListener('window:resize')
+  @HostListener('window:resize')
   onResize() {
     this.updateScale();
   }
@@ -218,10 +211,18 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   iniciarAtualizacaoAutomatica(): void {
-    const frequenciaMs = 2000; // Mantemos 2s para ser rápido, mas processamos menos
+    const frequenciaMs = 2000;
 
     const ipDaUrl = this.route.snapshot.queryParamMap.get('ip');
-    const ipDoCenario = this.cenarioAtual?.idPainel;
+
+    // Tenta pegar o IP de variáveis comuns. Se sua variável tiver outro nome, ajuste aqui.
+    // O (this as any) permite acessar propriedades dinâmicas para evitar erro se o nome variar.
+    const cenario =
+      (this as any).cenario ||
+      (this as any).cenarioParaExibir ||
+      (this as any).cenarioAtual;
+    const ipDoCenario = cenario?.idPainel;
+
     const ipParaConectar = ipDaUrl || ipDoCenario;
 
     if (!ipParaConectar) return;
@@ -230,7 +231,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       this.atualizacaoSubscription.unsubscribe();
     }
 
-    console.log(`Conectando ao painel: ${ipParaConectar}...`);
+    console.log(`Conectando ao painel (Modo Editor): ${ipParaConectar}...`);
 
     this.atualizacaoSubscription = this.painelService
       .getDadosPainelEmTempoReal(ipParaConectar, frequenciaMs)
@@ -238,104 +239,116 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         next: (dadosDaApi) => {
           if (!dadosDaApi) return;
 
-          // Normaliza o dado (pega o 'valor' ou o objeto inteiro)
-          const dadosReais = dadosDaApi['valor'] ? dadosDaApi['valor'] : dadosDaApi;
+          // CORREÇÃO 1: 'as any' para evitar erro de propriedade 'valor' inexistente
+          const payload = dadosDaApi as any;
+          const dadosReais = payload.valor ? payload.valor : payload;
 
-          // Transformamos o objeto em texto para comparar
+          // Transforma em texto para comparar se mudou
           const estadoAtualJson = JSON.stringify(dadosReais);
 
-          // Se o texto for IGUAL ao último que recebemos, NÃO FAZ NADA.
+          // Se o dado é idêntico ao anterior, não faz nada (economiza processamento)
           if (this.ultimoEstadoJson === estadoAtualJson) {
-             return; 
+            return;
           }
 
-          this.ultimoEstadoJson = estadoAtualJson; // Atualiza o último estado
-          
-          // Agora sim, logamos e atualizamos a tela
-          console.log('dados mudaram! Atualizando tela...', dadosReais);
-          this.atualizarDadosNaTela(dadosReais);
+          this.ultimoEstadoJson = estadoAtualJson;
+
+          console.log('Dados mudaram! Recebido no Editor:', dadosReais);
         },
-        error: (err) => console.error('Erro na conexão:', err) 
+        error: (err) => console.error('Erro na conexão do Editor:', err),
       });
   }
-
-
 
   private atualizarDadosNaTela(dadosApi: any) {
     if (!dadosApi) return;
 
     // 1. Título e Subtítulo
-    const componenteTitulo = this.cenarioAtual.componentes.find(c => c.tipo === 'titulo');
+    const componenteTitulo = this.cenarioAtual.componentes.find(
+      (c) => c.tipo === 'titulo'
+    );
     if (componenteTitulo) {
-      componenteTitulo.dados.texto = dadosApi.nomeReuniao || dadosApi.nomeCliente || 'Sem Título';
+      componenteTitulo.dados.texto =
+        dadosApi.nomeReuniao || dadosApi.nomeCliente || 'Sem Título';
     }
 
-    const componenteSubtitulo = this.cenarioAtual.componentes.find(c => c.tipo === 'subtitulo');
+    const componenteSubtitulo = this.cenarioAtual.componentes.find(
+      (c) => c.tipo === 'subtitulo'
+    );
     if (componenteSubtitulo) {
       componenteSubtitulo.dados.texto = dadosApi.categoriaReuniao || '';
     }
 
     // 2. Status da Reunião
-    const componenteDescricao = this.cenarioAtual.componentes.find(c => c.tipo === 'descricao');
+    const componenteDescricao = this.cenarioAtual.componentes.find(
+      (c) => c.tipo === 'descricao'
+    );
     if (componenteDescricao && dadosApi.statusReuniao) {
-       componenteDescricao.dados.texto = dadosApi.statusReuniao;
+      componenteDescricao.dados.texto = dadosApi.statusReuniao;
     }
 
     // 3. Orador
-   // Atualização da lógica do Orador
-const componenteOrador = this.cenarioAtual.componentes.find(c => c.tipo === 'orador');
+    // Atualização da lógica do Orador
+    const componenteOrador = this.cenarioAtual.componentes.find(
+      (c) => c.tipo === 'orador'
+    );
 
-if (componenteOrador) {
-   if (dadosApi.tribuna) {
-      // Se tem orador, preenche e MOSTRA
-      componenteOrador.visible = true; 
-      componenteOrador.dados.orador = dadosApi.tribuna.nomeParlamentar || dadosApi.tribuna.nome;
-      componenteOrador.dados.partido = dadosApi.tribuna.partido;
+    if (componenteOrador) {
+      if (dadosApi.tribuna) {
+        // Se tem orador, preenche e MOSTRA
+        componenteOrador.visible = true;
+        componenteOrador.dados.orador =
+          dadosApi.tribuna.nomeParlamentar || dadosApi.tribuna.nome;
+        componenteOrador.dados.partido = dadosApi.tribuna.partido;
 
-      // Se tiver o componente de tema/matéria, atualiza também
-      const componenteMateria = this.cenarioAtual.componentes.find(c => c.tipo === 'materia');
-      if (componenteMateria) {
-         componenteMateria.visible = true;
+        // Se tiver o componente de tema/matéria, atualiza também
+        const componenteMateria = this.cenarioAtual.componentes.find(
+          (c) => c.tipo === 'materia'
+        );
+        if (componenteMateria) {
+          componenteMateria.visible = true;
+        }
+      } else {
+        componenteOrador.visible = false;
+
+        const componenteMateria = this.cenarioAtual.componentes.find(
+          (c) => c.tipo === 'materia'
+        );
+        if (componenteMateria) componenteMateria.visible = false;
+
+        const componentePartido = this.cenarioAtual.componentes.find(
+          (c) => c.tipo === 'partido'
+        );
+        if (componentePartido) componentePartido.visible = false;
       }
-
-   } else {
-      componenteOrador.visible = false;
-
-      const componenteMateria = this.cenarioAtual.componentes.find(c => c.tipo === 'materia');
-      if (componenteMateria) componenteMateria.visible = false;
-
-      const componentePartido = this.cenarioAtual.componentes.find(c => c.tipo === 'partido');
-      if (componentePartido) componentePartido.visible = false;
-   }
-}
+    }
 
     // 4. Parlamentares (Correção: Acessar presencas[0].membros)
-    if (dadosApi.parlamentares && 
-        Array.isArray(dadosApi.parlamentares.presencas) && 
-        dadosApi.parlamentares.presencas.length > 0) {
-      
+    if (
+      dadosApi.parlamentares &&
+      Array.isArray(dadosApi.parlamentares.presencas) &&
+      dadosApi.parlamentares.presencas.length > 0
+    ) {
       // Entramos no primeiro item de 'presencas' e pegamos a lista de 'membros'
       const listaMembros = dadosApi.parlamentares.presencas[0].membros;
 
       if (Array.isArray(listaMembros)) {
-        const componentesParlamentar = this.cenarioAtual.componentes.filter(c => c.tipo === 'parlamentar');
-        
+        const componentesParlamentar = this.cenarioAtual.componentes.filter(
+          (c) => c.tipo === 'parlamentar'
+        );
+
         componentesParlamentar.forEach((comp, index) => {
           // Pega o membro correspondente na lista da API
           const membroApi = listaMembros[index];
-          
+
           const dadosReais = membroApi ? membroApi.titular : null;
-          
+
           if (dadosReais) {
             comp.visible = true;
-            comp.dados.nome = dadosReais.nome; 
+            comp.dados.nome = dadosReais.nome;
             comp.dados.partido = dadosReais.partido;
             comp.dados.voto = dadosReais.voto;
-            
-            
-
           } else {
-            comp.visible = false; 
+            comp.visible = false;
           }
         });
       }
@@ -345,7 +358,7 @@ if (componenteOrador) {
     this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
     this.componentes.set(this.cenarioAtual.componentes);
   }
-  
+
   updateScale() {
     const baseWidth = 1660;
     const baseHeight = 1080;
@@ -467,456 +480,162 @@ if (componenteOrador) {
       .replace(/\-\-+/g, '-');
   }
 
-  private montarLayoutInicial(): Cenario {
+private montarLayoutInicial(): Cenario {
     const larguraTela = 1660;
     const alturaTela = 1080;
 
-    const larguraImagem = 650;
-    const alturaImagem = 365;
-    const xImagem = 850;
-    const yImagem = 70;
-
-    const espacamentoHorizontalBlocos = 85;
-    const espacamentoInternoComponentes = 20;
-    const espacamentoTemporizador = 42;
-
-    const xBase = 235;
-
-    const cabecalhoHeight = 50;
-    const tituloHeight = 25;
-    const subtituloHeight = 20;
-    const descricaoHeight = 90;
-    const totalizadoresHeight = 135;
-    const statusReuniaoHeight = 220;
-
-    const larguraVotacaoItem = 223;
-    const alturaVotacaoItem = 30;
-
-    let yAtualEsquerda = yImagem;
-
+    // --- CONFIGURAÇÃO DE ESTILO ---
     const defaultFont: FontConfig = {
-      family: 'Inter, sans-serif',
-      size: 14,
+      family: 'Arial, sans-serif',
+      size: 20,
       color: '#FFFFFF',
-      weight: 'normal',
+      weight: 'bold',
     };
 
-    const multimidia: ComponenteEditor = {
-      id: 'multimidia-principal',
-      tipo: 'multimidia',
-      x: xImagem,  // Posição X inicial
-      y: yImagem, // Posição Y inicial
-      width: larguraImagem,
-      height: alturaImagem, 
-      visible: true,
-      dados: { label: 'Câmera Ao Vivo' }
-    };
+    const corVerde = '#00FF00';
+    const corVermelha = '#FF0000';
+    const corAmarela = '#FFFF00';
+    const corCiano = '#00FFFF';
+    const corRoxa = '#AA00FF';
 
-    // Imagem da reunião
-    // const imagem: ComponenteEditor = {
-    //   id: 'imagem-reuniao',
-    //   tipo: 'imagem',
-    //   x: xImagem,
-    //   y: yImagem,
-    //   width: larguraImagem,
-    //   height: alturaImagem,
-    //   visible: true,
-    // };
+    // --- VARIÁVEIS DE POSICIONAMENTO GERAL ---
+    const xMargemEsquerda = 80;
+    const yBlocoCentral = 350; 
+    
+    // Variáveis Status
+    const xPlacar = xMargemEsquerda;
+    const xStatus = xPlacar + 320; 
+    const yStatusBase = yBlocoCentral; 
+    const wStatus = 250;
+    const hStatus = 45;
+    const fontSizeStatus = 22;
+
+    // --- VARIÁVEIS DA IMAGEM / ORADOR (Definidas aqui para serem usadas abaixo) ---
+    const xImagem = 800;         // Posição X da área de vídeo
+    const yImagem = 60;          // Posição Y da área de vídeo
+    const larguraImagem = 800;   // Largura do vídeo
+    const alturaImagem = 450;    // Altura do vídeo
+
+    // -----------------------------------------------------------------------
 
     // Cabeçalho
     const cabecalho: ComponenteEditor = {
-      id: 'cabecalho',
-      tipo: 'cabecalho',
-      x: xBase,
-      y: yAtualEsquerda,
-      width: xImagem - espacamentoHorizontalBlocos,
-      height: cabecalhoHeight,
-      visible: true,
+      id: 'cabecalho', tipo: 'cabecalho', x: xMargemEsquerda, y: 60, width: 600, height: 60, visible: true,
     };
-    yAtualEsquerda += cabecalho.height + espacamentoInternoComponentes;
 
-    // Título
+    // Títulos
+    const xTitulos = xMargemEsquerda + 50;
     const titulo: ComponenteEditor = {
-      id: 'titulo',
-      tipo: 'titulo',
-      x: xBase,
-      y: yAtualEsquerda,
-      width: 420,
-      height: tituloHeight,
-      visible: true,
-      dados: { texto: 'Título da Reunião' },
-      fontes: [
-        {
-          subId: 'titulo-texto',
-          label: 'Título da Reunião',
-          font: { ...defaultFont, size: 24, weight: 'bold' }, // Fonte padrão para o título
-        },
-      ],
+      id: 'titulo', tipo: 'titulo', x: xTitulos, y: 140, width: 500, height: 40, visible: true, dados: { texto: 'Título da Reunião' }, fontes: [{ subId: 'titulo-texto', label: 'Título', font: { ...defaultFont, size: 36 } }],
     };
-    yAtualEsquerda += titulo.height + espacamentoInternoComponentes;
-
-    // Subtítulo
     const subtitulo: ComponenteEditor = {
-      id: 'subtitulo',
-      tipo: 'subtitulo',
-      x: xBase,
-      y: yAtualEsquerda,
-      width: cabecalho.width,
-      height: subtituloHeight,
-      visible: true,
-      dados: { texto: 'Subtítulo da Reunião' },
-      fontes: [
-        {
-          subId: 'subtitulo-texto',
-          label: 'Subtítulo da Reunião',
-          font: { ...defaultFont, size: 18, weight: 'normal' },
-        },
-      ],
+      id: 'subtitulo', tipo: 'subtitulo', x: xTitulos, y: 190, width: 500, height: 30, visible: true, dados: { texto: 'Subtítulo da Reunião' }, fontes: [{ subId: 'subtitulo-texto', label: 'Subtítulo', font: { ...defaultFont, size: 24 } }],
     };
-    yAtualEsquerda += subtitulo.height + espacamentoInternoComponentes;
-
-    // Descrição
     const descricao: ComponenteEditor = {
-      id: 'descricao',
-      tipo: 'descricao',
-      x: cabecalho.x,
-      y: yAtualEsquerda,
-      width: 420,
-      height: descricaoHeight,
-      dados: { texto: 'Status da Reunião' },
-      fontes: [
-        {
-          subId: 'descricao-texto',
-          label: 'Descrição',
-          font: { ...defaultFont },
-        },
-      ],
-      visible: true,
-    };
-    yAtualEsquerda += descricao.height + espacamentoInternoComponentes;
-
-    // Totalizadores
-    const totalizadores: ComponenteEditor = {
-      id: 'totalizadores',
-      tipo: 'totalizadores',
-      x: xBase,
-      y: yAtualEsquerda,
-      width: 172,
-      height: totalizadoresHeight,
-      dados: this.votacaoMock,
-      visible: true,
-    };
-    const relogioSistema: ComponenteEditor = {
-      id: 'relogio-sistema',
-      tipo: 'relogio',
-      x: 573, // Posição X do antigo timer principal
-      y: 590, // Posição Y do antigo timer principal
-      width: 172,
-      height: 35,
-      visible: true,
+      id: 'descricao', tipo: 'descricao', x: xTitulos, y: 230, width: 500, height: 40, dados: { texto: 'Status da Reunião' }, fontes: [{ subId: 'desc-texto', label: 'Texto', font: { ...defaultFont, size: 16, weight: 'normal' } }], visible: true,
     };
 
-    const margemInternaX = 10; // margem lateral dentro da caixa
-    const margemInternaY = 10; // margem superior
-    const espacoVertical = 10;
+    // --- PLACAR ESQUERDA ---
+    const gapPlacar = 50;
+    const votacaoSim: ComponenteEditor = { id: 'voto-sim', tipo: 'votacao-item', x: xPlacar, y: yBlocoCentral, width: 280, height: 45, props: { label: 'SIM', cor: corVerde, valor: 0, fontSize: 32 }, visible: true };
+    const votacaoNao: ComponenteEditor = { id: 'voto-nao', tipo: 'votacao-item', x: xPlacar, y: yBlocoCentral + gapPlacar, width: 280, height: 45, props: { label: 'NÃO', cor: corVermelha, valor: 0, fontSize: 32 }, visible: true };
+    const votacaoAbstencao: ComponenteEditor = { id: 'voto-abstencao', tipo: 'votacao-item', x: xPlacar, y: yBlocoCentral + (gapPlacar * 2), width: 280, height: 45, props: { label: 'ABSTENÇÃO', cor: corAmarela, valor: 0, fontSize: 32 }, visible: true };
 
-    const totalAlturaItens = alturaVotacaoItem * 3 + espacoVertical * 2;
-    const margemSuperior = (totalizadores.height - totalAlturaItens) / 2;
+    // --- STATUS DIREITA ---
+    const statusPresentes: ComponenteEditor = { id: 'status-presentes', tipo: 'status-item', x: xStatus, y: yStatusBase, width: wStatus, height: hStatus, visible: true, props: { label: 'PRESENTES', valor: 0, cor: '#FFFFFF', fontSize: fontSizeStatus } };
+    const statusVotos: ComponenteEditor = { id: 'status-votos', tipo: 'status-item', x: xStatus, y: yStatusBase + 55, width: wStatus, height: hStatus, visible: true, props: { label: 'VOTOS', valor: 0, cor: '#FFFFFF', fontSize: fontSizeStatus } };
+    const statusAusentes: ComponenteEditor = { id: 'status-ausentes', tipo: 'status-item', x: xStatus, y: yStatusBase + 110, width: wStatus, height: hStatus, visible: true, props: { label: 'AUSENTES', valor: 0, cor: '#FFFFFF', fontSize: fontSizeStatus } };
+    
+    const statusQuorum: ComponenteEditor = { id: 'status-quorum', tipo: 'status-item', x: xStatus, y: yStatusBase + 160, width: wStatus, height: hStatus, visible: false, props: { label: 'QUORUM', valor: 0 } };
+    const statusLicenciados: ComponenteEditor = { id: 'status-licenciados', tipo: 'status-item', x: xStatus, y: yStatusBase + 200, width: wStatus, height: hStatus, visible: false, props: { label: 'LICENCIADOS', valor: 0 } };
+    const statusObstrucao: ComponenteEditor = { id: 'status-obstrucao', tipo: 'status-item', x: xStatus, y: yStatusBase + 240, width: wStatus, height: hStatus, visible: false, props: { label: 'OBSTRUÇÃO', valor: 0 } };
 
-    const baseX = totalizadores.x + margemInternaX;
-    const baseY = totalizadores.y + margemInternaY;
-
-    const votacaoSim: ComponenteEditor = {
-      id: 'voto-sim',
-      tipo: 'votacao-item',
-      x: baseX,
-      y: baseY,
-      width: larguraVotacaoItem,
-      height: alturaVotacaoItem,
-      props: { label: 'SIM', cor: '#22C55E', valor: 15 },
-      visible: true,
-    };
-
-    const votacaoNao: ComponenteEditor = {
-      id: 'voto-nao',
-      tipo: 'votacao-item',
-      x: baseX,
-      y: baseY + alturaVotacaoItem + espacoVertical,
-      width: larguraVotacaoItem,
-      height: alturaVotacaoItem,
-      props: { label: 'NÃO', cor: '#F97316', valor: 6 },
-      visible: true,
-    };
-
-    const votacaoAbstencao: ComponenteEditor = {
-      id: 'voto-abstencao',
-      tipo: 'votacao-item',
-      x: baseX,
-      y: baseY + (alturaVotacaoItem + espacoVertical) * 2,
-      width: larguraVotacaoItem,
-      height: alturaVotacaoItem,
-      props: { label: 'ABSTENÇÃO', cor: '#FFCC66', valor: 20 },
-      visible: true,
-    };
-
-    const larguraStatusReuniao = 250; // Largura do bloco de status
-    const xStatusReuniao = totalizadores.x + totalizadores.width + 150;
-
-    const statusReuniao: ComponenteEditor = {
-      id: 'status-reuniao',
-      tipo: 'status-reuniao',
-      x: xStatusReuniao,
-      y: yAtualEsquerda,
-      width: larguraStatusReuniao,
-      height: statusReuniaoHeight,
-      visible: true,
-    };
-
-    const baseXStatus = statusReuniao.x + 15;
-    const baseYStatus = statusReuniao.y + 15;
-    const larguraStatusItem = statusReuniao.width - 55;
-    const alturaStatusItem = 25;
-    const espacoVerticalStatus = 10;
-
-    //item Presentes
-    const statusPresentes: ComponenteEditor = {
-      id: 'status-presentes',
-      tipo: 'status-item',
-      x: baseXStatus,
-      y: baseYStatus,
-      width: larguraStatusItem,
-      height: alturaStatusItem,
-      props: { label: 'PRESENTES', valor: 26 },
-      visible: true,
-    };
-
-    const statusVotos: ComponenteEditor = {
-      id: 'status-votos',
-      tipo: 'status-item',
-      x: baseXStatus,
-      y: baseYStatus + alturaStatusItem + espacoVerticalStatus,
-      width: larguraStatusItem,
-      height: alturaStatusItem,
-      props: { label: 'VOTOS', valor: 21 },
-      visible: true,
-    };
-
-    const statusAusentes: ComponenteEditor = {
-      id: 'status-ausentes',
-      tipo: 'status-item',
-      x: baseXStatus,
-      y: baseYStatus + (alturaStatusItem + espacoVerticalStatus) * 2,
-      width: larguraStatusItem,
-      height: alturaStatusItem,
-      props: { label: 'AUSENTES', valor: 23 },
-      visible: true,
-    };
-
-    const statusQuorum: ComponenteEditor = {
-      id: 'status-quorum',
-      tipo: 'status-item',
-      x: baseXStatus,
-      y: baseYStatus + (alturaStatusItem + espacoVerticalStatus) * 3,
-      width: larguraStatusItem,
-      height: alturaStatusItem,
-      props: { label: 'QUORUM', valor: 13 },
-      visible: false,
-    };
-
-    const statusLicenciados: ComponenteEditor = {
-      id: 'status-licenciados',
-      tipo: 'status-item',
-      x: baseXStatus,
-      y: baseYStatus + (alturaStatusItem + espacoVerticalStatus) * 4,
-      width: larguraStatusItem,
-      height: alturaStatusItem,
-      props: { label: 'LICENCIADOS', valor: 0 },
-      visible: false,
-    };
-
-    const statusObstrucao: ComponenteEditor = {
-      id: 'status-obstrucao',
-      tipo: 'status-item',
-      x: baseXStatus,
-      y: baseYStatus + (alturaStatusItem + espacoVerticalStatus) * 5,
-      width: larguraStatusItem,
-      height: alturaStatusItem,
-      props: { label: 'OBSTRUÇÃO', valor: 0 },
-      visible: false,
-    };
-
-    // Temporizadores
-    const temporizadoresBase = [
-      {
-        id: 'temporizador-1',
-        width: 127,
-        height: 20,
-        tempo: '00:00',
-        icon: false,
-      },
-      {
-        id: 'temporizador-2',
-        width: 127,
-        height: 20,
-        tempo: '00:00',
-        icon: false,
-      },
+    // --- RODAPÉ / RELÓGIOS ---
+    const yRelogios = 650;
+    const relogioSistema: ComponenteEditor = { id: 'relogio-sistema', tipo: 'relogio', x: xMargemEsquerda + 350, y: yRelogios, width: 200, height: 60, visible: true };
+    const temporizadores: ComponenteEditor[] = [
+      { id: 'temporizador-1', tipo: 'temporizador-item', x: xMargemEsquerda, y: yRelogios, width: 200, height: 60, props: { tempo: '00:00:00' }, visible: true },
+      { id: 'temporizador-2', tipo: 'temporizador-item', x: xMargemEsquerda + 180, y: yRelogios, width: 200, height: 60, props: { tempo: '00:00:00' }, visible: true }
     ];
-
-    const yTemporizadores =
-      yAtualEsquerda +
-      Math.max(totalizadores.height, statusReuniao.height) +
-      30;
-
-    const temporizadores: ComponenteEditor[] = temporizadoresBase.map(
-      (item, index) => {
-        const x =
-          xBase +
-          temporizadoresBase
-            .slice(0, index)
-            .reduce(
-              (acc, prev) => acc + prev.width + espacamentoTemporizador,
-              0
-            );
-
-        return {
-          id: item.id,
-          tipo: 'temporizador-item',
-          x,
-          y: yTemporizadores,
-          width: item.width,
-          height: item.height,
-          props: { tempo: item.tempo, icon: item.icon },
-          visible: true,
-        };
-      }
-    );
-
-    const margemParlamentares = 200;
-    const yParlamentares = yImagem + alturaImagem + margemParlamentares;
-    const defaultConfig: DistribuirConfig = {
-      qtdePorColuna: 5,
-      qntTotal: 10,
-      espacamentoVertical: 50,
-      espacamentoHorizontal: 50,
-      margemSuperior: 0,
-      margemEsquerda: 0,
-      exibirDe: 0,
-      exibirAte: 0,
-      offsetInicial: 0,
-      posicaoX: 230,
-      posicaoY: 700,
+    const dataAtual: ComponenteEditor = { id: 'data-atual', tipo: 'titulo', x: xMargemEsquerda + 350, y: yRelogios - 40, width: 200, height: 40, visible: true, dados: { texto: 'DD/MM/AAAA' } };
+    
+    // --- MULTIMÍDIA E ORADORES (Agora as variáveis já existem!) ---
+    
+    const multimidia: ComponenteEditor = { 
+        id: 'multimidia-principal', 
+        tipo: 'multimidia', 
+        x: xImagem, 
+        y: yImagem, 
+        width: larguraImagem, 
+        height: alturaImagem, 
+        visible: true, 
+        dados: { label: '' } 
     };
 
-    const mensagem: ComponenteEditor = {
-      id: 'mensagem-principal',
-      tipo: 'mensagem',
-      x: 1300,
-      y: 640,
-      width: 300,
-      height: 100,
-      visible: true,
-      dados: { texto: 'Mensagem em Tela' },
+    const orador: ComponenteEditor = { 
+        id: 'orador-principal', 
+        tipo: 'orador', 
+        x: xImagem + 100, // Agora xImagem já está declarado!
+        y: yImagem + alturaImagem + 20, // Agora yImagem e alturaImagem existem!
+        width: 600, 
+        height: 60, 
+        visible: true, 
+        dados: { orador: 'Nome do Orador' } 
     };
 
-    const xTribuna = 900;
-    const yTribunaStart = 465;
-
-    const orador: ComponenteEditor = {
-      id: 'orador-principal',
-      tipo: 'orador',
-      x: xTribuna,
-      y: yTribunaStart, 
-      width: 400,
-      height: 50, // Altura suficiente para o nome
-      visible: true,
-      dados: { 
-        orador: 'Nome do Orador' 
-      },
+    const partido: ComponenteEditor = { 
+        id: 'partido-principal', 
+        tipo: 'partido', 
+        x: xImagem + 100, 
+        y: yImagem + alturaImagem + 70, 
+        width: 600, 
+        height: 40, 
+        visible: true, 
+        dados: { partido: 'PARTIDO' } 
     };
 
-    const partido: ComponenteEditor = {
-      id: 'partido-principal',
-      tipo: 'partido',
-      x: xTribuna,
-      y: yTribunaStart + 55, // 50 do orador + 5 de margem
-      width: 400,
-      height: 30,
-      visible: true,
-      dados: { 
-        partido: 'PARTIDO' 
-      },
+    const materia: ComponenteEditor = { 
+        id: 'materia-principal', 
+        tipo: 'materia', 
+        x: xImagem + 100, 
+        y: yImagem + alturaImagem + 110, 
+        width: 600, 
+        height: 100, 
+        visible: true, 
+        dados: { materia: 'Tema em Discussão...' } 
     };
 
-    const materia: ComponenteEditor = {
-      id: 'materia-principal',
-      tipo: 'materia',
-      x: xTribuna,
-      y: yTribunaStart + 95, // Acumulando alturas
-      width: 400,
-      height: 80,
-      visible: true,
-      dados: { 
-        materia: 'Tema em Discussão',
-        ementa: 'Descrição detalhada da matéria em pauta...'
-      },
-    };
+    const resultadoVotacao: ComponenteEditor = { id: 'resultado-votacao', tipo: 'resultado-votacao', x: xTitulos + 100, y: yRelogios + 80, width: 400, height: 50, visible: true, dados: { texto: 'Resultado da Votação' } };
+    const mensagem: ComponenteEditor = { id: 'mensagem-principal', tipo: 'mensagem', x: 1300, y: 800, width: 300, height: 50, visible: true, dados: { texto: 'Mensagem' } };
 
+    // Lista Parlamentares
+    const configParlamentares: DistribuirConfig = { qtdePorColuna: 8, qntTotal: 14, espacamentoVertical: 45, espacamentoHorizontal: 10, margemSuperior: 0, margemEsquerda: 0, exibirDe: 0, exibirAte: 0, offsetInicial: 0, posicaoX: 800, posicaoY: 750 };
+    const parlamentares = this.montarComponentesParlamentares(configParlamentares);
 
-    const resultadoVotacao: ComponenteEditor = {
-      id: 'resultado-votacao',
-      tipo: 'resultado-votacao',
-      x: 650,
-      y: 650,
-      width: 300,
-      height: 100,
-      visible: true,
-      dados: { texto: 'Resultado da Votação' },
-    };
-
-    const parlamentares = this.montarComponentesParlamentares(defaultConfig);
-
+    // LISTA FINAL
     const componentesIniciais = [
-      multimidia,
-      cabecalho,
-      titulo,
-      subtitulo,
-      descricao,
-      totalizadores,
-      statusReuniao,
-      statusPresentes,
-      statusVotos,
-      statusAusentes,
-      statusQuorum,
-      statusLicenciados,
-      statusObstrucao,
-      votacaoSim,
-      votacaoNao,
-      votacaoAbstencao,
-      mensagem,
-      orador,   
-      partido,  
-      materia,
-      resultadoVotacao,
-      ...temporizadores,
-      ...parlamentares,
-      relogioSistema
+      multimidia, cabecalho, titulo, subtitulo, descricao,
+      relogioSistema, ...temporizadores, dataAtual,
+      statusPresentes, statusVotos, statusAusentes, 
+      statusQuorum, statusLicenciados, statusObstrucao, 
+      votacaoSim, votacaoNao, votacaoAbstencao, resultadoVotacao,
+      orador, partido, materia, mensagem,
+      ...parlamentares
     ];
 
-    const nomePadrao = 'Novo Cenário';
-    const cenarioPadrao: Cenario = {
+    const nomePadrao = 'Cenário Padrão Visual';
+    return {
       id: `cenario_${Date.now()}`,
       nome: nomePadrao,
       targetWidth: larguraTela,
       targetHeight: alturaTela,
       backgroundImage: '',
       componentes: componentesIniciais,
-      idPainel: '',
+      idPainel: '15',
       slug: this.gerarSlug(nomePadrao),
     };
-
-    return cenarioPadrao;
   }
+
 
   private montarComponentesParlamentares(
     config: DistribuirConfig

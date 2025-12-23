@@ -36,7 +36,9 @@ export interface ComponenteEditor {
     label?: string;
     cor?: string;
     valor?: number;
+    fontSize?: number;
   };
+  style?: { [key: string]: string | number };
   fontes?: FonteSubItem[]; 
   children?: ComponenteEditor[];
 }

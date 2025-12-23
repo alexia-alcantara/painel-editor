@@ -1,4 +1,10 @@
-<div class="flex justify-between items-center status-item text-white w-full" [style.height.px]="height">
+<div 
+  class="flex justify-between items-center status-item w-full" 
+  [style.height.px]="height"
+  [style.color]="props?.cor || 'white'"> 
+
     <span class="font-semibold uppercase text-lg">{{ label }}</span>
+    
     <span class="font-semibold text-lg">{{ valor | number:'2.0' }}</span>
+    
 </div>

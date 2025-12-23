@@ -43,13 +43,21 @@
       @case('temporizador-item') { <app-temporizador-item [dados]="item.dados"></app-temporizador-item> }
       @case('relogio') { <app-relogio></app-relogio> }
       @case('votacao-item') {
-      <app-voto-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
-        [cor]="item.props?.cor ?? '#FFFFFF'" [height]="item.height">
-      </app-voto-item>
+      <app-voto-item 
+        [label]="item.props?.label ?? ''" 
+        [valor]="item.props?.valor ?? 0"
+        [cor]="item.props?.cor ?? '#FFFFFF'" 
+        [height]="item.height"
+        [style.fontSize.px]="item.props?.fontSize"> </app-voto-item>
       }
       @case('status-item') {
-      <app-status-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0" [height]="item.height">
-      </app-status-item>
+     <app-status-item 
+        [label]="item.props?.label ?? ''" 
+        [valor]="item.props?.valor ?? 0" 
+        [height]="item.height"
+        [props]="item.props"
+        [style.color]="item.props?.cor"
+        [style.fontSize.px]="item.props?.fontSize"> </app-status-item>
       }
       @case('orador') { <app-orador [dados]="item.dados" [props]="item.props"></app-orador> }
       @case('partido') { <app-partido [dados]="item.dados" [props]="item.props"></app-partido> }
