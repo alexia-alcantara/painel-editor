@@ -49,9 +49,12 @@
     @case('status-reuniao') {
     <app-status-reuniao></app-status-reuniao>
     }
-    @case('status-item') {
-    <app-status-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"></app-status-item>
-    }
+   @case('status-item') {
+  <app-status-item 
+      [label]="item.props?.label ?? ''" 
+      [valor]="item.props?.valor ?? 0"
+      [props]="item.props">  </app-status-item>
+}
     @case('votacao-item') {
     <app-voto-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
       [cor]="item.props?.cor ?? '#FFFFFF'"></app-voto-item>

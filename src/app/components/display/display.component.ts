@@ -33,9 +33,9 @@ import { TribunaComponent } from '../tribuna/tribuna.component';
 import { ImagemStorageService } from '../../services/imagem-storage.service';
 import { ResultadoVotacaoComponent } from '../resultado-votacao/resultado-votacao.component';
 import { RelogioComponent } from '../relogio/relogio.component';
-import { OradorComponent } from "../orador/orador.component";
-import { PartidoComponent } from "../partido/partido.component";
-import { MateriaComponent } from "../materia/materia.component";
+import { OradorComponent } from '../orador/orador.component';
+import { PartidoComponent } from '../partido/partido.component';
+import { MateriaComponent } from '../materia/materia.component';
 
 @Component({
   selector: 'app-display',
@@ -59,8 +59,8 @@ import { MateriaComponent } from "../materia/materia.component";
     RelogioComponent,
     OradorComponent,
     PartidoComponent,
-    MateriaComponent
-],
+    MateriaComponent,
+  ],
   templateUrl: './display.component.html',
   styleUrl: './display.component.css',
 })
@@ -84,8 +84,11 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     private cdRef: ChangeDetectorRef
   ) {}
 
-  // Em display.component.ts
-
+  // private mapaCenarios: { [key: string]: string } = {
+  //   '184': 'cmsm-votacao-fhd',
+  //   '185': 'cmsm-oradores-fhd',
+  //   '222': 'id-do-seu-cenario-novo',
+  // };
   ngOnInit(): void {
     const idCenario = this.route.snapshot.paramMap.get('id');
 
@@ -103,16 +106,17 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private iniciarAtualizacaoAutomatica(): void {
-    // pega o ID/IP do parâmetro da URL (ex: ...?ip=15)
+    // 1. Lógica de IP (Prioridade: URL > Salvo no Cenário)
     const ipDaUrl = this.route.snapshot.queryParamMap.get('ip');
+    const ipDoCenario = this.cenarioParaExibir?.idPainel; // Garanta que isso foi salvo no Editor!
 
-    // 2. Se não houver na URL, pega o ID/IP que está salvo no cenário
-    const ipDoCenario = this.cenarioParaExibir?.idPainel;
-
-    // 3. Decide qual usar: o da URL tem prioridade para testes rápidos.
     const ipDoPainel = ipDaUrl || ipDoCenario;
 
-    // 4. Se nenhum dos dois existir, para a execução e avisa no console.
+    // Log para você ter certeza de qual IP ele pegou
+    console.log(
+      `🔎 IP Detectado -> URL: ${ipDaUrl}, Salvo: ${ipDoCenario}. Usando: ${ipDoPainel}`
+    );
+
     if (!ipDoPainel) {
       console.error(
         'ERRO: Nenhum ID de Painel foi encontrado no cenário ou na URL!'
@@ -120,9 +124,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    const frequenciaMs = 2000;
+    const frequenciaMs = 1000; // 1 segundo para ficar mais fluido
 
-    // Cancela a inscrição anterior para evitar múltiplas chamadas
     if (this.atualizacaoSubscription) {
       this.atualizacaoSubscription.unsubscribe();
     }
@@ -135,29 +138,144 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     this.atualizacaoSubscription = this.painelService
       .getDadosPainelEmTempoReal(ipDoPainel, frequenciaMs)
       .subscribe((dadosDaApi) => {
-        if (dadosDaApi && dadosDaApi['valor']) {
-          this.atualizarCenarioComDadosReais(dadosDaApi['valor']);
+        if (dadosDaApi) {
+          // Normaliza os dados
+          const dados = dadosDaApi.valor || dadosDaApi;
+
+          // --- COMENTEI A LÓGICA DE TROCA DE CENÁRIO ---
+          // Isso impede que o painel force a saída do cenário que você quer testar.
+          /*
+          const idBackend = String(dados.idCenario);
+          if (idBackend && idBackend !== 'undefined' && this.cenarioParaExibir?.id !== idBackend) {
+             // Lógica de troca de cenário removida temporariamente
+             // para garantir que o display obedeça o cenário aberto na URL
+          }
+          */
+          // ---------------------------------------------
+
+          // Apenas atualiza os valores (votos, oradores, etc) no layout atual
+          this.atualizarCenarioComDadosReais(dadosDaApi);
         }
       });
   }
+  // private iniciarAtualizacaoAutomatica(): void {
+  //   // pega o ID/IP do parâmetro da URL (ex: ...?ip=15)
+  //   const ipDaUrl = this.route.snapshot.queryParamMap.get('ip');
+  //   const ipDoCenario = this.cenarioParaExibir?.idPainel;
+  //   const ipDoPainel = ipDaUrl || ipDoCenario;
+
+  //   // 4. Se nenhum dos dois existir, para a execução e avisa no console.
+  //   if (!ipDoPainel) {
+  //     console.error(
+  //       'ERRO: Nenhum ID de Painel foi encontrado no cenário ou na URL!'
+  //     );
+  //     return;
+  //   }
+
+  //   const frequenciaMs = 2000;
+
+  //   // Cancela a inscrição anterior para evitar múltiplas chamadas
+  //   if (this.atualizacaoSubscription) {
+  //     this.atualizacaoSubscription.unsubscribe();
+  //   }
+
+  //   console.log(
+  //     `%cIniciando busca de dados para o painel: ${ipDoPainel}`,
+  //     'color: yellow; font-weight: bold;'
+  //   );
+
+  //   this.atualizacaoSubscription = this.painelService
+  //     .getDadosPainelEmTempoReal(ipDoPainel, frequenciaMs)
+  //     .subscribe((dadosDaApi) => {
+  //       if (dadosDaApi) {
+  //         const dados = dadosDaApi.valor || dadosDaApi;
+
+  //         // 1. Pega o ID que o Backend mandou (ex: 184, 222)
+  //         // Converte para string para garantir compatibilidade
+  //         const idBackend = String(dados.idCenario);
+
+  //         // 2. Verifica se precisamos trocar de cenário
+  //         // Só troca se o ID que veio é válido E diferente do atual
+  //         if (idBackend && idBackend !== 'undefined' && this.cenarioParaExibir?.id !== idBackend) {
+
+  //            // 3. Tenta carregar um cenário salvo com esse MESMO ID (ex: procura o arquivo '184')
+  //            const novoCenario = this.layoutService.carregarCenario(idBackend);
+
+  //            if (novoCenario) {
+  //                console.log(`🔄 Cenário Dinâmico Encontrado! Carregando: ${idBackend}`);
+
+  //                this.cenarioParaExibir = novoCenario;
+
+  //                // Carrega imagem de fundo se houver
+  //                if (novoCenario.imagemFundoId) {
+  //                    this.carregarImagemDeFundo(novoCenario.imagemFundoId);
+  //                }
+  //                // Ajusta a escala
+  //                setTimeout(() => this.ajustarEscala(), 100);
+  //            } else {
+  //                // console.warn(`⚠️ O backend pediu o cenário ${idBackend}, mas ele não foi criado no Editor.`);
+  //            }
+  //         }
+
+  //         this.atualizarCenarioComDadosReais(dadosDaApi);
+  //       }
+  //     });
+  // }
 
   private atualizarCenarioComDadosReais(dados: any): void {
     if (!this.cenarioParaExibir) return;
 
-    const dadosApiValor = dados;
+    const dadosApiValor = dados.valor || dados;
+    console.log('Processando dados para o cenário...');
 
-    if (dadosApiValor.paleta && dadosApiValor.paleta.cores) {
-      this.paletaDeCores = dadosApiValor.paleta.cores.reduce(
-        (acc: any, cor: any) => {
-          acc[cor.nome] = cor.valor;
-          return acc;
-        },
-        {}
-      );
+    // --- 2. EXTRAÇÃO ROBUSTA DA LISTA DE PARLAMENTARES E TOTAIS ---
+    let parlamentaresApi: any[] = [];
+    let dadosPresencaResumo: any = {}; // Guarda quorum, presentes, ausentes
+
+    try {
+      const pData = dadosApiValor.parlamentares;
+      if (pData) {
+        // Navega nas camadas de 'presencas' (o XML gera presencas dentro de presencas)
+        let cursor = pData.presencas;
+
+        // Se for Array, pega o primeiro item. Se for Objeto, mantém.
+        if (Array.isArray(cursor)) cursor = cursor[0];
+
+        // Desce mais um nível se necessário
+        if (cursor && cursor.presencas) {
+          cursor = cursor.presencas;
+        }
+
+        // Salva o objeto que tem os totais (quorum, presentes, etc)
+        dadosPresencaResumo = cursor || {};
+
+        // Busca a lista de membros
+        if (cursor && cursor.membros) {
+          let listaCrua = cursor.membros;
+
+          // Às vezes o XML coloca um wrapper <membros><membros>...</membros></membros>
+          if (listaCrua.membros) {
+            listaCrua = listaCrua.membros;
+          }
+
+          // Garante que seja um Array, mesmo se tiver só 1 item
+          parlamentaresApi = Array.isArray(listaCrua) ? listaCrua : [listaCrua];
+        }
+      }
+    } catch (e) {
+      console.error('Erro ao extrair parlamentares:', e);
     }
 
+    console.log(`Parlamentares processados: ${parlamentaresApi.length}`);
+    // -------------------------------------------------------------
+
+    // Configuração de exibição
+    const mostrarPlacar =
+      dadosApiValor.configuracaoExibicao?.exibir?.TOTAIS_PARCIAIS !== 'false';
+
+    // Mapa de visibilidade original do editor
     const visibilidadeOriginal = this.cenarioParaExibir.componentes.reduce(
-      (map: { [key: string]: boolean }, comp) => {
+      (map: any, comp) => {
         map[comp.id] = comp.visible;
         return map;
       },
@@ -166,225 +284,297 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const cenarioAtualizado = structuredClone(this.cenarioParaExibir);
 
-    // --- Mapeamento de Parlamentares ---
-    let parlamentaresApi: any[] = [];
-    if (dadosApiValor.parlamentares?.presencas?.length > 0) {
-      const membros = dadosApiValor.parlamentares.presencas[0].membros;
-      if (membros) {
-        parlamentaresApi = Array.isArray(membros) ? membros : [membros];
-      }
-    }
-
+    // --- 3. ATUALIZA COMPONENTES DE PARLAMENTAR ---
     const parlamentaresLayout = cenarioAtualizado.componentes.filter(
       (c) => c.tipo === 'parlamentar'
     );
 
     parlamentaresApi.forEach((membro: any, index: number) => {
-      const parlamentarApi = membro.titular;
-      const parlamentarLayoutComp = parlamentaresLayout[index];
-      if (parlamentarLayoutComp && parlamentarApi) {
-        // Garante que o parlamentar só seja visível se o seu componente de layout estiver marcado como visível.
-        parlamentarLayoutComp.visible =
-          visibilidadeOriginal[parlamentarLayoutComp.id] ?? false;
-        if (parlamentarLayoutComp.visible) {
-          parlamentarLayoutComp.dados = {
-            nome: parlamentarApi.nome || 'Nome não informado',
-            partido: parlamentarApi.partido || '-',
-            voto: parlamentarApi.voto?.status || '-',
-            status: parlamentarApi.status,
-            cor: parlamentarApi.cor,
+      // O dado pode estar direto ou dentro de 'titular'
+      const dadosP = membro.titular || membro;
+      const layoutComp = parlamentaresLayout[index];
+
+      if (layoutComp && dadosP) {
+        layoutComp.visible = visibilidadeOriginal[layoutComp.id] ?? false;
+
+        if (layoutComp.visible) {
+          const votoString =
+            typeof dadosP.voto === 'string' ? dadosP.voto.trim() : '';
+
+          const votou = votoString !== '' && votoString !== '-';
+
+          let textoParaExibir = '';
+          let corParaExibir = '#FFFFFF';
+
+          if (votou) {
+            if (votoString === 'SIM') {
+              textoParaExibir = 'S';
+              corParaExibir = '#00FF00'; // Verde
+            } else if (votoString === 'NAO' || votoString === 'NÃO') {
+              textoParaExibir = 'N';
+              corParaExibir = '#FF0000'; // Vermelho
+            } else if (votoString.startsWith('ABST')) {
+              textoParaExibir = 'A'; // Abstenção
+              corParaExibir = '#FFFF00'; // Amarelo
+            } else {
+              textoParaExibir = votoString; // Outro caso
+            }
+          } else {
+            // Se não votou, mostra status (PRESENTE / AUSENTE)
+            textoParaExibir = dadosP.status || '';
+            // Se for Ausente, fica branco ou cinza. Se for Presente, fica Verde.
+            if (textoParaExibir === 'PRESENTE') corParaExibir = '#00FF00';
+          }
+
+          layoutComp.dados = {
+            nome: dadosP.nome || 'Nome não informado',
+            partido: dadosP.partido || '',
+            voto: votoString || '-',
+            status: textoParaExibir,
+            cor: corParaExibir,
+            foto: dadosP.foto,
           };
         }
       }
     });
 
-    // Oculta componentes de parlamentares que não têm dados correspondentes na API
+    // Oculta as caixinhas que sobraram (ex: tem 40 slots mas vieram 20 vereadores)
     for (let i = parlamentaresApi.length; i < parlamentaresLayout.length; i++) {
       parlamentaresLayout[i].visible = false;
     }
 
-    // --- Lógica Geral dos Componentes ---
+    // --- 4. ATUALIZA OUTROS COMPONENTES (TEXTOS, RELÓGIOS, TOTAIS) ---
     cenarioAtualizado.componentes.forEach((componente) => {
-      componente.visible = visibilidadeOriginal[componente.id] ?? false;
+      // Mantém a visibilidade original (exceto parlamentares que já tratamos)
+      if (componente.tipo !== 'parlamentar') {
+        componente.visible = visibilidadeOriginal[componente.id] ?? false;
+      }
 
-      switch (componente.tipo) {
+      switch (componente.tipo as any) {
         case 'titulo':
-          componente.dados = { texto: dadosApiValor.nomeReuniao || 'Reunião' };
-          componente.visible = visibilidadeOriginal[componente.id] ?? false;
+          componente.dados = { texto: dadosApiValor.nomeReuniao || 'Sessão' };
           break;
 
         case 'subtitulo':
-          // O subtítulo mostra o nome da VOTAÇÃO se ela existir, senão mostra a CATEGORIA da reunião.
-          if (dadosApiValor.votacao && dadosApiValor.votacao.nome) {
-            componente.dados = { texto: dadosApiValor.votacao.nome };
-          } else {
-            componente.dados = { texto: dadosApiValor.categoriaReuniao || '' };
-          }
-          componente.visible = visibilidadeOriginal[componente.id] ?? false;
+          const nomeVotacao = dadosApiValor.votacao?.nome;
+          const categoria = dadosApiValor.categoriaReuniao;
+          componente.dados = { texto: nomeVotacao || categoria || '' };
           break;
 
-        case 'descricao':
-          // SE HOUVER VOTAÇÃO, MOSTRA A EMENTA. SENÃO, O STATUS DA REUNIÃO.
-          if (dadosApiValor.votacao && dadosApiValor.votacao.ementa) {
-            componente.dados = { texto: dadosApiValor.votacao.ementa };
-          } else {
-            componente.dados = { texto: dadosApiValor.statusReuniao || '' };
-          }
-          break;
-
-        case 'cabecalho':
-          componente.dados = {
-            ...componente.dados,
-            texto: dadosApiValor.nomeCliente,
-          };
-          break;
-
-        case 'mensagem':
-          componente.visible =
-            visibilidadeOriginal[componente.id] &&
-            !!dadosApiValor.telaMensagem?.conteudo;
-          if (componente.visible) {
-            try {
-              const conteudo = JSON.parse(dadosApiValor.telaMensagem.conteudo);
-              componente.dados = {
-                texto: conteudo.map((item: any) => item.texto).join('\n'),
-              };
-            } catch (e) {
-              console.error('Erro ao processar telaMensagem:', e);
-              componente.visible = false;
-            }
-          }
+        case 'descricao': // Ementa ou Status
+          const ementa = dadosApiValor.votacao?.ementa;
+          const statusR = dadosApiValor.statusReuniao;
+          componente.dados = { texto: ementa || statusR || '' };
           break;
 
         case 'orador':
           componente.dados = {
-            orador: dadosApiValor.tribuna?.orador || 'Nome do Orador',
-          };
-          break;
-
-        case 'partido':
-          componente.dados = {
-            partido: dadosApiValor.tribuna?.partido || 'PARTIDO',
+            orador: dadosApiValor.tribuna?.orador || '',
+            partido: dadosApiValor.tribuna?.partido || '',
           };
           break;
 
         case 'materia':
           componente.dados = {
-            materia: dadosApiValor.tribuna?.materia || 'Tema em Discussão',
-            ementa: dadosApiValor.votacao?.ementa || '', 
+            materia: dadosApiValor.tribuna?.materia || '',
+            ementa: dadosApiValor.votacao?.ementa || '',
           };
           break;
 
-        case 'resultado-votacao':
-          const votacaoFinalizada =
-            dadosApiValor.votacao && !dadosApiValor.votacao.votando;
-          const textoResultado = dadosApiValor.votacao?.resultado_texto;
-          componente.visible =
-            visibilidadeOriginal[componente.id] &&
-            votacaoFinalizada &&
-            !!textoResultado;
-
-          if (componente.visible) {
-            componente.dados = { texto: textoResultado };
-          }
-          break;
-
-        case 'totalizadores': {
-
-          const isVisibleInEditor =
-            visibilidadeOriginal[componente.id] ?? false;
-          const hasVotingData = !!dadosApiValor.votacao; 
-
-          componente.visible = isVisibleInEditor && hasVotingData;
-
-          if (componente.visible) {
-            componente.dados = dadosApiValor.votacao;
-          }
-          break;
-        }
-
+        // --- CORREÇÃO DO CRONÔMETRO (Evita erro "find is not a function") ---
         case 'temporizador-item':
-          const idCompleto = componente.id; // ex: "temporizador-1"
-          let idNumericoApi: number | null = null;
+          let listaCrono = dadosApiValor.cronometro;
 
-          // Mapeia o ID do seu componente para o ID do cronômetro da API
-          if (idCompleto === 'temporizador-1') {
-            idNumericoApi = 1;
-          } else if (idCompleto === 'temporizador-2') {
-            idNumericoApi = 2;
-          } else if (idCompleto === 'temporizador-3') {
-            idNumericoApi = 4;
-          }
+          // Se vier undefined, cria lista vazia. Se vier objeto único, transforma em lista.
+          if (!listaCrono) listaCrono = [];
+          else if (!Array.isArray(listaCrono)) listaCrono = [listaCrono];
 
-          if (idNumericoApi !== null) {
-            const dadosCronometro = dadosApiValor.cronometro?.find(
-              (c: any) => c.cronometro === idNumericoApi
-            );
+          // Descobre qual ID numérico buscar (1, 2, 4...) baseado no ID string do componente
+          let idBusca = 1;
+          if (componente.id.includes('2')) idBusca = 2;
+          if (componente.id.includes('3') || componente.id.includes('4'))
+            idBusca = 4;
 
-            if (dadosCronometro) {
-              componente.dados = dadosCronometro;
+          // Busca segura
+          const dadosC = listaCrono.find((c: any) => c.cronometro == idBusca);
+
+          if (dadosC) {
+            // Converte string "HH:MM:SS" para números
+            let h = 0,
+              m = 0,
+              s = 0;
+            if (typeof dadosC.tempo === 'string') {
+              const partes = dadosC.tempo.split(':');
+              if (partes.length >= 2) {
+                h = +partes[0] || 0;
+                m = +partes[1] || 0;
+                s = +partes[2] || 0;
+              }
+            } else if (typeof dadosC.segundos === 'number') {
+              // Se vier em segundos totais
+              const total = dadosC.segundos;
+              h = Math.floor(total / 3600);
+              m = Math.floor((total % 3600) / 60);
+              s = total % 60;
             }
+
+            componente.dados = {
+              cronometro: idBusca,
+              hora: h,
+              minuto: m,
+              segundo: s,
+              modo: dadosC.modo || 'PARADO',
+              cor: dadosC.cor,
+            };
+          }
+          break;
+
+        case 'texto':
+        case 'data-atual': // Se você criou com esse tipo/id
+          if (componente.id === 'data-atual') {
+            const hoje = new Date();
+            // Formata: 23/12/2025
+            componente.dados = { texto: hoje.toLocaleDateString('pt-BR') };
           }
           break;
 
         case 'status-item':
-          const presencas = dadosApiValor.parlamentares?.presencas?.[0] || {};
-          const nomesTotalizadores = dadosApiValor.nomesTotalizadores || {};
+          const nomes = dadosApiValor.nomesTotalizadores || {};
+
+          // --- RESGATA A PALETA DE CORES DO XML ---
+          // O XML traz uma lista de cores. Vamos transformar em um mapa fácil de usar.
+          let mapaCores: any = {};
+          if (dadosApiValor.paleta && dadosApiValor.paleta.cores) {
+            const listaCores = Array.isArray(dadosApiValor.paleta.cores)
+              ? dadosApiValor.paleta.cores
+              : [dadosApiValor.paleta.cores];
+
+            listaCores.forEach((c: any) => {
+              mapaCores[c.nome] = c.valor;
+            });
+          }
+          // Cores padrão caso a API não mande
+          const corPresente = mapaCores['Cor_Presente'] || '#00FF00'; // Verde
+          const corAusente = mapaCores['Cor_Ausente'] || '#FF0000'; // Vermelho
+          const corObstrucao = mapaCores['Cor_Obstrucao'] || '#AA00FF';
+          const corLicenciado = mapaCores['Cor_Licenciado'] || '#00FFFF'; // Ciano
+
+          const votosSim = Number(dadosApiValor.votacao?.sim) || 0;
+          const votosNao = Number(dadosApiValor.votacao?.nao) || 0;
+          const votosAbs = Number(dadosApiValor.votacao?.abstencao) || 0;
+          const totalVotosComputados = votosSim + votosNao + votosAbs;
+          // ----------------------------------------
 
           if (componente.id === 'status-presentes') {
             componente.props = {
-              label: nomesTotalizadores.PRESENTES || 'PRESENTES',
-              valor: presencas.presentes || 0,
+              label: nomes.PRESENTES || 'PRESENTES',
+              valor: dadosPresencaResumo.presentes || 0,
+              cor: corPresente, // Manda a cor verde
             };
+            // Força a cor no estilo se seu componente suportar
+            componente.style = { ...componente.style, color: corPresente };
           }
           if (componente.id === 'status-ausentes') {
             componente.props = {
-              label: nomesTotalizadores.AUSENTES || 'AUSENTES',
-              valor: presencas.ausentes || 0,
+              label: nomes.AUSENTES || 'AUSENTES',
+              valor: dadosPresencaResumo.ausentes || 0,
+              cor: corAusente, // Manda a cor vermelha
+            };
+            componente.style = { ...componente.style, color: corAusente };
+          }
+          if (componente.id === 'status-quorum') {
+            // Lógica original de Quorum (Presença)
+            const valQuorum =
+              dadosPresencaResumo.quorum || dadosPresencaResumo.presentes || 0;
+            componente.props = {
+              label: 'QUORUM',
+              valor: valQuorum,
+              cor: '#00FF00',
+            };
+          }
+          if (
+            componente.id === 'status-votos' ||
+            componente.id === 'status-total-votos'
+          ) {
+            componente.props = {
+              label: 'VOTOS', // Texto que aparece na tela
+              valor: totalVotosComputados, // A soma (ex: 2)
+              cor: '#FFFFFF', // Cor branca
             };
           }
           if (componente.id === 'status-licenciados') {
             componente.props = {
-              label: nomesTotalizadores.LICENCIADOS || 'LICENCIADOS',
-              valor: presencas.licenciados || 0,
+              label: nomes.LICENCIADOS || 'LICENÇA',
+              valor: dadosPresencaResumo.licenciados || 0,
+              cor: corLicenciado,
             };
+            componente.style = { ...componente.style, color: corLicenciado };
           }
           if (componente.id === 'status-obstrucao') {
             componente.props = {
-              label: nomesTotalizadores.OBSTRUCAO || 'OBSTRUCAO',
-              valor: presencas.obstrucao || 0,
+              label: nomes.OBSTRUCAO || 'OBSTRUÇÃO',
+              valor: dadosPresencaResumo.obstrucao || 0,
+              cor: corObstrucao,
             };
+            componente.style = { ...componente.style, color: corObstrucao };
           }
-          if (componente.id === 'status-quorum') {
-            componente.props = {
-              label: nomesTotalizadores.QUORUM || 'QUORUM',
-              valor: presencas.quorum || 0,
-            };
+          break;
+
+        case 'resultado-votacao':
+          const resultadoTxt = dadosApiValor.votacao?.resultado_texto;
+          componente.visible =
+            visibilidadeOriginal[componente.id] && !!resultadoTxt;
+          if (componente.visible) {
+            componente.dados = { texto: resultadoTxt };
           }
-          if (componente.id === 'status-votos') {
-            componente.props = {
-              label: nomesTotalizadores.VOTOS || 'VOTOS',
-              valor: dadosApiValor.votacao?.totalvotos ?? 0,
-            };
+          break;
+
+        case 'totalizadores':
+          // Se tiver componente de totalizador unificado
+          if (visibilidadeOriginal[componente.id] && dadosApiValor.votacao) {
+            componente.dados = dadosApiValor.votacao;
           }
           break;
       }
     });
 
-    // Atualiza os componentes de Votação (Sim, Não, Abstenção)
-    const existeVotacao = !!dadosApiValor.votacao;
-    ['voto-sim', 'voto-nao', 'voto-abstencao'].forEach((id) => {
-      const comp = cenarioAtualizado.componentes.find((c) => c.id === id);
-      if (comp) {
-        comp.visible = visibilidadeOriginal[comp.id] && existeVotacao;
-        if (comp.visible) {
-          if (!comp.props) comp.props = {};
-          const dataKey = id.split('-')[1]; // 'sim', 'nao', 'abstencao'
-          comp.props.valor = dadosApiValor.votacao[dataKey] ?? 0;
+    // --- 5. ATUALIZA PLACAR (SIM/NÃO/ABSTENÇÃO) ---
+    const temVotacao = !!dadosApiValor.votacao;
+
+    // Abstenção
+    const compAbstencao = cenarioAtualizado.componentes.find(
+      (c) => c.id === 'voto-abstencao'
+    );
+    if (compAbstencao) {
+      compAbstencao.visible =
+        (visibilidadeOriginal[compAbstencao.id] ?? false) &&
+        temVotacao &&
+        mostrarPlacar;
+      if (compAbstencao.visible) {
+        const val = dadosApiValor.votacao?.abstencao || 0;
+        // Atualiza props e dados para garantir compatibilidade
+        compAbstencao.props = { ...compAbstencao.props, valor: val };
+        compAbstencao.dados = { ...compAbstencao.dados, valor: val };
+      }
+    }
+
+    // Sim e Não
+    ['voto-sim', 'voto-nao'].forEach((id) => {
+      const c = cenarioAtualizado.componentes.find((x) => x.id === id);
+      if (c) {
+        c.visible = (visibilidadeOriginal[c.id] ?? false) && temVotacao;
+        if (c.visible) {
+          const key = id.split('-')[1]; // 'sim' ou 'nao'
+          const val = dadosApiValor.votacao?.[key] || 0;
+
+          if (!c.props) c.props = {};
+          c.props.valor = val;
+          c.dados = { ...c.dados, valor: val };
         }
       }
     });
 
+    // Atualiza a tela
     this.cenarioParaExibir = cenarioAtualizado;
     this.cdRef.detectChanges();
   }
