@@ -52,7 +52,7 @@
    @case('status-item') {
   <app-status-item 
       [label]="item.props?.label ?? ''" 
-      [valor]="item.props?.valor ?? 0"
+      [valor]="item.props?.valor ?? 0" [cor]="item.props?.cor ?? '#FFFFFF'"
       [props]="item.props">  </app-status-item>
 }
     @case('votacao-item') {

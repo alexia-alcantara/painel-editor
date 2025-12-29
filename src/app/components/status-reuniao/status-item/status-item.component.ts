@@ -44,25 +44,31 @@ export class StatusItemComponent {
     );
   });
 
-  labelStyle = computed(() => {
-    const config = this.fontLabel();
-    return {
-      'font-family': config.family,
-      'font-size.px': config.size,
-      'font-weight': config.weight,
-      'font-style': config.style,
-      color: this.cor || config.color,
-    };
-  });
+ labelStyle() {  
+  const config = this.fontLabel(); 
+  
+  // ler o "this.cor" atualizado toda vez que rodar
+  const corEfetiva = this.props?.cor || this.cor || config.color;
 
-  valorStyle = computed(() => {
-    const config = this.fontValor();
-    return {
-      'font-family': config.family,
-      'font-size.px': config.size,
-      'font-weight': config.weight,
-      'font-style': config.style,
-      color: this.cor || config.color,
-    };
-  });
+  return {
+    'font-family': config.family,
+    'font-size.px': config.size,
+    'font-weight': config.weight,
+    'font-style': config.style,
+    'color': corEfetiva
+  };
+}
+
+valorStyle() {
+  const config = this.fontValor();
+  const corEfetiva = this.props?.cor || this.cor || config.color;
+
+  return {
+    'font-family': config.family,
+    'font-size.px': config.size,
+    'font-weight': config.weight,
+    'font-style': config.style,
+    'color': corEfetiva
+  };
+}
 }
