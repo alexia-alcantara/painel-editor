@@ -133,7 +133,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     { nome: 'Alexia', identificador: '15', ambiente: 'PLENÁRIO' },
     { nome: 'PC Michael', identificador: '01', ambiente: 'PLENÁRIO' },
     { nome: 'Novo Vitor', identificador: '10.1.131.16', ambiente: 'PLENÁRIO' },
-    // Adicione outros se quiser
   ];
 
   constructor(
