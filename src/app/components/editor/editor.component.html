@@ -1,17 +1,46 @@
+@if (cenarioAtual) {
 <div class="config-panel bg-gray-800 text-white p-4 flex gap-4 items-center">
-  <input type="text" [(ngModel)]="cenarioAtual.nome" class="bg-gray-700 p-1 rounded">
+  <input type="text" [(ngModel)]="cenarioAtual.nome" placeholder="Nome do Cenário" 
+    class="bg-gray-700 p-2 rounded border border-gray-600 focus:border-blue-500 outline-none">
 
-  <label>Largura:</label>
-  <input type="number" [(ngModel)]="cenarioAtual.targetWidth" class="bg-gray-700 p-1 rounded w-20">
+  <div class="flex items-center gap-2">
+    <label class="text-sm text-gray-400">Largura:</label>
+    <input type="number" [(ngModel)]="cenarioAtual.targetWidth" 
+      class="bg-gray-700 p-2 rounded w-20 text-center border border-gray-600">
+  </div>
 
-  <label>Altura:</label>
-  <input type="number" [(ngModel)]="cenarioAtual.targetHeight" class="bg-gray-700 p-1 rounded w-20">
+  <div class="flex items-center gap-2">
+    <label class="text-sm text-gray-400">Altura:</label>
+    <input type="number" [(ngModel)]="cenarioAtual.targetHeight" 
+      class="bg-gray-700 p-2 rounded w-20 text-center border border-gray-600">
+  </div>
 
-  <label>ID/IP do Painel:</label>
-  <input type="text" [(ngModel)]="cenarioAtual.idPainel" (change)="onIpChanged()" placeholder="Ex: 15"
-    class="bg-gray-700 p-1 rounded w-20">
-  <label>Imagem de Fundo:</label>
-  <input type="file" (change)="onFileSelected($event)" class="text-sm">
+  <div class="flex items-center gap-2 border-l border-gray-600 pl-4 ml-2">
+    <label class="font-bold text-yellow-400">Painel Alvo:</label>
+    
+    <select 
+      [(ngModel)]="cenarioAtual.idPainel" 
+      (change)="onIpChanged()"
+      class="bg-gray-700 text-white p-2 rounded border border-gray-600 focus:border-blue-500 outline-none min-w-[250px]">
+      
+      <option value="" disabled>Selecione um Painel...</option>
+      
+      @for (painel of listaPaineis; track painel.identificador) {
+        <option [value]="painel.identificador">
+          {{ painel.nome }} ({{ painel.identificador }})
+        </option>
+      }
+    </select>
+
+    <button (click)="carregarListaPaineis()" title="Atualizar Lista de Painéis" 
+            class="p-2 hover:bg-gray-700 rounded-full transition-colors text-gray-400 hover:text-white">
+      <mat-icon style="font-size: 20px; width: 20px; height: 20px;">refresh</mat-icon>
+    </button>
+  </div>
+  <div class="flex items-center gap-2 ml-auto">
+    <label class="text-sm">Imagem de Fundo:</label>
+    <input type="file" (change)="onFileSelected($event)" class="text-sm text-gray-400">
+  </div>
 </div>
 
 <div class="editor-container">
@@ -51,7 +80,7 @@
         [style.fontSize.px]="item.props?.fontSize"> </app-voto-item>
       }
       @case('status-item') {
-     <app-status-item 
+      <app-status-item 
         [label]="item.props?.label ?? ''" 
         [valor]="item.props?.valor ?? 0" 
         [height]="item.height"
@@ -69,7 +98,7 @@
     }
 
     <button (click)="toggleControleVisibilidade()" class="text-white absolute top-4 right-4 p-2 rounded 
-        flex items-center gap-2">
+        flex items-center gap-2 hover:bg-gray-700 transition-colors">
       <i class="fa-solid fa-wrench"></i>
     </button>
 
@@ -84,6 +113,7 @@
 </div>
 
 <button mat-fab color="primary" (click)="salvar()" title="Salvar Cenário"
-  style="position: fixed; right: 20px; bottom: 20px;">
+  style="position: fixed; right: 20px; bottom: 20px; z-index: 1000;">
   <mat-icon>save</mat-icon>
 </button>
+}

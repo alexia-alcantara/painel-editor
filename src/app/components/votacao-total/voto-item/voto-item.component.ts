@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, Input } from '@angular/core';
 import { FonteService } from '../../../services/fonte.service';
-import { FontConfig } from '../../../models/fontes.model';
 
 @Component({
   selector: 'app-voto-item',

@@ -96,4 +96,19 @@ export class PainelService {
     }
     return obj;
   }
+
+  listarPaineis(): Observable<any[]> {
+    const url = 'https://visual.sevweb.com.br/api/v1/painel/buscar/todos?offset=0&campoOrdem=periferico.endereco';
+
+    return this.http.get<any>(url).pipe(
+      map(response => {
+        // O JSON mostra que a lista está dentro de: valor -> lista
+        if (response && response.valor && response.valor.lista) {
+           return response.valor.lista;
+        }
+        // Se der algo errado ou vier vazio
+        return [];
+      })
+    );
+  }
 }

@@ -129,6 +129,12 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   scale = 1;
 
   private atualizacaoSubscription: Subscription | undefined;
+  listaPaineis: any[] = [
+    { nome: 'Alexia', identificador: '15', ambiente: 'PLENÁRIO' },
+    { nome: 'PC Michael', identificador: '01', ambiente: 'PLENÁRIO' },
+    { nome: 'Novo Vitor', identificador: '10.1.131.16', ambiente: 'PLENÁRIO' },
+    // Adicione outros se quiser
+  ];
 
   constructor(
     private layoutService: LayoutService,
@@ -198,6 +204,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       this.iniciarAtualizacaoAutomatica();
       this.onItemChange();
       this.dispararAutosave();
+      this.carregarListaPaineis();
     });
   }
 
@@ -209,6 +216,25 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   onIpChanged(): void {
     this.iniciarAtualizacaoAutomatica();
   }
+
+  carregarListaPaineis() {
+  this.painelService.listarPaineis().subscribe({
+    next: (lista) => {
+      // 2. Se a API responder, atualiza com a lista completa e real.
+      if (lista && lista.length > 0) {
+        this.listaPaineis = lista.map((item: any) => ({
+             nome: item.nome,
+             identificador: item.periferico?.endereco,
+             ambiente: item.periferico?.ambiente?.nome
+        }));
+      }
+    },
+    error: (err) => {
+      // 3. Se der erro (CORS/Bloqueio), não faz nada. 
+      console.warn('Não foi possível carregar a lista automática. Usando manual.');
+    }
+  });
+}
 
   iniciarAtualizacaoAutomatica(): void {
     const frequenciaMs = 2000;
@@ -227,6 +253,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
     if (!ipParaConectar) return;
 
+    console.log(`Conectando ao painel (Modo Editor): ${ipParaConectar}...`);
     if (this.atualizacaoSubscription) {
       this.atualizacaoSubscription.unsubscribe();
     }
@@ -254,6 +281,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
           this.ultimoEstadoJson = estadoAtualJson;
 
           console.log('Dados mudaram! Recebido no Editor:', dadosReais);
+          this.atualizarDadosNaTela(dadosReais);
         },
         error: (err) => console.error('Erro na conexão do Editor:', err),
       });
