@@ -45,7 +45,8 @@
 
 <div class="editor-container">
 
-  <div #editorWrapper class="editor-wrapper"
+  <div #editorWrapper class="editor-wrapper" [style.width.px]="cenarioAtual.targetWidth"
+  [style.height.px]="cenarioAtual.targetHeight"
     [style.background-image]="cenarioAtual.backgroundImage ? 'url(' + cenarioAtual.backgroundImage + ')' : 'none'">
 
     @for (item of cenarioAtual.componentes; track item.id) {

@@ -268,17 +268,40 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           break;
 
         case 'orador':
-          componente.dados = {
-            orador: dadosApiValor.tribuna?.orador || '',
-            partido: dadosApiValor.tribuna?.partido || '',
-          };
+          // Verifica se tribuna existe e se tem alguma chave lá dentro
+          const temOrador = dadosApiValor.tribuna && Object.keys(dadosApiValor.tribuna).length > 0;
+          
+          if (!temOrador) {
+            componente.visible = false;
+          } else {
+            componente.dados = {
+              orador: dadosApiValor.tribuna.orador || dadosApiValor.tribuna.nomeParlamentar || dadosApiValor.tribuna.nome || '',
+              partido: dadosApiValor.tribuna.partido || '',
+            };
+          }
+          break;
+
+        case 'partido':
+          const temPartido = dadosApiValor.tribuna && dadosApiValor.tribuna.partido;
+          if (!temPartido) {
+            componente.visible = false;
+          } else {
+            componente.dados = {
+              partido: dadosApiValor.tribuna.partido
+            };
+          }
           break;
 
         case 'materia':
-          componente.dados = {
-            materia: dadosApiValor.tribuna?.materia || '',
-            ementa: dadosApiValor.votacao?.ementa || '',
-          };
+          const textoMateria = dadosApiValor.tribuna?.materia || dadosApiValor.votacao?.ementa;
+          if (!textoMateria || (typeof textoMateria === 'object' && Object.keys(textoMateria).length === 0)) {
+            componente.visible = false;
+          } else {
+            componente.dados = {
+              materia: dadosApiValor.tribuna?.materia || '',
+              ementa: dadosApiValor.votacao?.ementa || '',
+            };
+          }
           break;
 
         case 'temporizador-item':
@@ -426,7 +449,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     });
 
-    const temVotacao = !!dadosApiValor.votacao;
+    const temVotacao = dadosApiValor.votacao && Object.keys(dadosApiValor.votacao).length > 0;
 
     const compAbstencao = cenarioAtualizado.componentes.find(
       (c) => c.id === 'voto-abstencao'

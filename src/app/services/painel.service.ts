@@ -17,29 +17,24 @@ export class PainelService {
     const url = `${this.API_URL}?ip=${ip}`;
 
     // 1. FORÇAR O SERVIDOR A ENVIAR XML
-    // Sem isso, ele manda JSON (que vem bugado com apenas 2 membros)
     const headers = new HttpHeaders({
       'Accept': 'application/xml, text/xml, */*'
     });
 
     return this.http.get(url, { headers, responseType: 'text' }).pipe(
       map((rawResponse) => {
-        // Log para confirmar se chegou XML (deve começar com <ResponseContainer> ou <xml>)
-        // console.log('📦 Resposta Bruta do Servidor:', rawResponse.substring(0, 100) + '...');
 
         try {
           const parser = new DOMParser();
           const xml = parser.parseFromString(rawResponse, 'text/xml');
           
-          // Verifica se houve erro no parser (o tal objeto {html} que apareceu no seu log)
           if (xml.getElementsByTagName('parsererror').length > 0) {
-            console.error('❌ Erro ao converter: O servidor provavelmente não mandou XML válido.');
+            console.error('Erro ao converter: O servidor provavelmente não mandou XML válido.');
             return {};
           }
 
           const json = this.xmlToJson(xml);
           
-          // Retorna o conteúdo útil
           return json.ResponseContainer ? json.ResponseContainer : json;
         } catch (e) {
           console.error('Erro fatal no parser:', e);
@@ -55,11 +50,10 @@ export class PainelService {
     );
   }
 
-  // --- CONVERSOR XML -> JSON (Mantido igual) ---
   private xmlToJson(xml: any): any {
     let obj: any = {};
 
-    if (xml.nodeType === 1) { // Elemento
+    if (xml.nodeType === 1) { 
       if (xml.attributes.length > 0) {
         obj['@attributes'] = {};
         for (let j = 0; j < xml.attributes.length; j++) {
@@ -67,7 +61,7 @@ export class PainelService {
           obj['@attributes'][attribute.nodeName] = attribute.nodeValue;
         }
       }
-    } else if (xml.nodeType === 3) { // Texto
+    } else if (xml.nodeType === 3) { 
       obj = xml.nodeValue.trim();
     }
 
@@ -102,11 +96,9 @@ export class PainelService {
 
     return this.http.get<any>(url).pipe(
       map(response => {
-        // O JSON mostra que a lista está dentro de: valor -> lista
         if (response && response.valor && response.valor.lista) {
            return response.valor.lista;
         }
-        // Se der algo errado ou vier vazio
         return [];
       })
     );

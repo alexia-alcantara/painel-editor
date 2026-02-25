@@ -1,20 +1,17 @@
 .editor-container {
   flex-grow: 1;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  justify-content: center; 
+  align-items: flex-start; 
   overflow: auto; 
   background-color: #1a202c;
+  padding: 0; 
 }
 
 .editor-wrapper {
-position: relative;
-  width: 1700px;
-  height: 100vh;
+  position: relative;
   flex-shrink: 0;
-  /* A transformação de escala partirá do canto superior esquerdo */
   transform-origin: top left;
   background-size: cover;
   background-position: center;
-
 }

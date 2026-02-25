@@ -1,4 +1,3 @@
-// Importe as interfaces de fontes do arquivo correto
 import { FonteSubItem } from './fontes.model';
 
 export interface ComponenteEditor {
