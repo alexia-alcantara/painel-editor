@@ -46,31 +46,25 @@ describe('LayoutService - Integration Test', () => {
   });
 
   it('should update an existing scenario', () => {
-    // Arrange: Primeiro, salvamos um cenário inicial
    const cenarioInicial = criarCenarioMock({ id: '1', nome: 'Cenário Original' });
         service.salvarCenario(cenarioInicial);
 
-    // Act: Agora, salvamos uma versão modificada com o mesmo ID
    const cenarioModificado = criarCenarioMock({ id: '1', nome: 'Cenário Modificado' });
         service.salvarCenario(cenarioModificado);
 
-    // Assert
     const cenariosSalvos = service.listarCenarios();
         expect(cenariosSalvos.length).toBe(1);
         expect(cenariosSalvos[0].nome).toBe('Cenário Modificado');
   });
 
   it('should remove a scenario by its ID', () => {
-    // Arrange
     const cenario1 = criarCenarioMock({ id: '1', nome: 'Cenário 1' });
     const cenario2 = criarCenarioMock({ id: '2', nome: 'Cenário 2' });
     service.salvarCenario(cenario1);
     service.salvarCenario(cenario2);
 
-    // Act
     service.removerCenario('1');
 
-    // Assert
     const cenariosRestantes = service.listarCenarios();
     expect(cenariosRestantes.length).toBe(1);
     expect(cenariosRestantes[0].id).toBe('2');
@@ -85,7 +79,7 @@ describe('LayoutService - Integration Test', () => {
     service.cenarios$.subscribe((cenarios) => {
       expect(cenarios.length).toBe(1);
       expect(cenarios[0].nome).toBe('Cenário Notificação');
-      done(); // 'done' é do Jasmine e diz que o teste assíncrono terminou
+      done(); 
     });
 
     // A ação que dispara a notificação

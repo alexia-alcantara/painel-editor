@@ -219,7 +219,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   carregarListaPaineis() {
   this.painelService.listarPaineis().subscribe({
     next: (lista) => {
-      // 2. Se a API responder, atualiza com a lista completa e real.
+      // Se a API responder, atualiza com a lista completa e real.
       if (lista && lista.length > 0) {
         this.listaPaineis = lista.map((item: any) => ({
              nome: item.nome,
@@ -229,7 +229,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     },
     error: (err) => {
-      // 3. Se der erro (CORS/Bloqueio), não faz nada. 
+      // Se der erro (CORS/Bloqueio), não faz nada. 
       console.warn('Não foi possível carregar a lista automática. Usando manual.');
     }
   });
@@ -265,14 +265,11 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         next: (dadosDaApi) => {
           if (!dadosDaApi) return;
 
-          // CORREÇÃO 1: 'as any' para evitar erro de propriedade 'valor' inexistente
           const payload = dadosDaApi as any;
           const dadosReais = payload.valor ? payload.valor : payload;
 
-          // Transforma em texto para comparar se mudou
           const estadoAtualJson = JSON.stringify(dadosReais);
 
-          // Se o dado é idêntico ao anterior, não faz nada (economiza processamento)
           if (this.ultimoEstadoJson === estadoAtualJson) {
             return;
           }
@@ -305,7 +302,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       componenteSubtitulo.dados.texto = dadosApi.categoriaReuniao || '';
     }
 
-    // 2. Status da Reunião
     const componenteDescricao = this.cenarioAtual.componentes.find(
       (c) => c.tipo === 'descricao'
     );
@@ -313,21 +309,17 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       componenteDescricao.dados.texto = dadosApi.statusReuniao;
     }
 
-    // 3. Orador
-    // Atualização da lógica do Orador
     const componenteOrador = this.cenarioAtual.componentes.find(
       (c) => c.tipo === 'orador'
     );
 
     if (componenteOrador) {
       if (dadosApi.tribuna) {
-        // Se tem orador, preenche e MOSTRA
         componenteOrador.visible = true;
         componenteOrador.dados.orador =
           dadosApi.tribuna.nomeParlamentar || dadosApi.tribuna.nome;
         componenteOrador.dados.partido = dadosApi.tribuna.partido;
 
-        // Se tiver o componente de tema/matéria, atualiza também
         const componenteMateria = this.cenarioAtual.componentes.find(
           (c) => c.tipo === 'materia'
         );
@@ -349,13 +341,11 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     }
 
-    // 4. Parlamentares (Correção: Acessar presencas[0].membros)
     if (
       dadosApi.parlamentares &&
       Array.isArray(dadosApi.parlamentares.presencas) &&
       dadosApi.parlamentares.presencas.length > 0
     ) {
-      // Entramos no primeiro item de 'presencas' e pegamos a lista de 'membros'
       const listaMembros = dadosApi.parlamentares.presencas[0].membros;
 
       if (Array.isArray(listaMembros)) {
@@ -364,7 +354,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         );
 
         componentesParlamentar.forEach((comp, index) => {
-          // Pega o membro correspondente na lista da API
           const membroApi = listaMembros[index];
 
           const dadosReais = membroApi ? membroApi.titular : null;
@@ -398,7 +387,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    // setTimeout(() => this.ajustarEscala(), 0);
   }
 
   ngOnDestroy() {
@@ -473,7 +461,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     const novaPosicao = event.source.getFreeDragPosition();
 
     console.log(
-      `[DRAG END] Item: ${itemArrastado.id}, Nova Posição: X=${Math.round(
+      `Item: ${itemArrastado.id}, Nova Posição: X=${Math.round(
         novaPosicao.x
       )}, Y=${Math.round(novaPosicao.y)}`
     );
@@ -537,13 +525,11 @@ private montarLayoutInicial(): Cenario {
     const hStatus = 45;
     const fontSizeStatus = 22;
 
-    // --- VARIÁVEIS DA IMAGEM / ORADOR (Definidas aqui para serem usadas abaixo) ---
-    const xImagem = 800;         // Posição X da área de vídeo
-    const yImagem = 60;          // Posição Y da área de vídeo
-    const larguraImagem = 800;   // Largura do vídeo
-    const alturaImagem = 450;    // Altura do vídeo
+    const xImagem = 800;         
+    const yImagem = 60;         
+    const larguraImagem = 800;   
+    const alturaImagem = 450;  
 
-    // -----------------------------------------------------------------------
 
     // Cabeçalho
     const cabecalho: ComponenteEditor = {
@@ -586,7 +572,7 @@ private montarLayoutInicial(): Cenario {
     ];
     const dataAtual: ComponenteEditor = { id: 'data-atual', tipo: 'titulo', x: xMargemEsquerda + 350, y: yRelogios - 40, width: 200, height: 40, visible: true, dados: { texto: 'DD/MM/AAAA' } };
     
-    // --- MULTIMÍDIA E ORADORES (Agora as variáveis já existem!) ---
+    // --- MULTIMÍDIA E ORADORES  ---
     
     const multimidia: ComponenteEditor = { 
         id: 'multimidia-principal', 
@@ -602,8 +588,8 @@ private montarLayoutInicial(): Cenario {
     const orador: ComponenteEditor = { 
         id: 'orador-principal', 
         tipo: 'orador', 
-        x: xImagem + 100, // Agora xImagem já está declarado!
-        y: yImagem + alturaImagem + 20, // Agora yImagem e alturaImagem existem!
+        x: xImagem + 100, 
+        y: yImagem + alturaImagem + 20,
         width: 600, 
         height: 60, 
         visible: true, 
