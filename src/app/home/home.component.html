@@ -15,7 +15,7 @@
             <div class="flex items-center gap-4">
               <a [routerLink]="['/editor', cenario.id]" mat-button>Editar</a>
               <a [routerLink]="['/display', cenario.id]" target="_blank" mat-stroked-button color="accent">Apresentar</a>
-              <button (click)="deletarCenario(cenario.id, cenario.nome)" mat-icon-button color="warn">
+              <button (click)="deletarCenario(cenario.idBackend!, cenario.nome)" mat-icon-button color="warn">
                 <mat-icon>delete</mat-icon>
               </button>
             </div>

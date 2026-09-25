@@ -38,8 +38,10 @@ export class CenarioDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-      // 1. Carrega a lista inicial de cenários
-    this.cenarios = this.layoutService.listarCenarios();
+    // 1. Carrega a lista inicial de cenários
+    this.layoutService.listarCenarios().subscribe((cenarios) => {
+      this.cenarios = cenarios;
+    });
 
     // 2. Se inscreve para ouvir futuras atualizações na lista
     this.cenariosSub = this.layoutService.cenarios$.subscribe(cenariosAtualizados => {
@@ -68,9 +70,25 @@ export class CenarioDialogComponent implements OnInit {
     }
   }
 
-  removerCenario(id: string, nome: string): void {
+    editarCenario(cenario: Cenario): void {
+    const identificadorUrl = cenario.slug || cenario.id;
+
+    if (!identificadorUrl) {
+      alert('Não foi possível abrir o cenário pois o slug/id não foi encontrado.');
+      return;
+    }
+
+    if (!confirm(`Abrir "${cenario.nome}" no editor? O que não foi salvo no cenário atual será perdido.`)) {
+      return;
+    }
+
+    this.dialogRef.close();
+    this.router.navigate(['/editor', identificadorUrl]);
+  }
+  
+  removerCenario(idBackend: number, nome: string): void {
     if (confirm(`Tem certeza que deseja remover o cenário "${nome}"?`)) {
-      this.layoutService.removerCenario(id);
+      this.layoutService.removerCenario(idBackend).subscribe();
     }
   }
   exportarLayout(): void {

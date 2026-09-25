@@ -1,10 +1,9 @@
-<div 
-  class="flex justify-between items-center status-item w-full" 
-  [style.height.px]="height"
-  [style.color]="props?.cor || 'white'"> 
+<div
+  class="flex items-center status-item w-full h-full"
+  [style.color]="props?.cor || 'white'">
 
-    <span [ngStyle]="labelStyle()" class="font-semibold uppercase text-lg">{{ label }}</span>
-    
-    <span [ngStyle]="valorStyle()" class="font-semibold text-lg">{{ valor | number:'2.0' }}</span>
-    
+    <span [ngStyle]="labelStyle()" class="flex-1 min-w-0 pl-4 truncate leading-[1.35] font-semibold uppercase">{{ label }}</span>
+
+    <span [ngStyle]="valorStyle()" class="w-[22.5%] shrink-0 text-center leading-[1.35] font-semibold">{{ valor | number:'2.0' }}</span>
+
 </div>

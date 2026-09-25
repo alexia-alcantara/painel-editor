@@ -1,26 +1,25 @@
 @if (cenarioParaExibir) {
-<div #wrapper class="display-wrapper" [style.position]="'relative'"
+<div #wrapper class="display-wrapper" 
+  [style.width.px]="cenarioParaExibir.targetWidth" 
+  [style.height.px]="cenarioParaExibir.targetHeight"
   [style.background-image]="cenarioParaExibir.backgroundImage ? 'url(' + cenarioParaExibir.backgroundImage + ')' : 'none'"
-  [style.background-size]="'cover'" [style.background-position]="'center'" [style.background-repeat]="'no-repeat'"
-  [style.width.px]="cenarioParaExibir.targetWidth" [style.height.px]="cenarioParaExibir.targetHeight">
+  [style.background-size]="'100% 100%'"
+  [style.background-position]="'center'"
+  [style.background-repeat]="'no-repeat'">
 
   @for (item of cenarioParaExibir.componentes; track item.id) {
   @if (item.visible) {
-
-  @if (item.tipo === 'mensagem' || item.tipo === 'descricao') {
-  <div class="component-box absolute" [style.transform]="'translate(' + item.x + 'px, ' + item.y + 'px)'">
-
-    @switch(item.tipo) {
-    @case('mensagem') { <app-mensagem [dados]="item.dados"></app-mensagem> }
-    @case('descricao') { <app-descricao-reuniao [dados]="item.dados"></app-descricao-reuniao> }
-    }
-  </div>
-  } @else {
 
   <div class="component-box absolute" [style.width.px]="item.width" [style.height.px]="item.height"
     [style.transform]="'translate(' + item.x + 'px, ' + item.y + 'px)'">
 
     @switch(item.tipo) {
+    @case('mensagem') {
+    <app-mensagem [dados]="item.dados"></app-mensagem>
+    }
+    @case('descricao') {
+    <app-descricao-reuniao [dados]="item.dados"></app-descricao-reuniao>
+    }
     @case('parlamentar') {
     <app-parlamentar-item [parlamentar]="item.dados" [paleta]="paletaDeCores"></app-parlamentar-item>
     }
@@ -70,12 +69,23 @@
     @case('materia') {
     <app-materia [dados]="item.dados" [props]="item.props"></app-materia>
     }
-    @case ('resultado-votacao') {
+   @case ('resultado-votacao') {
     <app-resultado-votacao [dados]="item.dados"></app-resultado-votacao>
+    }
+    @case ('turno-votacao') {
+    <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto>
+    }
+    @case ('modo-votacao') {
+    <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto>
+    }
+    @case ('parametro-votacao') {
+    <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto>
+    }
+    @case ('categoria-reuniao') {
+    <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto>
     }
     }
   </div>
-  }
   }
   }
 </div>

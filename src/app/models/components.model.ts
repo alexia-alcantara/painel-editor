@@ -22,12 +22,18 @@ export interface ComponenteEditor {
     | 'materia'
     | 'resultado-votacao'
     | 'relogio'
+    | 'relogio'
+    | 'turno-votacao'
+    | 'modo-votacao'
+    | 'parametro-votacao'
+    | 'categoria-reuniao'
   dados?: any;
   x: number;
   y: number;
   width: number;
   height: number;
   visible: boolean;
+  ocultoNoEditor?: boolean;
   props?: {
     fontFamily?: string;
     tempo?: string;

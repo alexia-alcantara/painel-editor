@@ -18,6 +18,6 @@ export class DescricaoReuniaoComponent {
 
   get fontConfig(): FontConfig | undefined {
     return this.fonteService.getFonteByTipo('descricao')
-      .find(f => f.subId === 'default')?.font;
+      .find(f => f.subId === 'descricao-texto' || f.subId === 'default')?.font;
   }
 }

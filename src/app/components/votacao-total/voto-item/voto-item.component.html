@@ -1,7 +1,7 @@
-<div class="flex justify-between items-center voto-item w-full" [style.height.px]="height">
-  
-  <span [ngStyle]="labelStyle()">{{ label }}</span>
+<div class="flex items-center voto-item w-full h-full">
 
-  <span [ngStyle]="valorStyle()">{{ valor | number:'2.0' }}</span>
+  <span [ngStyle]="labelStyle()" class="flex-1 min-w-0 pl-4 truncate leading-[1.35]">{{ label }}</span>
+
+  <span [ngStyle]="valorStyle()" class="w-[22.5%] shrink-0 text-center leading-[1.35]">{{ valor | number:'2.0' }}</span>
 
 </div>

@@ -45,27 +45,32 @@
 
 <div class="editor-container">
 
-  <div #editorWrapper class="editor-wrapper" [style.width.px]="cenarioAtual.targetWidth"
-  [style.height.px]="cenarioAtual.targetHeight"
-    [style.background-image]="cenarioAtual.backgroundImage ? 'url(' + cenarioAtual.backgroundImage + ')' : 'none'">
+  <div #editorWrapper class="editor-wrapper" 
+    [style.width.px]="cenarioAtual.targetWidth"
+    [style.height.px]="cenarioAtual.targetHeight"
+    [style.background-image]="cenarioAtual.backgroundImage ? 'url(' + cenarioAtual.backgroundImage + ')' : 'none'"
+    [style.background-size]="'100% 100%'"
+    [style.background-position]="'center'"
+    [style.background-repeat]="'no-repeat'">
 
     @for (item of cenarioAtual.componentes; track item.id) {
     @if (item) {
 
     <div class="componente-box absolute rounded cursor-grab" cdkDrag [attr.data-testid]="'componente-' + item.tipo"
-      (contextmenu)="onRightClick($event, item)" [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }"
+      [class.redimensionavel]="item.tipo !== 'parlamentar'" (contextmenu)="onRightClick($event, item)" [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }"
       (cdkDragEnded)="onDragEnd($event, item)" cdkDragBoundary=".editor-wrapper"
-      [style.display]="item.visible ? 'block' : 'none'"
-      [style.width.px]="(item.tipo !== 'mensagem' && item.tipo !== 'descricao') ? item.width : null"
-      [style.height.px]="(item.tipo !== 'mensagem' && item.tipo !== 'descricao') ? item.height : null">
+      [style.display]="!item.ocultoNoEditor ? 'block' : 'none'"
+      [class.hidden-do-cenario]="!item.visible"
+      [style.width.px]="item.width"
+      [style.height.px]="item.height">
 
+      @if (!item.ocultoNoEditor) {
       @switch(item.tipo) {
       @case('mensagem') { <app-mensagem [dados]="item.dados"></app-mensagem> }
       @case('descricao') { <app-descricao-reuniao [dados]="item.dados"></app-descricao-reuniao> }
       @case('parlamentar') { <app-parlamentar-item [parlamentar]="item.dados"></app-parlamentar-item> }
       @case('totalizadores') { <app-votacao-total [dados]="item.dados"></app-votacao-total> }
       @case('imagem') { <app-imagem-reuniao></app-imagem-reuniao> }
-      @case('multimidia') { <app-multimidia [dados]="item.dados"></app-multimidia> }
       @case('cabecalho') { <app-header-reuniao></app-header-reuniao> }
       @case('titulo') { <app-titulo-reuniao [dados]="item.dados"></app-titulo-reuniao> }
       @case('subtitulo') { <app-subtitulo-reuniao [dados]="item.dados"></app-subtitulo-reuniao> }
@@ -93,6 +98,15 @@
       @case('partido') { <app-partido [dados]="item.dados" [props]="item.props"></app-partido> }
       @case('materia') { <app-materia [dados]="item.dados" [props]="item.props"></app-materia> }
       @case ('resultado-votacao') { <app-resultado-votacao [dados]="item.dados"></app-resultado-votacao> }
+      @case ('turno-votacao') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
+      @case ('modo-votacao') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
+      @case ('parametro-votacao') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
+      @case ('categoria-reuniao') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
+      }
+      }
+      @if (item.tipo !== 'parlamentar') {
+      <div class="resize-handle" title="Arraste para redimensionar"
+        (mousedown)="iniciarRedimensionar($event, item)"></div>
       }
     </div>
     }

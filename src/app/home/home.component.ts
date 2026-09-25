@@ -24,15 +24,18 @@ import { Subscription } from 'rxjs';
 export class HomeComponent {
   cenarios: Cenario[] = [];
   private cenariosSubscription: Subscription | undefined;
-  constructor(private layoutService: LayoutService, private router: Router) {}
+  constructor(
+    private layoutService: LayoutService,
+    private router: Router,
+  ) {}
 
   ngOnInit() {
-    this.cenarios = this.layoutService.listarCenarios();
+    this.recarregarLista();
 
     this.cenariosSubscription = this.layoutService.cenarios$.subscribe(
       (novaLista) => {
         this.cenarios = novaLista;
-      }
+      },
     );
   }
 
@@ -41,7 +44,9 @@ export class HomeComponent {
   }
 
   recarregarLista(): void {
-    this.cenarios = this.layoutService.listarCenarios();
+    this.layoutService.listarCenarios().subscribe((cenarios) => {
+      this.cenarios = cenarios;
+    });
   }
 
   criarNovoCenario(): void {
@@ -49,10 +54,11 @@ export class HomeComponent {
     this.router.navigate(['/editor', novoId]);
   }
 
-  deletarCenario(id: string, nome: string): void {
+  deletarCenario(idBackend: number, nome: string): void {
     if (confirm(`Tem certeza que deseja deletar o cenário "${nome}"?`)) {
-      this.layoutService.removerCenario(id);
-      this.recarregarLista();
+      this.layoutService.removerCenario(idBackend).subscribe(() => {
+        this.recarregarLista();
+      });
     }
   }
 }

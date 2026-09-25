@@ -2,6 +2,13 @@
   [style.opacity]="opacity" (contextmenu)="$event.preventDefault()">
 
   @if (visible) {
+    @if (activeComponent) {
+  <div class="menu-item" (click)="alternarVisibilidadeFinal()">
+    <i class="fa-solid" [class.fa-eye-slash]="activeComponent.visible" [class.fa-eye]="!activeComponent.visible"></i>
+    <span>{{ activeComponent.visible ? 'Ocultar do cenário' : 'Exibir no cenário' }}</span>
+  </div>
+  <hr class="divider">
+  }
   @if (activeComponent && activeComponent.tipo === 'parlamentar') {
   <div class="menu-item" (click)="abrirModalDistribuicao()">
     <i class="fa-solid fa-table-cells"></i>
@@ -23,6 +30,13 @@
         {{ sub.label }}
       </button>
       }
+
+      @if (grupo.subItens.length > 1) {
+      <button (click)="openFontDialogTodos(grupo)"
+        class="px-4 py-2 hover:bg-white/10 text-left border-t border-white/20">
+        Todos
+      </button>
+      }
     </div>
   </div>
   }
@@ -32,7 +46,7 @@
   @if (isEditorMode) {
   <div class="menu-item" (click)="abrirModalConfiguracaoTela()">
     <i class="fa-solid fa-gear"></i>
-    <span>Configurar Tela</span>
+    <span>Cenários</span>
   </div>
   }
   }

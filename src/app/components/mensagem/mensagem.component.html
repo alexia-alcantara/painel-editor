@@ -1,7 +1,19 @@
 @if (dados) {
-  <div 
-    class="mensagem-container"
-  >
-    <p class="text-white">{{ dados.texto }}</p>
+  <div class="mensagem-container">
+    @if (dados.linhas && dados.linhas.length) {
+      @for (linha of dados.linhas; track linha.linha) {
+        <p class="linha-mensagem"
+          [style.color]="linha.cor || '#FFFFFF'"
+          [style.font-family]="linha.fonte || 'inherit'"
+          [style.font-weight]="linha.bold ? 'bold' : 'normal'"
+          [style.font-style]="linha.italic ? 'italic' : 'normal'"
+          [style.text-decoration]="linha.underline ? 'underline' : 'none'"
+          [style.text-align]="linha.align || 'center'">
+          {{ linha.texto }}
+        </p>
+      }
+    } @else {
+      <p class="text-white">{{ dados.texto }}</p>
+    }
   </div>
 }

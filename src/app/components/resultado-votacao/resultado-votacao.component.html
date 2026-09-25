@@ -1,5 +1,10 @@
-<div class="resultado-texto text-yellow-400 
-font-bold text-2xl text-center" [style.width.px]="width"
-    [style.height.px]="height">
+<div class="resultado-texto w-full h-full flex items-center justify-center text-center leading-tight"
+  [ngStyle]="{
+    'font-family': fontConfig.family,
+    'font-size.px': fontConfig.size,
+    'font-weight': fontConfig.weight,
+    'font-style': fontConfig.style,
+    'color': fontConfig.color
+  }">
   {{ dados?.texto }}
 </div>

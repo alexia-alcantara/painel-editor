@@ -1,3 +1,9 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .text-temp{
     font-family: Inter;
 }
@@ -6,5 +12,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.25rem 1rem;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  white-space: nowrap;
+  line-height: 1.2;
+  padding: 0.25rem 0.5rem;
 }

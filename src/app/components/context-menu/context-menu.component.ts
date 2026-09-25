@@ -99,6 +99,46 @@ async ngOnInit() {
     this.close();
   }
 
+  openFontDialogTodos(grupo: FonteGrupo) {
+    const primeiro = grupo.subItens[0];
+    if (!primeiro) return;
+
+    const dialogRef = this.dialog.open(FontDialogComponent, {
+      width: '400px',
+      panelClass: 'custom-dialog',
+      autoFocus: false,
+      restoreFocus: false,
+      hasBackdrop: true,
+      disableClose: false,
+      data: { tipo: grupo.tipo, subId: primeiro.subId },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        grupo.subItens.forEach((sub) => {
+          this.fonteService.updateFonte(grupo.tipo, sub.subId, result);
+          this.action.emit({
+            action: 'updateFont',
+            data: { tipo: grupo.tipo, subId: sub.subId, font: result },
+            component: this.activeComponent,
+          });
+        });
+      }
+    });
+
+    this.close();
+  }
+
+    alternarVisibilidadeFinal(): void {
+    if (!this.activeComponent) return;
+    this.action.emit({
+      action: 'toggleVisible',
+      data: { visible: !this.activeComponent.visible },
+      component: this.activeComponent,
+    });
+    this.close();
+  }
+
   abrirModalDistribuicao() {
 
     const configSalva = this.layoutService.carregarConfigDistribuicao();

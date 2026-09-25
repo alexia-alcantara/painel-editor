@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, timer } from 'rxjs';
+import { Observable, of, timer } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
+
 
 @Injectable({
   providedIn: 'root',
@@ -9,14 +11,13 @@ import { map, switchMap } from 'rxjs/operators';
 export class PainelService {
   
   // URL base fixa
-  private readonly API_URL = 'https://visual.sevweb.com.br/api/v1/publico/sev/buscar/painel';
+   private readonly API_URL = `${environment.backendUrl}/publico/sev/buscar/painel`;
 
   constructor(private http: HttpClient) {}
 
   getDadosPainel(ip: string): Observable<any> {
     const url = `${this.API_URL}?ip=${ip}`;
 
-    // 1. FORÇAR O SERVIDOR A ENVIAR XML
     const headers = new HttpHeaders({
       'Accept': 'application/xml, text/xml, */*'
     });
@@ -34,8 +35,10 @@ export class PainelService {
           }
 
           const json = this.xmlToJson(xml);
-          
-          return json.ResponseContainer ? json.ResponseContainer : json;
+          let response = json.ResponseContainer ? json.ResponseContainer : json;
+
+          return response;
+
         } catch (e) {
           console.error('Erro fatal no parser:', e);
           return {};
@@ -43,6 +46,36 @@ export class PainelService {
       })
     );
   }
+
+  // getDadosPainel(ip: string): Observable<any> {
+  //   const url = `${this.API_URL}?ip=${ip}`;
+
+  //   const headers = new HttpHeaders({
+  //     'Accept': 'application/xml, text/xml, */*'
+  //   });
+
+  //   return this.http.get(url, { headers, responseType: 'text' }).pipe(
+  //     map((rawResponse) => {
+
+  //       try {
+  //         const parser = new DOMParser();
+  //         const xml = parser.parseFromString(rawResponse, 'text/xml');
+          
+  //         if (xml.getElementsByTagName('parsererror').length > 0) {
+  //           console.error('Erro ao converter: O servidor provavelmente não mandou XML válido.');
+  //           return {};
+  //         }
+
+  //         const json = this.xmlToJson(xml);
+          
+  //         return json.ResponseContainer ? json.ResponseContainer : json;
+  //       } catch (e) {
+  //         console.error('Erro fatal no parser:', e);
+  //         return {};
+  //       }
+  //     })
+  //   );
+  // }
 
   getDadosPainelEmTempoReal(ip: string, frequenciaMs: number = 2000): Observable<any> {
     return timer(0, frequenciaMs).pipe(

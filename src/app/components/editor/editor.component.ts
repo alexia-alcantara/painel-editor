@@ -50,9 +50,10 @@ import { RelogioComponent } from '../relogio/relogio.component';
 import { OradorComponent } from '../orador/orador.component';
 import { MateriaComponent } from '../materia/materia.component';
 import { PartidoComponent } from '../partido/partido.component';
-import { MultimidiaComponent } from '../multimidia/multimidia.component';
 
 import { PainelService } from '../../services/painel.service';
+import { CampoTextoComponent } from '../campo-texto/campo-texto.component';
+
 @Component({
   selector: 'app-editor',
   standalone: true,
@@ -86,7 +87,7 @@ import { PainelService } from '../../services/painel.service';
     PartidoComponent,
     ResultadoVotacaoComponent,
     RelogioComponent,
-    MultimidiaComponent,
+    CampoTextoComponent
   ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
@@ -142,7 +143,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     private fonteService: FonteService,
     private renderer: Renderer2,
     private imagemStorageService: ImagemStorageService,
-    private painelService: PainelService
+    private painelService: PainelService,
   ) {}
 
   onFileSelected(event: Event): void {
@@ -163,17 +164,14 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  onComponentVisibilityChange(event: { id: string; visivel: boolean }) {
-    const compIndex = this.cenarioAtual.componentes.findIndex(
-      (c) => c.id === event.id
-    );
+  onComponentVisibilityChange(event: { ids: string[]; visivel: boolean }) {
+    const idsParaMudar = new Set(event.ids);
 
-    if (compIndex > -1) {
-      this.cenarioAtual.componentes[compIndex].visible = event.visivel;
-      this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
-    }
+    this.cenarioAtual.componentes.forEach((c) => {
+      if (idsParaMudar.has(c.id)) c.ocultoNoEditor = !event.visivel;
+    });
+    this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
   }
-
   ngOnInit() {
     this.updateScale();
 
@@ -184,26 +182,35 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         this.cenarioId = params.get('id');
         console.log(`Modo de Edição. Carregando cenário: ${this.cenarioId}`);
 
-        const cenarioCarregado = this.layoutService.carregarCenario(
-          this.cenarioId!
-        );
-        if (cenarioCarregado) {
-          this.cenarioAtual = cenarioCarregado;
-        } else {
-          alert('Cenário não encontrado! Redirecionando para um novo cenário.');
-          this.router.navigate(['/editor']);
-        }
+        this.layoutService
+          .carregarCenario(this.cenarioId!)
+          .subscribe((cenarioCarregado) => {
+            if (cenarioCarregado) {
+              this.cenarioAtual = cenarioCarregado;
+              this.fonteService.carregarGrupos(cenarioCarregado.fontes);
+            } else {
+              alert(
+                'Cenário não encontrado! Redirecionando para um novo cenário.',
+              );
+              this.router.navigate(['/editor']);
+              return;
+            }
+
+            this.onItemChange();
+            this.dispararAutosave();
+            this.carregarListaPaineis();
+          });
       } else {
         this.isEditingMode = false;
         this.cenarioId = null;
         console.log('Modo cenário novo');
         this.cenarioAtual = this.montarLayoutInicial();
-      }
+        this.fonteService.carregarGrupos(this.cenarioAtual.fontes);
 
-      this.iniciarAtualizacaoAutomatica();
-      this.onItemChange();
-      this.dispararAutosave();
-      this.carregarListaPaineis();
+        this.onItemChange();
+        this.dispararAutosave();
+        this.carregarListaPaineis();
+      }
     });
   }
 
@@ -213,35 +220,35 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onIpChanged(): void {
-    this.iniciarAtualizacaoAutomatica();
+    // O editor não busca mais dados ao vivo — isso só acontece no /display.
   }
 
   carregarListaPaineis() {
-  this.painelService.listarPaineis().subscribe({
-    next: (lista) => {
-      // Se a API responder, atualiza com a lista completa e real.
-      if (lista && lista.length > 0) {
-        this.listaPaineis = lista.map((item: any) => ({
-             nome: item.nome,
-             identificador: item.periferico?.endereco,
-             ambiente: item.periferico?.ambiente?.nome
-        }));
-      }
-    },
-    error: (err) => {
-      // Se der erro (CORS/Bloqueio), não faz nada. 
-      console.warn('Não foi possível carregar a lista automática. Usando manual.');
-    }
-  });
-}
+    this.painelService.listarPaineis().subscribe({
+      next: (lista) => {
+        // Se a API responder, atualiza com a lista completa e real.
+        if (lista && lista.length > 0) {
+          this.listaPaineis = lista.map((item: any) => ({
+            nome: item.nome,
+            identificador: item.periferico?.endereco,
+            ambiente: item.periferico?.ambiente?.nome,
+          }));
+        }
+      },
+      error: (err) => {
+        // Se der erro (CORS/Bloqueio), não faz nada.
+        console.warn(
+          'Não foi possível carregar a lista automática. Usando manual.',
+        );
+      },
+    });
+  }
 
   iniciarAtualizacaoAutomatica(): void {
     const frequenciaMs = 2000;
 
     const ipDaUrl = this.route.snapshot.queryParamMap.get('ip');
 
-    // Tenta pegar o IP de variáveis comuns. Se sua variável tiver outro nome, ajuste aqui.
-    // O (this as any) permite acessar propriedades dinâmicas para evitar erro se o nome variar.
     const cenario =
       (this as any).cenario ||
       (this as any).cenarioParaExibir ||
@@ -252,7 +259,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
     if (!ipParaConectar) return;
 
-    console.log(`Conectando ao painel (Modo Editor): ${ipParaConectar}...`);
+    console.log(`Conectando ao painel modo editor: ${ipParaConectar}...`);
     if (this.atualizacaoSubscription) {
       this.atualizacaoSubscription.unsubscribe();
     }
@@ -286,93 +293,113 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   private atualizarDadosNaTela(dadosApi: any) {
     if (!dadosApi) return;
 
-    // 1. Título e Subtítulo
+    // No editor a API só serve para pré-visualizar textos reais.
+    // A visibilidade (`visible`) é decisão de quem monta o cenário e NÃO é alterada aqui;
+    // quem esconde o que não se aplica em cada momento é o display, em tempo real.
+    const achar = (tipo: string) =>
+      this.cenarioAtual.componentes.find((c) => c.tipo === tipo);
+
     const componenteTitulo = this.cenarioAtual.componentes.find(
-      (c) => c.tipo === 'titulo'
+      (c) => c.tipo === 'titulo' && c.id !== 'data-atual',
     );
     if (componenteTitulo) {
-      componenteTitulo.dados.texto =
-        dadosApi.nomeReuniao || dadosApi.nomeCliente || 'Sem Título';
+      componenteTitulo.dados = {
+        ...componenteTitulo.dados,
+        texto: dadosApi.nomeReuniao || dadosApi.nomeCliente || 'Sem Título',
+      };
     }
 
-    const componenteSubtitulo = this.cenarioAtual.componentes.find(
-      (c) => c.tipo === 'subtitulo'
-    );
+    const componenteSubtitulo = achar('subtitulo');
     if (componenteSubtitulo) {
-      componenteSubtitulo.dados.texto = dadosApi.categoriaReuniao || '';
+      componenteSubtitulo.dados = {
+        ...componenteSubtitulo.dados,
+        texto:
+          dadosApi.votacao?.nome ||
+          dadosApi.categoriaReuniao ||
+          componenteSubtitulo.dados?.texto ||
+          '',
+      };
     }
 
-    const componenteDescricao = this.cenarioAtual.componentes.find(
-      (c) => c.tipo === 'descricao'
-    );
-    if (componenteDescricao && dadosApi.statusReuniao) {
-      componenteDescricao.dados.texto = dadosApi.statusReuniao;
+    const componenteDescricao = achar('descricao');
+    if (componenteDescricao) {
+      const texto = dadosApi.votacao?.ementa || dadosApi.statusReuniao;
+      if (texto) {
+        componenteDescricao.dados = { ...componenteDescricao.dados, texto };
+      }
     }
 
-    const componenteOrador = this.cenarioAtual.componentes.find(
-      (c) => c.tipo === 'orador'
-    );
+    if (dadosApi.tribuna) {
+      const tribuna = dadosApi.tribuna;
 
-    if (componenteOrador) {
-      if (dadosApi.tribuna) {
-        componenteOrador.visible = true;
-        componenteOrador.dados.orador =
-          dadosApi.tribuna.nomeParlamentar || dadosApi.tribuna.nome;
-        componenteOrador.dados.partido = dadosApi.tribuna.partido;
+      const componenteOrador = achar('orador');
+      if (componenteOrador) {
+        componenteOrador.dados = {
+          ...componenteOrador.dados,
+          orador: tribuna.nomeParlamentar || tribuna.nome || tribuna.orador,
+          partido: tribuna.partido,
+        };
+      }
 
-        const componenteMateria = this.cenarioAtual.componentes.find(
-          (c) => c.tipo === 'materia'
-        );
-        if (componenteMateria) {
-          componenteMateria.visible = true;
+      const componentePartido = achar('partido');
+      if (componentePartido && tribuna.partido) {
+        componentePartido.dados = {
+          ...componentePartido.dados,
+          partido: tribuna.partido,
+        };
+      }
+
+      const componenteMateria = achar('materia');
+      if (componenteMateria) {
+        componenteMateria.dados = {
+          ...componenteMateria.dados,
+          materia: tribuna.materia || componenteMateria.dados?.materia,
+          ementa: dadosApi.votacao?.ementa || '',
+        };
+      }
+    }
+
+    // Mesma leitura do display: a API pode mandar `presencas` como objeto único (não só lista)
+    const membros = this.extrairMembros(dadosApi);
+    if (membros.length > 0) {
+      const componentesParlamentar = this.cenarioAtual.componentes.filter(
+        (c) => c.tipo === 'parlamentar',
+      );
+
+      componentesParlamentar.forEach((comp, index) => {
+        const membro = membros[index];
+        const dadosReais = membro?.titular || membro;
+
+        // Slots além do total real continuam mostrando o exemplo, para o layout seguir visível
+        if (dadosReais && dadosReais.nome) {
+          comp.dados = {
+            ...comp.dados,
+            nome: dadosReais.nome,
+            partido: dadosReais.partido,
+            voto: dadosReais.voto,
+          };
         }
-      } else {
-        componenteOrador.visible = false;
-
-        const componenteMateria = this.cenarioAtual.componentes.find(
-          (c) => c.tipo === 'materia'
-        );
-        if (componenteMateria) componenteMateria.visible = false;
-
-        const componentePartido = this.cenarioAtual.componentes.find(
-          (c) => c.tipo === 'partido'
-        );
-        if (componentePartido) componentePartido.visible = false;
-      }
-    }
-
-    if (
-      dadosApi.parlamentares &&
-      Array.isArray(dadosApi.parlamentares.presencas) &&
-      dadosApi.parlamentares.presencas.length > 0
-    ) {
-      const listaMembros = dadosApi.parlamentares.presencas[0].membros;
-
-      if (Array.isArray(listaMembros)) {
-        const componentesParlamentar = this.cenarioAtual.componentes.filter(
-          (c) => c.tipo === 'parlamentar'
-        );
-
-        componentesParlamentar.forEach((comp, index) => {
-          const membroApi = listaMembros[index];
-
-          const dadosReais = membroApi ? membroApi.titular : null;
-
-          if (dadosReais) {
-            comp.visible = true;
-            comp.dados.nome = dadosReais.nome;
-            comp.dados.partido = dadosReais.partido;
-            comp.dados.voto = dadosReais.voto;
-          } else {
-            comp.visible = false;
-          }
-        });
-      }
+      });
     }
 
     // Atualiza a tela
     this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
     this.componentes.set(this.cenarioAtual.componentes);
+  }
+
+  /** Lista de membros vinda da API, aceitando as variações de formato que o display já trata. */
+  private extrairMembros(dadosApi: any): any[] {
+    const pData = dadosApi?.parlamentares;
+    if (!pData) return [];
+
+    let cursor = pData.presencas;
+    if (Array.isArray(cursor)) cursor = cursor[0];
+    if (cursor && cursor.presencas) cursor = cursor.presencas;
+    if (!cursor || !cursor.membros) return [];
+
+    let lista = cursor.membros;
+    if (lista.membros) lista = lista.membros;
+    return Array.isArray(lista) ? lista : [lista];
   }
 
   updateScale() {
@@ -386,8 +413,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     this.scale = Math.min(scaleX, scaleY);
   }
 
-  ngAfterViewInit(): void {
-  }
+  ngAfterViewInit(): void {}
 
   ngOnDestroy() {
     if (this.routeSub) {
@@ -413,6 +439,18 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         this.redistribuirParlamentares(event.data);
         break;
 
+      case 'toggleVisible': {
+        const comp = event.component;
+        if (comp) {
+          comp.visible = event.data.visible;
+          // Ao mudar a visibilidade final, garante que o bloco continue aparecendo no editor
+          comp.ocultoNoEditor = false;
+          this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
+          this.dispararAutosave();
+        }
+        break;
+      }
+
       case 'loadLayout':
         let layoutFinal: ComponenteEditor[];
         if (Array.isArray(event.data)) {
@@ -426,7 +464,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
           layoutFinal = this.layoutExport.converterDoFormatoOriginal(
             event.data,
             tempParlamentaresMock,
-            this.votacaoMock
+            this.votacaoMock,
           );
         }
         this.cenarioAtual.componentes = layoutFinal;
@@ -445,10 +483,18 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
   redistribuirParlamentares(config: DistribuirConfig) {
     const componentesSemParlamentares = this.cenarioAtual.componentes.filter(
-      (c) => c.tipo !== 'parlamentar'
+      (c) => c.tipo !== 'parlamentar',
     );
 
-    const novosParlamentares = this.montarComponentesParlamentares(config);
+    // Se a configuração não informar o tamanho do item, mantém o dos parlamentares atuais
+    const atual = this.cenarioAtual.componentes.find(
+      (c) => c.tipo === 'parlamentar',
+    );
+    const novosParlamentares = this.montarComponentesParlamentares({
+      ...config,
+      larguraItem: config.larguraItem ?? atual?.width,
+      alturaItem: config.alturaItem ?? atual?.height,
+    });
 
     this.cenarioAtual.componentes = [
       ...componentesSemParlamentares,
@@ -462,12 +508,12 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
     console.log(
       `Item: ${itemArrastado.id}, Nova Posição: X=${Math.round(
-        novaPosicao.x
-      )}, Y=${Math.round(novaPosicao.y)}`
+        novaPosicao.x,
+      )}, Y=${Math.round(novaPosicao.y)}`,
     );
 
     const index = this.cenarioAtual.componentes.findIndex(
-      (c) => c.id === itemArrastado.id
+      (c) => c.id === itemArrastado.id,
     );
     if (index !== -1) {
       this.cenarioAtual.componentes[index].x = Math.round(novaPosicao.x);
@@ -475,6 +521,53 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
       this.dispararAutosave();
     }
+  }
+
+  private redimensionando: {
+    item: ComponenteEditor;
+    x0: number;
+    y0: number;
+    largura0: number;
+    altura0: number;
+  } | null = null;
+
+  iniciarRedimensionar(event: MouseEvent, item: ComponenteEditor): void {
+    event.stopPropagation(); // não deixa o arrastar (cdkDrag) começar
+    event.preventDefault();
+    this.redimensionando = {
+      item,
+      x0: event.clientX,
+      y0: event.clientY,
+      largura0: item.width,
+      altura0: item.height,
+    };
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  aoMoverMouse(event: MouseEvent): void {
+    const r = this.redimensionando;
+    if (!r) return;
+
+    // Não deixa passar da borda do cenário
+    const larguraMax = this.cenarioAtual.targetWidth - r.item.x;
+    const alturaMax = this.cenarioAtual.targetHeight - r.item.y;
+
+    r.item.width = Math.min(
+      Math.max(20, Math.round(r.largura0 + (event.clientX - r.x0))),
+      larguraMax,
+    );
+    r.item.height = Math.min(
+      Math.max(20, Math.round(r.altura0 + (event.clientY - r.y0))),
+      alturaMax,
+    );
+  }
+
+  @HostListener('document:mouseup')
+  aoSoltarMouse(): void {
+    if (!this.redimensionando) return;
+    this.redimensionando = null;
+    this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
+    this.dispararAutosave();
   }
 
   onRightClick(event: MouseEvent, component: ComponenteEditor) {
@@ -495,146 +588,223 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       .replace(/\-\-+/g, '-');
   }
 
-private montarLayoutInicial(): Cenario {
-    const larguraTela = 1660;
+  private montarLayoutInicial(): Cenario {
+    const larguraTela = 1920;
     const alturaTela = 1080;
-
-    // --- CONFIGURAÇÃO DE ESTILO ---
-    const defaultFont: FontConfig = {
-      family: 'Arial, sans-serif',
-      size: 20,
-      color: '#FFFFFF',
-      weight: 'bold',
-    };
 
     const corVerde = '#00FF00';
     const corVermelha = '#FF0000';
     const corAmarela = '#FFFF00';
-    const corCiano = '#00FFFF';
-    const corRoxa = '#AA00FF';
 
-    // --- VARIÁVEIS DE POSICIONAMENTO GERAL ---
-    const xMargemEsquerda = 80;
-    const yBlocoCentral = 350; 
-    
-    // Variáveis Status
-    const xPlacar = xMargemEsquerda;
-    const xStatus = xPlacar + 320; 
-    const yStatusBase = yBlocoCentral; 
-    const wStatus = 250;
-    const hStatus = 45;
-    const fontSizeStatus = 22;
+    const xTexto = 36;
+    const wTexto = 863;
 
-    const xImagem = 800;         
-    const yImagem = 60;         
-    const larguraImagem = 800;   
-    const alturaImagem = 450;  
+    const xTabela = 29;
+    const wTabela = 486;
+    const hLinha = 90;
+    const yLinhas = [667, 761, 854, 949];
+
+    const texto = (
+      id: string,
+      tipo: ComponenteEditor['tipo'],
+      y: number,
+      height: number,
+      visible: boolean,
+      dados: any,
+    ): ComponenteEditor => ({
+      id,
+      tipo,
+      x: xTexto,
+      y,
+      width: wTexto,
+      height,
+      visible,
+      dados,
+    });
+
+    const linhaTabela = (
+      id: string,
+      tipo: 'votacao-item' | 'status-item',
+      linha: number,
+      label: string,
+      cor: string,
+      visible: boolean,
+    ): ComponenteEditor => ({
+      id,
+      tipo,
+      x: xTabela,
+      y: yLinhas[linha],
+      width: wTabela,
+      height: hLinha,
+      visible,
+      props: { label, valor: 0, cor },
+    });
+
+    const componentes: ComponenteEditor[] = [
+      texto('titulo', 'titulo', 257, 72, true, { texto: 'Nome da Reunião' }),
+      texto('subtitulo', 'subtitulo', 331, 64, true, {
+        texto: 'Matéria em Votação',
+      }),
+      texto('descricao', 'descricao', 396, 197, true, {
+        texto:
+          'Ementa da matéria em votação. Este texto é só um exemplo para o editor.',
+      }),
+      texto('resultado-votacao', 'resultado-votacao', 594, 70, true, {
+        texto: 'Resultado da Votação',
+      }),
+
+      linhaTabela('voto-sim', 'votacao-item', 0, 'SIM', corVerde, true),
+      linhaTabela('voto-nao', 'votacao-item', 1, 'NÃO', corVermelha, true),
+      linhaTabela(
+        'voto-abstencao',
+        'votacao-item',
+        2,
+        'ABSTENÇÃO',
+        corAmarela,
+        true,
+      ),
+      linhaTabela(
+        'status-presentes',
+        'status-item',
+        3,
+        'PRESENTES',
+        '#FFFFFF',
+        true,
+      ),
+
+      {
+        id: 'temporizador-1',
+        tipo: 'temporizador-item',
+        x: 598,
+        y: 718,
+        width: 250,
+        height: 86,
+        props: { tempo: '00:00:00' },
+        visible: true,
+      },
+      {
+        id: 'temporizador-2',
+        tipo: 'temporizador-item',
+        x: 598,
+        y: 816,
+        width: 250,
+        height: 86,
+        props: { tempo: '00:00:00' },
+        visible: true,
+      },
+      {
+        id: 'relogio-sistema',
+        tipo: 'relogio',
+        x: 598,
+        y: 917,
+        width: 250,
+        height: 86,
+        visible: true,
+      },
 
 
-    // Cabeçalho
-    const cabecalho: ComponenteEditor = {
-      id: 'cabecalho', tipo: 'cabecalho', x: xMargemEsquerda, y: 60, width: 600, height: 60, visible: true,
-    };
+      linhaTabela('status-votos', 'status-item', 0, 'VOTOS', '#FFFFFF', false),
+      linhaTabela(
+        'status-ausentes',
+        'status-item',
+        1,
+        'AUSENTES',
+        '#FFFFFF',
+        false,
+      ),
+      linhaTabela(
+        'status-licenciados',
+        'status-item',
+        2,
+        'LICENCIADOS',
+        '#FFFFFF',
+        false,
+      ),
+      linhaTabela(
+        'status-quorum',
+        'status-item',
+        3,
+        'QUORUM',
+        '#FFFFFF',
+        false,
+      ),
+      linhaTabela(
+        'status-obstrucao',
+        'status-item',
+        3,
+        'OBSTRUÇÃO',
+        '#FFFFFF',
+        false,
+      ),
+      linhaTabela('status-parlamentares', 'status-item', 0, 'PARLAMENTARES', '#FFFFFF', false),
+      linhaTabela('status-extras', 'status-item', 1, 'EXTRA', '#389cc7', false),
+      linhaTabela('status-presencas-locais', 'status-item', 2, 'PLENÁRIO', '#FFFFFF', false),
+      linhaTabela('status-presencas-web', 'status-item', 3, 'VIRTUAL', '#FFFFFF', false),
+      linhaTabela('voto-branco', 'votacao-item', 2, 'BRANCO', '#FFFFFF', false),
+      { id: 'turno-votacao-principal', tipo: 'turno-votacao', x: xTexto, y: 675, width: wTexto,
+        height: 50, visible: false, dados: { texto: '1º Turno' } },
+      { id: 'modo-votacao-principal', tipo: 'modo-votacao', x: xTexto, y: 735, width: wTexto,
+        height: 50, visible: false, dados: { texto: 'Modo de Votação' } },
+      { id: 'parametro-votacao-principal', tipo: 'parametro-votacao', x: xTexto, y: 795, width: wTexto,
+        height: 50, visible: false, dados: { texto: 'Parâmetro de Votação' } },
+      { id: 'categoria-reuniao-principal', tipo: 'categoria-reuniao', x: xTexto, y: 855, width: wTexto,
+        height: 50, visible: false, dados: { texto: 'Categoria da Reunião' } },
 
-    // Títulos
-    const xTitulos = xMargemEsquerda + 50;
-    const titulo: ComponenteEditor = {
-      id: 'titulo', tipo: 'titulo', x: xTitulos, y: 140, width: 500, height: 40, visible: true, dados: { texto: 'Título da Reunião' }, fontes: [{ subId: 'titulo-texto', label: 'Título', font: { ...defaultFont, size: 36 } }],
-    };
-    const subtitulo: ComponenteEditor = {
-      id: 'subtitulo', tipo: 'subtitulo', x: xTitulos, y: 190, width: 500, height: 30, visible: true, dados: { texto: 'Subtítulo da Reunião' }, fontes: [{ subId: 'subtitulo-texto', label: 'Subtítulo', font: { ...defaultFont, size: 24 } }],
-    };
-    const descricao: ComponenteEditor = {
-      id: 'descricao', tipo: 'descricao', x: xTitulos, y: 230, width: 500, height: 40, dados: { texto: 'Status da Reunião' }, fontes: [{ subId: 'desc-texto', label: 'Texto', font: { ...defaultFont, size: 16, weight: 'normal' } }], visible: true,
-    };
+      texto('orador-principal', 'orador', 331, 64, false, {
+        orador: 'Nome do Orador',
+      }),
+      texto('partido-principal', 'partido', 395, 40, false, {
+        partido: 'PARTIDO',
+      }),
+      texto('materia-principal', 'materia', 440, 150, false, {
+        materia: 'Tema em Discussão',
+      }),
 
-    // --- PLACAR ESQUERDA ---
-    const gapPlacar = 50;
-    const votacaoSim: ComponenteEditor = { id: 'voto-sim', tipo: 'votacao-item', x: xPlacar, y: yBlocoCentral, width: 280, height: 45, props: { label: 'SIM', cor: corVerde, valor: 0, fontSize: 32 }, visible: true };
-    const votacaoNao: ComponenteEditor = { id: 'voto-nao', tipo: 'votacao-item', x: xPlacar, y: yBlocoCentral + gapPlacar, width: 280, height: 45, props: { label: 'NÃO', cor: corVermelha, valor: 0, fontSize: 32 }, visible: true };
-    const votacaoAbstencao: ComponenteEditor = { id: 'voto-abstencao', tipo: 'votacao-item', x: xPlacar, y: yBlocoCentral + (gapPlacar * 2), width: 280, height: 45, props: { label: 'ABSTENÇÃO', cor: corAmarela, valor: 0, fontSize: 32 }, visible: true };
+      texto('mensagem-principal', 'mensagem', 594, 70, false, {
+        texto: 'Mensagem',
+      }),
+      {
+        id: 'data-atual',
+        tipo: 'titulo',
+        x: 640,
+        y: 200,
+        width: 259,
+        height: 50,
+        visible: false,
+        dados: { texto: 'DD/MM/AAAA' },
+      },
 
-    // --- STATUS DIREITA ---
-    const statusPresentes: ComponenteEditor = { id: 'status-presentes', tipo: 'status-item', x: xStatus, y: yStatusBase, width: wStatus, height: hStatus, visible: true, props: { label: 'PRESENTES', valor: 0, cor: '#FFFFFF', fontSize: fontSizeStatus } };
-    const statusVotos: ComponenteEditor = { id: 'status-votos', tipo: 'status-item', x: xStatus, y: yStatusBase + 55, width: wStatus, height: hStatus, visible: true, props: { label: 'VOTOS', valor: 0, cor: '#FFFFFF', fontSize: fontSizeStatus } };
-    const statusAusentes: ComponenteEditor = { id: 'status-ausentes', tipo: 'status-item', x: xStatus, y: yStatusBase + 110, width: wStatus, height: hStatus, visible: true, props: { label: 'AUSENTES', valor: 0, cor: '#FFFFFF', fontSize: fontSizeStatus } };
-    
-    const statusQuorum: ComponenteEditor = { id: 'status-quorum', tipo: 'status-item', x: xStatus, y: yStatusBase + 160, width: wStatus, height: hStatus, visible: false, props: { label: 'QUORUM', valor: 0 } };
-    const statusLicenciados: ComponenteEditor = { id: 'status-licenciados', tipo: 'status-item', x: xStatus, y: yStatusBase + 200, width: wStatus, height: hStatus, visible: false, props: { label: 'LICENCIADOS', valor: 0 } };
-    const statusObstrucao: ComponenteEditor = { id: 'status-obstrucao', tipo: 'status-item', x: xStatus, y: yStatusBase + 240, width: wStatus, height: hStatus, visible: false, props: { label: 'OBSTRUÇÃO', valor: 0 } };
-
-    // --- RODAPÉ / RELÓGIOS ---
-    const yRelogios = 650;
-    const relogioSistema: ComponenteEditor = { id: 'relogio-sistema', tipo: 'relogio', x: xMargemEsquerda + 350, y: yRelogios, width: 200, height: 60, visible: true };
-    const temporizadores: ComponenteEditor[] = [
-      { id: 'temporizador-1', tipo: 'temporizador-item', x: xMargemEsquerda, y: yRelogios, width: 200, height: 60, props: { tempo: '00:00:00' }, visible: true },
-      { id: 'temporizador-2', tipo: 'temporizador-item', x: xMargemEsquerda + 180, y: yRelogios, width: 200, height: 60, props: { tempo: '00:00:00' }, visible: true }
+      {
+        id: 'cabecalho',
+        tipo: 'cabecalho',
+        x: xTexto,
+        y: 60,
+        width: 480,
+        height: 60,
+        visible: false,
+      },
     ];
-    const dataAtual: ComponenteEditor = { id: 'data-atual', tipo: 'titulo', x: xMargemEsquerda + 350, y: yRelogios - 40, width: 200, height: 40, visible: true, dados: { texto: 'DD/MM/AAAA' } };
-    
-    // --- MULTIMÍDIA E ORADORES  ---
-    
-    const multimidia: ComponenteEditor = { 
-        id: 'multimidia-principal', 
-        tipo: 'multimidia', 
-        x: xImagem, 
-        y: yImagem, 
-        width: larguraImagem, 
-        height: alturaImagem, 
-        visible: true, 
-        dados: { label: '' } 
-    };
 
-    const orador: ComponenteEditor = { 
-        id: 'orador-principal', 
-        tipo: 'orador', 
-        x: xImagem + 100, 
-        y: yImagem + alturaImagem + 20,
-        width: 600, 
-        height: 60, 
-        visible: true, 
-        dados: { orador: 'Nome do Orador' } 
-    };
+    componentes.forEach((c) => {
+      if (!c.visible) c.ocultoNoEditor = true;
+    });
 
-    const partido: ComponenteEditor = { 
-        id: 'partido-principal', 
-        tipo: 'partido', 
-        x: xImagem + 100, 
-        y: yImagem + alturaImagem + 70, 
-        width: 600, 
-        height: 40, 
-        visible: true, 
-        dados: { partido: 'PARTIDO' } 
-    };
-
-    const materia: ComponenteEditor = { 
-        id: 'materia-principal', 
-        tipo: 'materia', 
-        x: xImagem + 100, 
-        y: yImagem + alturaImagem + 110, 
-        width: 600, 
-        height: 100, 
-        visible: true, 
-        dados: { materia: 'Tema em Discussão...' } 
-    };
-
-    const resultadoVotacao: ComponenteEditor = { id: 'resultado-votacao', tipo: 'resultado-votacao', x: xTitulos + 100, y: yRelogios + 80, width: 400, height: 50, visible: true, dados: { texto: 'Resultado da Votação' } };
-    const mensagem: ComponenteEditor = { id: 'mensagem-principal', tipo: 'mensagem', x: 1300, y: 800, width: 300, height: 50, visible: true, dados: { texto: 'Mensagem' } };
-
-    // Lista Parlamentares
-    const configParlamentares: DistribuirConfig = { qtdePorColuna: 8, qntTotal: 14, espacamentoVertical: 45, espacamentoHorizontal: 10, margemSuperior: 0, margemEsquerda: 0, exibirDe: 0, exibirAte: 0, offsetInicial: 0, posicaoX: 800, posicaoY: 750 };
-    const parlamentares = this.montarComponentesParlamentares(configParlamentares);
-
-    // LISTA FINAL
-    const componentesIniciais = [
-      multimidia, cabecalho, titulo, subtitulo, descricao,
-      relogioSistema, ...temporizadores, dataAtual,
-      statusPresentes, statusVotos, statusAusentes, 
-      statusQuorum, statusLicenciados, statusObstrucao, 
-      votacaoSim, votacaoNao, votacaoAbstencao, resultadoVotacao,
-      orador, partido, materia, mensagem,
-      ...parlamentares
-    ];
+  
+    const parlamentares = this.montarComponentesParlamentares({
+      qtdePorColuna: 14,
+      qntTotal: 14,
+      espacamentoVertical: 10,
+      espacamentoHorizontal: 10,
+      margemSuperior: 0,
+      margemEsquerda: 0,
+      exibirDe: 0,
+      exibirAte: 0,
+      offsetInicial: 0,
+      posicaoX: 920,
+      posicaoY: 20,
+      larguraItem: 940,
+      alturaItem: 65,
+    });
 
     const nomePadrao = 'Cenário Padrão Visual';
     return {
@@ -643,15 +813,15 @@ private montarLayoutInicial(): Cenario {
       targetWidth: larguraTela,
       targetHeight: alturaTela,
       backgroundImage: '',
-      componentes: componentesIniciais,
+      componentes: [...componentes, ...parlamentares],
       idPainel: '15',
       slug: this.gerarSlug(nomePadrao),
+      fontes: this.fonteService.obterGruposPadraoVisual(),
     };
   }
 
-
   private montarComponentesParlamentares(
-    config: DistribuirConfig
+    config: DistribuirConfig,
   ): ComponenteEditor[] {
     const itensPorColuna = config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
     const totalDeParlamentares = config.qntTotal;
@@ -662,15 +832,17 @@ private montarLayoutInicial(): Cenario {
         nome: `Parlamentar ${i + 1}`,
         partido: 'PART',
         voto: '-',
-      })
+        status: 'PRESENTE',
+        cor: '#00FF00',
+      }),
     );
 
     if (parlamentaresDeExemplo.length === 0) {
       return [];
     }
 
-    const larguraItem = 608;
-    const alturaItem = 20;
+    const larguraItem = config.larguraItem ?? 608;
+    const alturaItem = config.alturaItem ?? 20;
 
     return parlamentaresDeExemplo.map((parlamentar, i) => {
       const colunaAtual = Math.floor(i / itensPorColuna);
@@ -702,65 +874,89 @@ private montarLayoutInicial(): Cenario {
   }
 
   async salvar() {
-    const nomeCenario = prompt(
-      'Digite um nome para o cenário:',
-      this.cenarioAtual.nome || 'novo-cenario'
+    console.log(
+      '%c[SALVAR] Método iniciado',
+      'color: cyan; font-weight: bold;',
     );
 
+    const nomeCenario = prompt(
+      'Digite um nome para o cenário:',
+      this.cenarioAtual.nome || 'novo-cenario',
+    );
+
+    console.log('[SALVAR] Nome digitado:', nomeCenario);
+
     if (!nomeCenario) {
+      console.log('[SALVAR] Nome vazio, abortando.');
       return;
     }
 
     this.cenarioAtual.nome = nomeCenario;
+    // Guarda as fontes junto do cenário, para o display usar as mesmas do editor
+    this.cenarioAtual.fontes = structuredClone(this.fonteService.grupos());
 
     this.cenarioAtual.slug = this.gerarSlug(nomeCenario);
 
+    if (!this.cenarioAtual.id) {
+      this.cenarioAtual.id = `cenario_${Date.now()}`;
+    }
+
+    console.log(
+      '[SALVAR] Prosseguindo, isEditingMode:',
+      this.isEditingMode,
+      'imagemFundoAtual:',
+      this.imagemFundoAtual,
+    );
+
     if (this.imagemFundoAtual) {
-      if (!this.cenarioAtual.id) {
-        this.cenarioAtual.id = `cenario_${Date.now()}`;
-      }
-
-      this.cenarioAtual.imagemFundoId = this.cenarioAtual.id;
-
       try {
-        console.log(`Salvando imagem com ID: ${this.cenarioAtual.id}`);
-        await this.imagemStorageService.salvarImagem(
-          this.cenarioAtual.id,
-          this.imagemFundoAtual
-        );
+        console.log(`Salvando imagem de fundo: ${this.imagemFundoAtual.name}`);
+        const idImagem = await new Promise<number>((resolve, reject) => {
+          this.imagemStorageService
+            .salvarImagem(this.imagemFundoAtual!)
+            .subscribe({
+              next: resolve,
+              error: reject,
+            });
+        });
+        this.cenarioAtual.imagemFundoId = String(idImagem);
         this.imagemFundoAtual = null;
       } catch (err) {
         console.error('Falha ao salvar a imagem de fundo:', err);
         alert(
-          'Ocorreu um erro grave ao salvar a imagem de fundo. O cenário será salvo sem ela.'
+          'Ocorreu um erro grave ao salvar a imagem de fundo. O cenário será salvo sem ela.',
         );
         delete this.cenarioAtual.imagemFundoId;
       }
     }
 
     if (this.isEditingMode) {
-      try {
-        this.layoutService.salvarCenario(this.cenarioAtual);
-        alert(`Cenário "${nomeCenario}" atualizado com sucesso!`);
-      } catch (error) {
-        console.error('Falha ao atualizar o cenário:', error);
-        alert('Ocorreu um erro ao atualizar o cenário.');
-      }
+      console.log('[SALVAR] Chamando salvarCenario() (modo edição)...');
+      this.layoutService.salvarCenario(this.cenarioAtual).subscribe({
+        next: (cenarioSalvo) => {
+          console.log('[SALVAR] Sucesso! Cenário retornado:', cenarioSalvo);
+          this.cenarioAtual = cenarioSalvo;
+          alert(`Cenário "${nomeCenario}" atualizado com sucesso!`);
+        },
+        error: (error) => {
+          console.error('[SALVAR] Erro ao atualizar:', error);
+          alert('Ocorreu um erro ao atualizar o cenário.');
+        },
+      });
     } else {
-      try {
-        // A APIdeve gerar o ID e nos retornar
-        const novoId = `cenario_${Date.now()}`;
-        this.cenarioAtual.id = novoId;
-
-        this.layoutService.salvarCenario(this.cenarioAtual);
-
-        alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
-
-        this.router.navigate(['/editor', this.cenarioAtual.slug]);
-      } catch (error) {
-        console.error('Falha grave ao salvar o cenário:', error);
-        alert('Ocorreu um erro ao salvar o cenário.');
-      }
+      console.log('[SALVAR] Chamando salvarCenario() (novo cenário)...');
+      this.layoutService.salvarCenario(this.cenarioAtual).subscribe({
+        next: (cenarioSalvo) => {
+          console.log('[SALVAR] Sucesso! Cenário retornado:', cenarioSalvo);
+          this.cenarioAtual = cenarioSalvo;
+          alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
+          this.router.navigate(['/editor', this.cenarioAtual.slug]);
+        },
+        error: (error) => {
+          console.error('[SALVAR] Erro ao salvar:', error);
+          alert('Ocorreu um erro ao salvar o cenário.');
+        },
+      });
     }
   }
 

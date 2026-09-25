@@ -1,17 +1,27 @@
 <div class="painel-visibilidade">
   <h4>Controle de Visibilidade</h4>
   <div class="lista-componentes">
-    
-    @for(item of componentes; track item.id) {
+
+    <div class="item-controle item-todos">
+      <input
+        type="checkbox"
+        id="controle-vis-todos"
+        [checked]="todosMarcados"
+        (change)="onTodosChange($event)">
+      <label for="controle-vis-todos"><strong>Todos</strong></label>
+    </div>
+    <hr class="separador-todos">
+
+    @for (item of itens; track item.id) {
       <div class="item-controle">
-        <input 
-          type="checkbox" 
-          [id]="item.id" 
-          [checked]="item.visible" 
-          (change)="onVisibilityChange($event, item.id)">
-        <label [for]="item.id">{{ item.id }}</label>
+        <input
+          type="checkbox"
+          [id]="item.id"
+          [checked]="item.checked"
+          (change)="onItemChange(item, $event)">
+        <label [for]="item.id">{{ item.label }}</label>
       </div>
     }
-    
+
   </div>
 </div>

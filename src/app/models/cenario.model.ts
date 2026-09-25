@@ -12,4 +12,5 @@ export interface Cenario {
   idPainel: string;
   slug: string;
   fontes?: FonteGrupo[];
+  idBackend?: number;
 }

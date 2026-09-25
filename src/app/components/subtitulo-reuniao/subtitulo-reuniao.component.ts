@@ -23,7 +23,6 @@ export class SubtituloReuniaoComponent {
       const config = grupo?.subItens.find(
         (f) => f.subId === 'subtitulo-texto'
       )?.font;
-      console.log('FONTE DO SUBTÍTULO RECALCULADA:', config);
       return config;
     });
   }

@@ -5,6 +5,8 @@
 /tmp
 /out-tsc
 /bazel-out
+*.zip
+resultado.json
 
 # Node
 /node_modules

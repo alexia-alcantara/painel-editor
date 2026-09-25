@@ -7,8 +7,9 @@ export interface DadosParlamentar {
   nome: string;
   partido: string;
   voto: string;
-  status: 'PRESENTE' | 'AUSENTE' | string; 
-  cor: string; 
+  status: 'PRESENTE' | 'AUSENTE' | string;
+  presenca?: string; 
+  cor: string;
 }
 
 @Component({
@@ -27,37 +28,42 @@ export class ParlamentarItemComponent {
   constructor(private fonteService: FonteService) {}
 
   private get defaultFont(): FontConfig {
-  return { family: 'Inter, sans-serif', size: 18, color: '#FFFFFF' };
-}
-
-get fontNome(): FontConfig {
-  const fonte = this.fonteService.getFonteByTipo('parlamentar').find(f => f.subId === 'nome');
-  return fonte?.font || { ...this.defaultFont, weight: "500" };
-}
-
-get fontPartido(): FontConfig {
-  const fonte = this.fonteService.getFonteByTipo('parlamentar').find(f => f.subId === 'partido');
-  const baseFont = fonte?.font || { ...this.defaultFont, weight: "500" };
-
-  const limiteCaracteres = 7; // Se o nome tiver mais de 7 caracteres, a fonte diminui.
-  const fontSize = 11; // Novo tamanho da fonte para nomes longos.
-
-  if (this.parlamentar?.partido && this.parlamentar.partido.length > limiteCaracteres) {
-    return { ...baseFont, size: fontSize };
+    return { family: 'Inter, sans-serif', size: 18, color: '#FFFFFF' };
   }
 
-  return baseFont;
-}
+  get fontNome(): FontConfig {
+    const fonte = this.fonteService.getFonteByTipo('parlamentar').find((f) => f.subId === 'nome');
+    return fonte?.font || { ...this.defaultFont, weight: '500' };
+  }
 
-get fontVoto(): FontConfig {
-  const fonte = this.fonteService.getFonteByTipo('parlamentar').find(f => f.subId === 'voto');
-  return fonte?.font || { ...this.defaultFont, weight: "700" };
-}
+  get fontPartido(): FontConfig {
+    const fonte = this.fonteService.getFonteByTipo('parlamentar').find((f) => f.subId === 'partido');
+    return fonte?.font || { ...this.defaultFont, weight: '500' };
+  }
 
-//pegar a cor do voto na paleta
+
+  get tamanhoNome(): string {
+    const base = this.fontNome.size || 18;
+    const letras = (this.parlamentar?.nome || '').length || 1;
+    return `max(14px, min(${base}px, ${(100 / (letras * 0.72)).toFixed(2)}cqw))`;
+  }
+
+
+  get tamanhoPartido(): string {
+    const base = this.fontPartido.size || 18;
+    const letras = (this.parlamentar?.partido || 'PARTIDO').length;
+    return `min(${base}px, ${(100 / (letras * 0.75)).toFixed(2)}cqw)`;
+  }
+
+  get fontVoto(): FontConfig {
+    const fonte = this.fonteService.getFonteByTipo('parlamentar').find((f) => f.subId === 'voto');
+    return fonte?.font || { ...this.defaultFont, weight: '700' };
+  }
+
+  //pegar a cor do voto na paleta
   get corDoStatus(): string {
     if (this.parlamentar?.status === 'PRESENTE') {
-      return this.paleta['Cor_Presente'] || '#0bef26'; 
+      return this.paleta['Cor_Presente'] || '#0bef26';
     }
     if (this.parlamentar?.status === 'AUSENTE') {
       return this.paleta['Cor_Ausente'] || '#fb0909';

@@ -12,8 +12,6 @@ import { FonteService } from '../../services/fonte.service';
 })
 export class TituloReuniaoComponent {
   @Input() dados: { texto: string } | undefined;
-  @Input() width: number = 500;
-  @Input() height: number = 100;
 
   constructor(private fonteService: FonteService) {}
 

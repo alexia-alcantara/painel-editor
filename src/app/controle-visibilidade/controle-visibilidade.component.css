@@ -38,3 +38,8 @@
 .item-controle input {
     margin-right: 4px;
 }
+
+.separador-todos {
+  border-color: rgba(255, 255, 255, 0.15);
+  margin: 0 0 4px 0;
+}

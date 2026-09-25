@@ -20,6 +20,9 @@ export interface DistribuirConfig {
   offsetInicial: number;
   posicaoX: number;
   posicaoY: number;
+  // Tamanho de cada linha (opcional: se faltar, mantém o dos parlamentares atuais)
+  larguraItem?: number;
+  alturaItem?: number;
 }
 
 @Component({

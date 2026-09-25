@@ -11,7 +11,12 @@ export type ComponenteTipo =
   | 'temporizador-item'
   | 'votacao-item'
   | 'tribuna'
-  | 'resultado-votacao';
+  | 'resultado-votacao'
+  | 'resultado-votacao'
+  | 'turno-votacao'
+  | 'modo-votacao'
+  | 'parametro-votacao'
+  | 'categoria-reuniao';
 
 export interface FontConfig {
   family: string;

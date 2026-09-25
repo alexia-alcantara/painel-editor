@@ -1,0 +1,13 @@
+@if (dados) {
+<div class="w-full h-full flex items-center justify-center text-center">
+  <p class="m-0 leading-snug" [ngStyle]="{
+      'font-family': fontConfig.family,
+      'font-size.px': fontConfig.size,
+      'font-weight': fontConfig.weight,
+      'font-style': fontConfig.style,
+      'color': fontConfig.color
+    }">
+    {{ dados.texto }}
+  </p>
+</div>
+}
