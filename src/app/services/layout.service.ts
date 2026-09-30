@@ -1,3 +1,4 @@
+import { runtimeConfig } from '../config/runtime-config';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject, of } from 'rxjs';
@@ -34,9 +35,15 @@ interface PainelCenarioBackend {
 
 @Injectable({ providedIn: 'root' })
 export class LayoutService {
-  private readonly BASE_URL = 'http://localhost:8443';
-  private readonly API_URL = `${this.BASE_URL}/painelcenario`;
-  private readonly TIPO_PAINEL_URL = `${this.BASE_URL}/tipoPainel`;
+  private get BASE_URL(): string {
+    return runtimeConfig.backendUrl;
+  }
+  private get API_URL(): string {
+    return `${this.BASE_URL}/painelcenario`;
+  }
+  private get TIPO_PAINEL_URL(): string {
+    return `${this.BASE_URL}/tipoPainel`;
+  }
 
   private cenariosAtualizados = new Subject<Cenario[]>();
   cenarios$ = this.cenariosAtualizados.asObservable();

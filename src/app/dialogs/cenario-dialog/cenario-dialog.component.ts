@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { Component, Inject, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -34,7 +34,8 @@ export class CenarioDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: { layoutAtual: ComponenteEditor[] },
     private layoutService: LayoutService,
     private layoutExportService: LayoutExportService,
-    private router: Router
+    private router: Router,
+    private location: Location
   ) {}
 
   ngOnInit(): void {
@@ -63,7 +64,7 @@ export class CenarioDialogComponent implements OnInit {
       const url = this.router.serializeUrl(
         this.router.createUrlTree(['/display', identificadorUrl])
       );
-      window.open(url, '_blank');
+            window.open(this.location.prepareExternalUrl(url), '_blank');
       this.dialogRef.close();
     } else {
       alert('Não foi possível carregar o cenário pois o slug/id não foi encontrado.');

@@ -1,3 +1,4 @@
+import { runtimeConfig } from '../config/runtime-config';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, from, of } from 'rxjs';
@@ -20,7 +21,9 @@ interface ArquivoBackend {
   providedIn: 'root',
 })
 export class ImagemStorageService {
-  private readonly API_URL = 'http://localhost:8443/arquivo';
+  private get API_URL(): string {
+    return `${runtimeConfig.backendUrl}/arquivo`;
+  }
   private readonly CLASS_ARQUIVO = 'br.com.visual.legis.pojo.configuracao.Arquivo';
 
   constructor(private http: HttpClient) {}

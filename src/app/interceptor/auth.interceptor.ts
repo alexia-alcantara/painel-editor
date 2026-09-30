@@ -1,23 +1,36 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
-import { environment } from '../../environments/environment';
+import { runtimeConfig } from '../config/runtime-config';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  if (!req.url.startsWith(environment.backendUrl)) {
+  const backendUrl = runtimeConfig.backendUrl;
+
+  if (!backendUrl || !req.url.startsWith(backendUrl)) {
     return next(req);
   }
 
   const authService = inject(AuthService);
-  const token = authService.getToken();
 
-  if (!token) {
+  if (authService.ehUrlDeLogin(req.url)) {
     return next(req);
   }
 
-  const reqComToken = req.clone({
-    setHeaders: { Authorization: token },
-  });
+  const comToken = (r: HttpRequest<unknown>) => {
+    const token = authService.getToken();
+    return token ? r.clone({ setHeaders: { Authorization: token } }) : r;
+  };
 
-  return next(reqComToken);
+  return next(comToken(req)).pipe(
+    catchError((err: HttpErrorResponse) => {
+      if (err.status === 401) {
+        console.warn('Tentando login automático..');
+        return authService.login().pipe(
+          switchMap((ok) => (ok ? next(comToken(req)) : throwError(() => err)))
+        );
+      }
+      return throwError(() => err);
+    })
+  );
 };

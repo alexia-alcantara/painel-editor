@@ -1,29 +1,51 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { map, catchError, tap } from 'rxjs/operators';
-import { environment } from '../../environments/environment';
+import { map, catchError, finalize, shareReplay } from 'rxjs/operators';
+import { runtimeConfig } from '../config/runtime-config';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly LOGIN_URL = `${environment.backendUrl}/login`;
-
   private token: string | null = null;
+  private loginEmAndamento$: Observable<boolean> | null = null;
 
   constructor(private http: HttpClient) {}
+
+  private get loginUrl(): string {
+    return `${runtimeConfig.backendUrl}/login`;
+  }
 
   getToken(): string | null {
     return this.token;
   }
 
+  estaAutenticado(): boolean {
+    return !!this.token;
+  }
+
+  ehUrlDeLogin(url: string): boolean {
+    return url === this.loginUrl;
+  }
+
+
   login(): Observable<boolean> {
+    if (this.loginEmAndamento$) {
+      return this.loginEmAndamento$;
+    }
+
+    if (!runtimeConfig.backendUrl || !runtimeConfig.authUsername || !runtimeConfig.authPassword) {
+      console.warn('[AUTH] backendUrl, usuário ou senha não configurados em assets/config.json.');
+      this.token = null;
+      return of(false);
+    }
+
     const body = {
-      username: environment.authUsername,
-      password: environment.authPassword,
+      username: runtimeConfig.authUsername,
+      password: runtimeConfig.authPassword,
       modo: 'MOBILE',
     };
 
-    return this.http.post(this.LOGIN_URL, body, { observe: 'response' }).pipe(
+    this.loginEmAndamento$ = this.http.post(this.loginUrl, body, { observe: 'response' }).pipe(
       map((resp) => {
         const token = resp.headers.get('Authorization') || resp.headers.get('authorization');
         if (token) {
@@ -32,12 +54,18 @@ export class AuthService {
           return true;
         }
         console.warn('[AUTH] Login retornou sem token no header Authorization.');
+        this.token = null;
         return false;
       }),
       catchError((err) => {
         console.error('[AUTH] Falha no login automático:', err);
+        this.token = null;
         return of(false);
-      })
+      }),
+      finalize(() => (this.loginEmAndamento$ = null)),
+      shareReplay(1)
     );
+
+    return this.loginEmAndamento$;
   }
 }

@@ -78,7 +78,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   private atualizacaoSubscription: Subscription | null = null;
   private ultimoIdCenarioTentado: string | null = null;
   private ultimoDadosJson: string = '';
-  private readonly PAINEL_IDENTIFICADOR = '15';
 
   paletaDeCores: any = {};
   private painelSubscription: Subscription | undefined;
@@ -102,7 +101,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         this.cenarioBase = cenario;
 
         if (this.cenarioBase) {
-          // Usa as fontes salvas no cenário (as mesmas que apareciam no editor)
           this.fonteService.carregarGrupos(this.cenarioBase.fontes);
           this.cenarioParaExibir = structuredClone(this.cenarioBase);
 
@@ -338,15 +336,13 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     } else {
       parlamentaresLayout.forEach((comp) => (comp.visible = false));
     }
-    // =========================================================================
 
     cenarioAtualizado.componentes.forEach((componente) => {
       if (componente.tipo !== 'parlamentar') {
         componente.visible = visibilidadeOriginal[componente.id] ?? false;
       }
 
-      // A data usa o tipo 'titulo' no editor; sem este desvio ela recebia o nome da reunião
-      // (título duplicado por cima do relógio).
+
       if (componente.id === 'data-atual') {
         componente.dados = { texto: new Date().toLocaleDateString('pt-BR') };
         return;

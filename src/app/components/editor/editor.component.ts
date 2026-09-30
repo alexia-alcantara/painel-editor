@@ -130,11 +130,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   scale = 1;
 
   private atualizacaoSubscription: Subscription | undefined;
-  listaPaineis: any[] = [
-    { nome: 'Alexia', identificador: '15', ambiente: 'PLENÁRIO' },
-    { nome: 'PC Michael', identificador: '01', ambiente: 'PLENÁRIO' },
-    { nome: 'Novo Vitor', identificador: '10.1.131.16', ambiente: 'PLENÁRIO' },
-  ];
+   listaPaineis: any[] = [];
 
   constructor(
     private layoutService: LayoutService,
@@ -814,7 +810,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       targetHeight: alturaTela,
       backgroundImage: '',
       componentes: [...componentes, ...parlamentares],
-      idPainel: '15',
+      idPainel: '',
       slug: this.gerarSlug(nomePadrao),
       fontes: this.fonteService.obterGruposPadraoVisual(),
     };
