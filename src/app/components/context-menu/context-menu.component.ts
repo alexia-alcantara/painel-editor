@@ -143,7 +143,7 @@ async ngOnInit() {
 
     const configSalva = this.layoutService.carregarConfigDistribuicao();
 
-    const configModal: DistribuirConfig = configSalva || {
+        const padrao: DistribuirConfig = {
       qtdePorColuna: 8,
       qntTotal: 16,
       espacamentoVertical: 50,
@@ -155,6 +155,12 @@ async ngOnInit() {
       offsetInicial: 0,
       posicaoX: 100,
       posicaoY: 100,
+    };
+
+    const configModal: DistribuirConfig = {
+      ...padrao,
+      ...(configSalva || {}),
+      ...this.lerDistribuicaoAtual(),
     };
 
     const dialogRef = this.dialog.open(DistribuirParlamentaresComponent, {
@@ -176,6 +182,41 @@ async ngOnInit() {
     this.close();
   }
 
+  private lerDistribuicaoAtual(): Partial<DistribuirConfig> {
+    const itens = (this.layoutCompleto || []).filter((c) => c.tipo === 'parlamentar');
+    if (!itens.length) return {};
+
+    const primeiro = itens[0];
+    const largura = Math.round(primeiro.width);
+    const altura = Math.round(primeiro.height);
+
+    const xsDistintos: number[] = [];
+    itens.forEach((c) => {
+      if (!xsDistintos.some((x) => Math.abs(x - c.x) <= 2)) xsDistintos.push(c.x);
+    });
+    xsDistintos.sort((a, b) => a - b);
+
+    const primeiraColuna = itens
+      .filter((c) => Math.abs(c.x - xsDistintos[0]) <= 2)
+      .sort((a, b) => a.y - b.y);
+
+    const resultado: Partial<DistribuirConfig> = {
+      qntTotal: itens.length,
+      qtdePorColuna: primeiraColuna.length,
+      posicaoX: Math.round(Math.min(...itens.map((c) => c.x))),
+      posicaoY: Math.round(Math.min(...itens.map((c) => c.y))),
+      larguraItem: largura,
+      alturaItem: altura,
+    };
+    if (primeiraColuna.length > 1) {
+      resultado.espacamentoVertical = Math.max(0, Math.round(primeiraColuna[1].y - primeiraColuna[0].y - altura));
+    }
+    if (xsDistintos.length > 1) {
+      resultado.espacamentoHorizontal = Math.max(0, Math.round(xsDistintos[1] - xsDistintos[0] - largura));
+    }
+    return resultado;
+  }
+
   open(
     event: MouseEvent, 
     item: ComponenteEditor | undefined, 
@@ -195,24 +236,27 @@ async ngOnInit() {
   this.activeComponent = item || null;
   this.layoutCompleto = layout;
 
-  setTimeout(() => {
+    setTimeout(() => {
     const OFFSET = 5;
+    const MARGEM = 8; // distância mínima das bordas da janela
     const menuElement = this.menuRef.nativeElement as HTMLElement;
     const menuHeight = menuElement.offsetHeight;
-    const windowHeight = window.innerHeight;
-    const clickY = event.clientY;
+    const menuWidth = menuElement.offsetWidth;
 
-    // 4. Calcula a posição Y final e correta.
-    if ((clickY + OFFSET + menuHeight) > windowHeight) {
-      this.y = clickY - menuHeight - OFFSET;
-    } else {
-      this.y = clickY + OFFSET;
+    let y = event.clientY + OFFSET;
+    if (y + menuHeight > window.innerHeight - MARGEM) {
+      y = event.clientY - menuHeight - OFFSET;
     }
+    y = Math.min(y, window.innerHeight - menuHeight - MARGEM);
+    this.y = Math.max(MARGEM, y);
 
-    this.x = event.clientX + OFFSET;
+    let x = event.clientX + OFFSET;
+    if (x + menuWidth > window.innerWidth - MARGEM) {
+      x = event.clientX - menuWidth - OFFSET;
+    }
+    this.x = Math.max(MARGEM, x);
 
     this.opacity = 1;
-
   }, 0);
 }
 

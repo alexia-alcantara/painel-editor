@@ -21,3 +21,7 @@ app-parlamentar-item {
   max-width: 100%;
 }
 
+
+.component-box {
+  overflow: hidden;
+}

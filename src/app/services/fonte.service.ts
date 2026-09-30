@@ -513,8 +513,28 @@ export class FonteService {
     },
   ];
 
+  private readonly GRUPOS_EXTRAS: FonteGrupo[] = [
+    {
+      tipo: 'autor',
+      label: 'Autor',
+      subItens: [
+        {
+          subId: 'texto',
+          label: 'Texto',
+          font: {
+            family: this.FAMILIA_PADRAO_VISUAL,
+            size: 22,
+            weight: '500',
+            color: '#FFFFFF',
+            style: 'normal',
+          },
+        },
+      ],
+    },
+  ];
+
   private _grupos = signal<FonteGrupo[]>(
-    structuredClone(this.VALORES_INICIAIS),
+        this.completarGrupos(structuredClone(this.VALORES_INICIAIS)),
   );
   public grupos = this._grupos.asReadonly();
 
@@ -547,24 +567,28 @@ export class FonteService {
     this._grupos.set(novosGrupos);
   }
 
-  obterGruposPadrao(): FonteGrupo[] {
-    return structuredClone(this.VALORES_INICIAIS);
+   obterGruposPadrao(): FonteGrupo[] {
+    return this.completarGrupos(structuredClone(this.VALORES_INICIAIS));
   }
 
-  /** Fontes do "Cenário Padrão Visual" (mesmos tamanhos do legado). */
   obterGruposPadraoVisual(): FonteGrupo[] {
-    return structuredClone(this.VALORES_PADRAO_VISUAL);
+      return this.completarGrupos(structuredClone(this.VALORES_PADRAO_VISUAL));
   }
 
-  /**
-   * Aplica as fontes salvas dentro do cenário. Cenários antigos (sem `fontes`)
-   * continuam com os valores iniciais de sempre.
-   */
-  carregarGrupos(fontes?: FonteGrupo[] | null): void {
+
+   carregarGrupos(fontes?: FonteGrupo[] | null): void {
     this._grupos.set(
-      fontes && fontes.length
-        ? structuredClone(fontes)
-        : structuredClone(this.VALORES_INICIAIS),
+      this.completarGrupos(
+        fontes && fontes.length
+          ? structuredClone(fontes)
+          : structuredClone(this.VALORES_INICIAIS),
+      ),
     );
+  }
+
+  private completarGrupos(grupos: FonteGrupo[]): FonteGrupo[] {
+    const tiposExistentes = new Set(grupos.map((g) => g.tipo));
+    const faltando = this.GRUPOS_EXTRAS.filter((g) => !tiposExistentes.has(g.tipo));
+    return [...grupos, ...structuredClone(faltando)];
   }
 }

@@ -1,42 +1,60 @@
 @if (cenarioAtual) {
 <div class="config-panel bg-gray-800 text-white p-4 flex gap-4 items-center">
-  <input type="text" [(ngModel)]="cenarioAtual.nome" placeholder="Nome do Cenário" 
+  <input type="text" [(ngModel)]="cenarioAtual.nome" placeholder="Nome do Cenário"
     class="bg-gray-700 p-2 rounded border border-gray-600 focus:border-blue-500 outline-none">
 
   <div class="flex items-center gap-2">
     <label class="text-sm text-gray-400">Largura:</label>
-    <input type="number" [(ngModel)]="cenarioAtual.targetWidth" 
+    <input type="number" [(ngModel)]="cenarioAtual.targetWidth"
       class="bg-gray-700 p-2 rounded w-20 text-center border border-gray-600">
   </div>
 
   <div class="flex items-center gap-2">
     <label class="text-sm text-gray-400">Altura:</label>
-    <input type="number" [(ngModel)]="cenarioAtual.targetHeight" 
+    <input type="number" [(ngModel)]="cenarioAtual.targetHeight"
       class="bg-gray-700 p-2 rounded w-20 text-center border border-gray-600">
   </div>
 
   <div class="flex items-center gap-2 border-l border-gray-600 pl-4 ml-2">
     <label class="font-bold text-yellow-400">Painel Alvo:</label>
-    
-    <select 
-      [(ngModel)]="cenarioAtual.idPainel" 
-      (change)="onIpChanged()"
+
+    <select [(ngModel)]="cenarioAtual.idPainel" (change)="onIpChanged()"
       class="bg-gray-700 text-white p-2 rounded border border-gray-600 focus:border-blue-500 outline-none min-w-[250px]">
-      
+
       <option value="" disabled>Selecione um Painel...</option>
-      
+
       @for (painel of listaPaineis; track painel.identificador) {
-        <option [value]="painel.identificador">
-          {{ painel.nome }} ({{ painel.identificador }})
-        </option>
+      <option [value]="painel.identificador">
+        {{ painel.nome }} ({{ painel.identificador }})
+      </option>
       }
     </select>
 
-    <button (click)="carregarListaPaineis()" title="Atualizar Lista de Painéis" 
-            class="p-2 hover:bg-gray-700 rounded-full transition-colors text-gray-400 hover:text-white">
+    <button (click)="carregarListaPaineis()" title="Atualizar Lista de Painéis"
+      class="p-2 hover:bg-gray-700 rounded-full transition-colors text-gray-400 hover:text-white">
       <mat-icon style="font-size: 20px; width: 20px; height: 20px;">refresh</mat-icon>
     </button>
   </div>
+
+  <div class="flex flex-col gap-1 border-l border-gray-600 pl-4 ml-2 text-sm">
+    <label class="flex items-center gap-2 cursor-pointer"
+      title="Nome e partido do parlamentar mudam para a cor do voto">
+      <input type="checkbox" [checked]="cenarioAtual.opcoes?.nomeNaCorDoVoto ?? false"
+        (change)="alterarOpcao('nomeNaCorDoVoto', $any($event.target).checked)">
+      Nome na cor do voto
+    </label>
+    <label class="flex items-center gap-2 cursor-pointer" title="Caixa de fundo atrás de cada parlamentar">
+      <input type="checkbox" [checked]="cenarioAtual.opcoes?.fundoParlamentares ?? true"
+        (change)="alterarOpcao('fundoParlamentares', $any($event.target).checked)">
+      Fundo nos parlamentares
+    </label>
+
+    <label class="flex items-center gap-2 cursor-pointer" title="Mostra no editor os blocos que não vão para o painel">
+      <input type="checkbox" [(ngModel)]="mostrarBlocosOcultos">
+      Mostrar blocos ocultos
+    </label>
+  </div>
+
   <div class="flex items-center gap-2 ml-auto">
     <label class="text-sm">Imagem de Fundo:</label>
     <input type="file" (change)="onFileSelected($event)" class="text-sm text-gray-400">
@@ -45,59 +63,55 @@
 
 <div class="editor-container">
 
-  <div #editorWrapper class="editor-wrapper" 
-    [style.width.px]="cenarioAtual.targetWidth"
+  <div #editorWrapper class="editor-wrapper" [style.width.px]="cenarioAtual.targetWidth"
     [style.height.px]="cenarioAtual.targetHeight"
     [style.background-image]="cenarioAtual.backgroundImage ? 'url(' + cenarioAtual.backgroundImage + ')' : 'none'"
-    [style.background-size]="'100% 100%'"
-    [style.background-position]="'center'"
+    [style.background-size]="'100% 100%'" [style.background-position]="'center'"
     [style.background-repeat]="'no-repeat'">
 
     @for (item of cenarioAtual.componentes; track item.id) {
     @if (item) {
 
     <div class="componente-box absolute rounded cursor-grab" cdkDrag [attr.data-testid]="'componente-' + item.tipo"
-      [class.redimensionavel]="item.tipo !== 'parlamentar'" (contextmenu)="onRightClick($event, item)" [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }"
-      (cdkDragEnded)="onDragEnd($event, item)" cdkDragBoundary=".editor-wrapper"
-      [style.display]="!item.ocultoNoEditor ? 'block' : 'none'"
-      [class.hidden-do-cenario]="!item.visible"
-      [style.width.px]="item.width"
-      [style.height.px]="item.height">
+      [class.redimensionavel]="item.tipo !== 'parlamentar'" (contextmenu)="onRightClick($event, item)"
+      [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }" (cdkDragEnded)="onDragEnd($event, item)"
+      cdkDragBoundary=".editor-wrapper" [style.display]="!item.ocultoNoEditor && (item.visible || mostrarBlocosOcultos) ? 'block' : 'none'"
+      [class.hidden-do-cenario]="!item.visible" [style.width.px]="item.width" [style.height.px]="item.height">
 
       @if (!item.ocultoNoEditor) {
       @switch(item.tipo) {
       @case('mensagem') { <app-mensagem [dados]="item.dados"></app-mensagem> }
       @case('descricao') { <app-descricao-reuniao [dados]="item.dados"></app-descricao-reuniao> }
-      @case('parlamentar') { <app-parlamentar-item [parlamentar]="item.dados"></app-parlamentar-item> }
+      @case('parlamentar') {
+      <app-parlamentar-item [parlamentar]="item.dados" [nomeNaCorDoVoto]="cenarioAtual.opcoes?.nomeNaCorDoVoto ?? false"
+        [mostrarFundo]="cenarioAtual.opcoes?.fundoParlamentares ?? true"></app-parlamentar-item>
+      }
       @case('totalizadores') { <app-votacao-total [dados]="item.dados"></app-votacao-total> }
       @case('imagem') { <app-imagem-reuniao></app-imagem-reuniao> }
       @case('cabecalho') { <app-header-reuniao></app-header-reuniao> }
       @case('titulo') { <app-titulo-reuniao [dados]="item.dados"></app-titulo-reuniao> }
       @case('subtitulo') { <app-subtitulo-reuniao [dados]="item.dados"></app-subtitulo-reuniao> }
       @case('status-reuniao') { <app-status-reuniao></app-status-reuniao> }
-      @case('temporizador-item') { <app-temporizador-item [dados]="item.dados"></app-temporizador-item> }
+      @case('temporizador-item') {
+      <app-temporizador-item [dados]="item.dados" [numero]="numeroCronometro(item)"
+        [modoEditor]="true"></app-temporizador-item>
+      }
       @case('relogio') { <app-relogio></app-relogio> }
       @case('votacao-item') {
-      <app-voto-item 
-        [label]="item.props?.label ?? ''" 
-        [valor]="item.props?.valor ?? 0"
-        [cor]="item.props?.cor ?? '#FFFFFF'" 
-        [height]="item.height"
-        [style.fontSize.px]="item.props?.fontSize"> </app-voto-item>
+      <app-voto-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
+        [cor]="item.props?.cor ?? '#FFFFFF'" [height]="item.height" [style.fontSize.px]="item.props?.fontSize">
+      </app-voto-item>
       }
       @case('status-item') {
-      <app-status-item 
-        [label]="item.props?.label ?? ''" 
-        [valor]="item.props?.valor ?? 0" 
-        [height]="item.height"
-        [props]="item.props"
-        [style.color]="item.props?.cor"
-        [style.fontSize.px]="item.props?.fontSize"> </app-status-item>
+      <app-status-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0" [height]="item.height"
+        [props]="item.props" [style.color]="item.props?.cor" [style.fontSize.px]="item.props?.fontSize">
+      </app-status-item>
       }
       @case('orador') { <app-orador [dados]="item.dados" [props]="item.props"></app-orador> }
       @case('partido') { <app-partido [dados]="item.dados" [props]="item.props"></app-partido> }
       @case('materia') { <app-materia [dados]="item.dados" [props]="item.props"></app-materia> }
       @case ('resultado-votacao') { <app-resultado-votacao [dados]="item.dados"></app-resultado-votacao> }
+      @case ('autor') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
       @case ('turno-votacao') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
       @case ('modo-votacao') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
       @case ('parametro-votacao') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
@@ -105,8 +119,8 @@
       }
       }
       @if (item.tipo !== 'parlamentar') {
-      <div class="resize-handle" title="Arraste para redimensionar"
-        (mousedown)="iniciarRedimensionar($event, item)"></div>
+      <div class="resize-handle" title="Arraste para redimensionar" (mousedown)="iniciarRedimensionar($event, item)">
+      </div>
       }
     </div>
     }

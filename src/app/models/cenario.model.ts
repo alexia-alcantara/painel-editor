@@ -13,4 +13,10 @@ export interface Cenario {
   slug: string;
   fontes?: FonteGrupo[];
   idBackend?: number;
+  opcoes?: OpcoesCenario;
+}
+
+export interface OpcoesCenario {
+  nomeNaCorDoVoto?: boolean;
+  fundoParlamentares?: boolean;
 }

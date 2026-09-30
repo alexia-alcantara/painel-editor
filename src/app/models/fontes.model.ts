@@ -16,7 +16,8 @@ export type ComponenteTipo =
   | 'turno-votacao'
   | 'modo-votacao'
   | 'parametro-votacao'
-  | 'categoria-reuniao';
+  | 'categoria-reuniao'
+  | 'autor';
 
 export interface FontConfig {
   family: string;

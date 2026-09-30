@@ -124,6 +124,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
   componentes = signal<ComponenteEditor[]>([]);
   mostrarControleVisibilidade = false;
+  mostrarBlocosOcultos = true;
   private routeSub: Subscription | undefined;
 
   private imagemFundoAtual: File | null = null;
@@ -183,6 +184,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
           .subscribe((cenarioCarregado) => {
             if (cenarioCarregado) {
               this.cenarioAtual = cenarioCarregado;
+              this.prepararCenarioParaEdicao(this.cenarioAtual);
               this.fonteService.carregarGrupos(cenarioCarregado.fontes);
             } else {
               alert(
@@ -675,7 +677,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         y: 718,
         width: 250,
         height: 86,
-        props: { tempo: '00:00:00' },
+        props: { cronometro: 1 },
         visible: true,
       },
       {
@@ -685,8 +687,28 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         y: 816,
         width: 250,
         height: 86,
-        props: { tempo: '00:00:00' },
+        props: { cronometro: 2 },
         visible: true,
+      },
+            {
+        id: 'temporizador-3',
+        tipo: 'temporizador-item',
+        x: 340,
+        y: 718,
+        width: 250,
+        height: 86,
+        props: { cronometro: 3 },
+        visible: false,
+      },
+      {
+        id: 'temporizador-4',
+        tipo: 'temporizador-item',
+        x: 340,
+        y: 816,
+        width: 250,
+        height: 86,
+        props: { cronometro: 4 },
+        visible: false,
       },
       {
         id: 'relogio-sistema',
@@ -781,9 +803,17 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       },
     ];
 
-    componentes.forEach((c) => {
-      if (!c.visible) c.ocultoNoEditor = true;
+    componentes.push({
+      id: 'autor-principal',
+      tipo: 'autor',
+      x: xTexto,
+      y: 915,
+      width: wTexto,
+      height: 50,
+      visible: false,
+      dados: { texto: 'Autor' },
     });
+
 
   
     const parlamentares = this.montarComponentesParlamentares({
@@ -813,7 +843,35 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       idPainel: '',
       slug: this.gerarSlug(nomePadrao),
       fontes: this.fonteService.obterGruposPadraoVisual(),
+      opcoes: { nomeNaCorDoVoto: false, fundoParlamentares: true },
     };
+  }
+
+  private prepararCenarioParaEdicao(cenario: Cenario): void {
+    const padrao = this.montarLayoutInicial();
+    const idsExistentes = new Set(cenario.componentes.map((c) => c.id));
+
+    const faltando = padrao.componentes.filter(
+      (c) => c.tipo !== 'parlamentar' && !idsExistentes.has(c.id),
+    );
+    faltando.forEach((c) => (c.visible = false));
+
+    cenario.componentes = [...cenario.componentes, ...faltando];
+    cenario.componentes.forEach((c) => (c.ocultoNoEditor = false));
+
+    cenario.opcoes = {
+      nomeNaCorDoVoto: cenario.opcoes?.nomeNaCorDoVoto ?? false,
+      fundoParlamentares: cenario.opcoes?.fundoParlamentares ?? true,
+    };
+  }
+
+  numeroCronometro(item: ComponenteEditor): number {
+    return TemporizadorItemComponent.numeroDoComponente(item);
+  }
+
+  alterarOpcao(chave: 'nomeNaCorDoVoto' | 'fundoParlamentares', valor: boolean): void {
+    this.cenarioAtual.opcoes = { ...this.cenarioAtual.opcoes, [chave]: valor };
+    this.dispararAutosave();
   }
 
   private montarComponentesParlamentares(
@@ -828,8 +886,9 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         nome: `Parlamentar ${i + 1}`,
         partido: 'PART',
         voto: '-',
-        status: 'PRESENTE',
-        cor: '#00FF00',
+        letra: 'S',
+        corVoto: '#00FF00',
+        presenca: 'PRESENTE',
       }),
     );
 

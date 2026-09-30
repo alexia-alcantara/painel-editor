@@ -21,7 +21,9 @@
     <app-descricao-reuniao [dados]="item.dados"></app-descricao-reuniao>
     }
     @case('parlamentar') {
-    <app-parlamentar-item [parlamentar]="item.dados" [paleta]="paletaDeCores"></app-parlamentar-item>
+      <app-parlamentar-item [parlamentar]="item.dados" [paleta]="paletaDeCores"
+      [nomeNaCorDoVoto]="cenarioParaExibir.opcoes?.nomeNaCorDoVoto ?? false"
+      [mostrarFundo]="cenarioParaExibir.opcoes?.fundoParlamentares ?? true"></app-parlamentar-item>
     }
     @case('imagem') {
     <app-imagem-reuniao></app-imagem-reuniao>
@@ -37,7 +39,7 @@
     <app-subtitulo-reuniao [dados]="item.dados"></app-subtitulo-reuniao>
     }
     @case('temporizador-item') {
-    <app-temporizador-item [dados]="item.dados"></app-temporizador-item>
+      <app-temporizador-item [dados]="item.dados" [numero]="numeroCronometro(item)"></app-temporizador-item>
     }
     @case('totalizadores') {
     <app-votacao-total [dados]="item.dados"></app-votacao-total>
@@ -71,6 +73,9 @@
     }
    @case ('resultado-votacao') {
     <app-resultado-votacao [dados]="item.dados"></app-resultado-votacao>
+    }
+    @case ('autor') {
+    <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto>
     }
     @case ('turno-votacao') {
     <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto>

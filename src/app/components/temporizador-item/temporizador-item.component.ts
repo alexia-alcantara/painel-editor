@@ -21,7 +21,35 @@ export interface CronometroData {
 })
 export class TemporizadorItemComponent {
   @Input() dados: CronometroData | undefined;
-  tempoDisplay: string = '00:00:00';
+  
+  @Input() numero?: number;
+  @Input() modoEditor = false;
+
+  tempoDisplay: string = '00:00';
+
+  get textoExibido(): string {
+    if (this.modoEditor && !this.dados) return `C${this.numero || 1}`;
+    return this.tempoDisplay;
+  }
+
+  static numeroDoComponente(comp: { id: string; props?: { cronometro?: number } }): number {
+    const doProps = Number(comp?.props?.cronometro);
+    if (doProps >= 1) return doProps;
+    const doId = Number((comp?.id || '').match(/(\d+)\s*$/)?.[1]);
+    return doId >= 1 ? doId : 1;
+  }
+
+  static formatarTempo(totalSegundos: number): string {
+    const total = Math.max(0, Math.floor(totalSegundos));
+    const horas = Math.floor(total / 3600);
+    const minutos = Math.floor((total % 3600) / 60);
+    const segundos = total % 60;
+    const mm = minutos.toString().padStart(2, '0');
+    const ss = segundos.toString().padStart(2, '0');
+    return horas > 0 ? `${horas.toString().padStart(2, '0')}:${mm}:${ss}` : `${mm}:${ss}`;
+  }
+
+
   corDisplay: string = '#FFFFFF';
 
   @Input() tempo?: string;
@@ -49,13 +77,7 @@ export class TemporizadorItemComponent {
     this.corDisplay = this.dados.cor || '#FFFFFF';
 
     const tick = () => {
-      const horas = Math.floor(totalSegundos / 3600);
-      const minutos = Math.floor((totalSegundos % 3600) / 60);
-      const segundos = totalSegundos % 60;
-
-      this.tempoDisplay = `${horas.toString().padStart(2, '0')}:${minutos
-        .toString()
-        .padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+      this.tempoDisplay = TemporizadorItemComponent.formatarTempo(totalSegundos);
 
       // Lógica de contagem
       if (this.dados?.modo === 'PROGRESSIVO') {

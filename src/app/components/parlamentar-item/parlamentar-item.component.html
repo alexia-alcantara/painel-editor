@@ -1,28 +1,30 @@
 @if(parlamentar) {
 
-<div class="flex items-stretch w-full min-h-full bg-slate-700 text-white rounded overflow-hidden transition-opacity duration-300"
-     [class.opacity-50]="(parlamentar.presenca ?? parlamentar.status) === 'AUSENTE'">
+<div class="flex items-stretch w-full min-h-full text-white rounded overflow-hidden transition-opacity duration-300"
+     [class.bg-slate-700]="mostrarFundo"
+     [class.opacity-50]="ausente && !parlamentar.corNome">
 
-  <div class="flex-1 min-w-0 px-4 py-2 border-r-4 border-[#18262D] flex items-center font-medium"
-       style="container-type: inline-size"
+  <div class="flex-1 min-w-0 px-4 py-2 flex items-center font-medium"
+       [style.border-right]="mostrarFundo ? '4px solid #18262D' : 'none'"
        [ngStyle]="{
         'font-family': fontNome?.family,
         'font-size.px': fontNome?.size,
         'font-weight': fontNome?.weight,
         'font-style': fontNome?.style,
-        'color': parlamentar.cor || fontNome?.color
+        'color': corNome
       }">
-    <span class="truncate leading-[1.35]" [style.font-size]="tamanhoNome">{{ parlamentar.nome }}</span>
+    <span class="truncate leading-[1.35]">{{ parlamentar.nome }}</span>
   </div>
 
-  <div class="w-[25%] flex-shrink-0 px-1 py-2 border-r-4 border-[#18262D] flex items-center justify-center text-slate-300"
+  <div class="w-[25%] flex-shrink-0 px-1 py-2 flex items-center justify-center"
        style="container-type: inline-size"
+       [style.border-right]="mostrarFundo ? '4px solid #18262D' : 'none'"
        [ngStyle]="{
         'font-family': fontPartido?.family,
         'font-size.px': fontPartido?.size,
         'font-weight': fontPartido?.weight,
         'font-style': fontPartido?.style,
-        'color': fontPartido?.color
+        'color': corPartido
       }">
     <span class="truncate leading-[1.35]" [style.font-size]="tamanhoPartido">{{ parlamentar.partido || 'PARTIDO' }}</span>
   </div>
@@ -34,9 +36,7 @@
         'font-weight': fontVoto?.weight,
         'font-style': fontVoto?.style
       }">
-    <span class="truncate leading-[1.35]" [style.color]="parlamentar.cor">
-        {{ parlamentar.status }}
-    </span>
+    <span class="truncate leading-[1.35]" [style.color]="corLetra">{{ letra }}</span>
   </div>
 
 </div>

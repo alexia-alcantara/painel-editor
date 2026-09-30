@@ -1,11 +1,23 @@
-.editor-container {
-  flex-grow: 1;
+:host {
   display: flex;
-  justify-content: center; 
-  align-items: flex-start; 
-  overflow: auto; 
+  flex-direction: column;
+  height: 100vh;
+}
+
+.config-panel {
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.editor-container {
+  flex: 1 1 auto;
+  min-height: 0; 
+  display: flex;
+  justify-content: safe center;
+  align-items: flex-start;
+  overflow: auto;
   background-color: #1a202c;
-  padding: 0; 
+  padding: 0;
 }
 
 .editor-wrapper {
@@ -39,6 +51,16 @@
   opacity: 1;
 }
 
+.componente-box {
+  overflow: hidden;
+}
+
 .componente-box.hidden-do-cenario {
   outline: 2px dashed rgba(255, 90, 90, 0.65) !important;
+  background-color: rgba(160, 160, 160, 0.35);
+  opacity: 0.6;
+}
+
+.componente-box:hover {
+  z-index: 50;
 }

@@ -1,8 +1,8 @@
 import { runtimeConfig } from '../config/runtime-config';
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, of, timer } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { Observable, merge, of, timer } from 'rxjs';
+import { catchError, debounceTime, exhaustMap, filter, map } from 'rxjs/operators';
 
 
 @Injectable({
@@ -16,7 +16,6 @@ export class PainelService {
   }
 
   constructor(private http: HttpClient) {}
-
 
   getDadosPainel(ip: string): Observable<any> {
     const url = `${this.API_URL}?ip=${encodeURIComponent(ip)}`;
@@ -35,7 +34,30 @@ export class PainelService {
 
   getDadosPainelEmTempoReal(ip: string, frequenciaMs: number = 2000): Observable<any> {
     return timer(0, frequenciaMs).pipe(
-      switchMap(() => this.getDadosPainel(ip))
+      exhaustMap(() => this.getDadosPainel(ip))
+    );
+  }
+
+  getDadosPainelComAvisos(
+    ip: string,
+    avisos$: Observable<any>,
+    socketConectado: () => boolean,
+    frequenciaMs: number = 1000,
+    segurancaMs: number = 5000
+  ): Observable<any> {
+    let ultimaBusca = 0;
+
+    const porTempo$ = timer(0, frequenciaMs).pipe(
+      filter(() => !socketConectado() || Date.now() - ultimaBusca >= segurancaMs)
+    );
+
+    const porAviso$ = avisos$.pipe(debounceTime(150));
+
+    return merge(porTempo$, porAviso$).pipe(
+      exhaustMap(() => {
+        ultimaBusca = Date.now();
+        return this.getDadosPainel(ip);
+      })
     );
   }
 

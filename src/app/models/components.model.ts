@@ -27,6 +27,7 @@ export interface ComponenteEditor {
     | 'modo-votacao'
     | 'parametro-votacao'
     | 'categoria-reuniao'
+    | 'autor'
   dados?: any;
   x: number;
   y: number;
@@ -42,6 +43,7 @@ export interface ComponenteEditor {
     cor?: string;
     valor?: number;
     fontSize?: number;
+    cronometro?: number;
   };
   style?: { [key: string]: string | number };
   fontes?: FonteSubItem[]; 

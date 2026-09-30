@@ -25,6 +25,7 @@ import { TituloReuniaoComponent } from '../titulo-reuniao/titulo-reuniao.compone
 import { SubtituloReuniaoComponent } from '../subtitulo-reuniao/subtitulo-reuniao.component';
 import { StatusReuniaoComponent } from '../status-reuniao/status-reuniao.component';
 import { TemporizadorItemComponent } from '../temporizador-item/temporizador-item.component';
+import { ComponenteEditor } from '../../models/components.model';
 import { VotoItemComponent } from '../votacao-total/voto-item/voto-item.component';
 import { StatusItemComponent } from '../status-reuniao/status-item/status-item.component';
 import { MensagemComponent } from '../mensagem/mensagem.component';
@@ -37,6 +38,7 @@ import { OradorComponent } from '../orador/orador.component';
 import { PartidoComponent } from '../partido/partido.component';
 import { MateriaComponent } from '../materia/materia.component';
 import { CampoTextoComponent } from '../campo-texto/campo-texto.component';
+import { LegisSocketService } from '../../services/legis-socket.service';
 
 @Component({
   selector: 'app-display',
@@ -90,6 +92,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     private renderer: Renderer2,
     private imagemStorageService: ImagemStorageService,
     private fonteService: FonteService,
+    private legisSocket: LegisSocketService,
     private cdRef: ChangeDetectorRef,
   ) {}
 
@@ -142,8 +145,15 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       'color: yellow; font-weight: bold;',
     );
 
+    this.legisSocket.conectar(String(ipDoPainel));
+
     this.atualizacaoSubscription = this.painelService
-      .getDadosPainelEmTempoReal(ipDoPainel, frequenciaMs)
+      .getDadosPainelComAvisos(
+        ipDoPainel,
+        this.legisSocket.avisos$,
+        () => this.legisSocket.estaConectado(),
+        frequenciaMs,
+      )
       .subscribe(async (dadosDaApi) => {
         if (dadosDaApi) {
           const dados = dadosDaApi.valor || dadosDaApi;
@@ -250,6 +260,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     );
 
     const cenarioAtualizado = structuredClone(this.cenarioBase);
+    const paleta = this.lerPaleta(dadosApiValor);
 
     const parlamentaresLayout = cenarioAtualizado.componentes.filter(
       (c) => c.tipo === 'parlamentar',
@@ -290,40 +301,42 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
               typeof dadosP.voto === 'string' ? dadosP.voto.trim() : '';
             const votou = votoString !== '' && votoString !== '-';
 
-            let textoParaExibir = '';
-            let corParaExibir = '#FFFFFF';
+            const cargo = String(dadosP.cargo || '').trim().toUpperCase();
+            const ehPresidente = cargo === 'PRESIDENTE';
+
+            const corNome = this.converterCor(dadosP.cor);
+
+            let letra = '';
+            let corVoto = '';
 
             if (votou) {
-              if (votoString === 'SIM') {
-                textoParaExibir = 'S';
-                corParaExibir = '#00FF00';
-              } else if (votoString === 'NAO' || votoString === 'NÃO') {
-                textoParaExibir = 'N';
-                corParaExibir = '#FF0000';
-              } else if (votoString.startsWith('ABST')) {
-                textoParaExibir = 'A';
-                corParaExibir = '#FFFF00';
-              } else {
-                textoParaExibir = votoString;
+              const voto = votoString.toUpperCase();
+              if (voto === 'SIM') {
+                letra = 'S';
+                corVoto = paleta['Cor_Voto_Sim'] || '#00FF00';
+              } else if (voto === 'NAO' || voto === 'NÃO') {
+                letra = 'N';
+                corVoto = paleta['Cor_Voto_Nao'] || '#FF0000';
+              } else if (voto.startsWith('ABST')) {
+                letra = 'A';
+                corVoto = paleta['Cor_Voto_Abstencao'] || '#FFFF00';
+              } else if (voto.startsWith('BRANC')) {
+                letra = 'B';
+                corVoto = paleta['Cor_Voto_Branco'] || '#FFFFFF';
               }
-            } else {
-              const situacao = dadosP.status || '';
-              textoParaExibir =
-                situacao === 'PRESENTE'
-                  ? 'P'
-                  : situacao === 'AUSENTE'
-                    ? ''
-                    : situacao;
-              if (situacao === 'PRESENTE') corParaExibir = '#00FF00';
+            } else if (ehPresidente) {
+              letra = 'P';
             }
 
             layoutComp.dados = {
               nome: dadosP.nome || 'Nome não informado',
               partido: dadosP.partido || '',
               voto: votoString || '-',
-              status: textoParaExibir,
+              letra,
+              corVoto,
+              corNome,
               presenca: dadosP.status || '',
-              cor: corParaExibir,
+              presidente: ehPresidente,
               foto: dadosP.foto,
             };
           }
@@ -428,16 +441,12 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           break;
 
         case 'temporizador-item':
-          // A API manda um <cronometro> dentro do outro: valor.cronometro.cronometro (um ou vários)
           let listaCrono =
             dadosApiValor.cronometro?.cronometro ?? dadosApiValor.cronometro;
           if (!listaCrono || typeof listaCrono !== 'object') listaCrono = [];
           else if (!Array.isArray(listaCrono)) listaCrono = [listaCrono];
 
-          let idBusca = 1;
-          if (componente.id.includes('2')) idBusca = 2;
-          if (componente.id.includes('3') || componente.id.includes('4'))
-            idBusca = 4;
+          const idBusca = TemporizadorItemComponent.numeroDoComponente(componente);
 
           const dadosC = listaCrono.find(
             (c: any) => Number(c.cronometro) === idBusca,
@@ -612,6 +621,10 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         case 'categoria-reuniao':
           componente.dados = { texto: dadosApiValor.categoriaReuniao || '' };
           break;
+          
+        case 'autor':
+          componente.dados = { texto: this.textoSimples(dadosApiValor.votacao?.autoria) };
+          break;
 
         case 'resultado-votacao':
           const resultadoTxt = dadosApiValor.votacao?.resultado_texto;
@@ -693,6 +706,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.atualizacaoSubscription) {
       this.atualizacaoSubscription.unsubscribe();
     }
+    this.legisSocket.desconectar();
     if (this.timerPaginacao) {
       clearInterval(this.timerPaginacao);
     }
@@ -700,6 +714,41 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @HostListener('window:resize') onResize(): void {
     this.ajustarEscala();
+  }
+
+  numeroCronometro(item: ComponenteEditor): number {
+    return TemporizadorItemComponent.numeroDoComponente(item);
+  }
+
+  private lerPaleta(dadosApiValor: any): Record<string, string> {
+    const mapa: Record<string, string> = {};
+    let cores = dadosApiValor?.paleta?.cores;
+    if (!cores) return mapa;
+    if (!Array.isArray(cores)) cores = [cores];
+    cores.forEach((c: any) => {
+      const cor = this.converterCor(c?.valor);
+      if (c?.nome && cor) mapa[c.nome] = cor;
+    });
+    return mapa;
+  }
+
+
+  private converterCor(valor: any): string {
+    if (typeof valor !== 'string') return '';
+    const v = valor.trim();
+    if (v.startsWith('#')) return v;
+    if (v.startsWith('$')) {
+      const hex = v.slice(1).padStart(6, '0').slice(-6);
+      const bb = hex.slice(0, 2);
+      const gg = hex.slice(2, 4);
+      const rr = hex.slice(4, 6);
+      return `#${rr}${gg}${bb}`;
+    }
+    return '';
+  }
+
+  private textoSimples(valor: any): string {
+    return typeof valor === 'string' || typeof valor === 'number' ? String(valor).trim() : '';
   }
 
   private ajustarEscala(): void {
@@ -711,11 +760,17 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     const scaleY = window.innerHeight / this.cenarioParaExibir.targetHeight;
     const scale = Math.min(scaleX, scaleY);
 
-    const larguraEscalada = this.cenarioParaExibir.targetWidth * scale;
-    const alturaEscalada = this.cenarioParaExibir.targetHeight * scale;
+   const centralizar = this.route.snapshot.queryParamMap.get('centralizar') === '1';
 
-    const margemEsquerda = (window.innerWidth - larguraEscalada) / 2;
-    const margemTopo = (window.innerHeight - alturaEscalada) / 2;
+    let margemEsquerda = 0;
+    let margemTopo = 0;
+
+    if (centralizar) {
+      const larguraEscalada = this.cenarioParaExibir.targetWidth * scale;
+      const alturaEscalada = this.cenarioParaExibir.targetHeight * scale;
+      margemEsquerda = (window.innerWidth - larguraEscalada) / 2;
+      margemTopo = (window.innerHeight - alturaEscalada) / 2;
+    }
 
     this.renderer.setStyle(target, 'transform-origin', 'top left');
     this.renderer.setStyle(
