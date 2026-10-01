@@ -3,7 +3,8 @@
 exports[`TituloReuniaoComponent should match the snapshot 1`] = `
 <div>
   <div
-    class="w-full h-full flex items-center justify-center text-center"
+    class="w-full h-full flex items-center"
+    style="justify-content: center; text-align: center;"
   >
     <h3
       class="m-0 leading-tight text-white"

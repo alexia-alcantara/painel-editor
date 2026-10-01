@@ -2,7 +2,7 @@
 <div #wrapper class="display-wrapper" 
   [style.width.px]="cenarioParaExibir.targetWidth" 
   [style.height.px]="cenarioParaExibir.targetHeight"
-  [style.background-image]="cenarioParaExibir.backgroundImage ? 'url(' + cenarioParaExibir.backgroundImage + ')' : 'none'"
+  [style.background-image]="fundoDisplay"
   [style.background-size]="'100% 100%'"
   [style.background-position]="'center'"
   [style.background-repeat]="'no-repeat'">
@@ -23,7 +23,9 @@
     @case('parlamentar') {
       <app-parlamentar-item [parlamentar]="item.dados" [paleta]="paletaDeCores"
       [nomeNaCorDoVoto]="cenarioParaExibir.opcoes?.nomeNaCorDoVoto ?? false"
-      [mostrarFundo]="cenarioParaExibir.opcoes?.fundoParlamentares ?? true"></app-parlamentar-item>
+      [mostrarFundo]="cenarioParaExibir.opcoes?.fundoParlamentares ?? true"
+      [corFundo]="cenarioParaExibir.opcoes?.corFundoParlamentares ?? '#334155'"
+      [opacidadeFundo]="cenarioParaExibir.opcoes?.opacidadeFundoParlamentares ?? 100"></app-parlamentar-item>
     }
     @case('imagem') {
     <app-imagem-reuniao></app-imagem-reuniao>
@@ -33,7 +35,7 @@
     }
 
     @case('titulo') {
-    <app-titulo-reuniao [dados]="item.dados"></app-titulo-reuniao>
+    <app-titulo-reuniao [dados]="item.dados" [componenteId]="item.id"></app-titulo-reuniao>
     }
     @case('subtitulo') {
     <app-subtitulo-reuniao [dados]="item.dados"></app-subtitulo-reuniao>
@@ -46,6 +48,9 @@
     }
     @case('relogio') {
     <app-relogio></app-relogio>
+    }
+    @case('multimidia') {
+    <app-multimidia></app-multimidia>
     }
     @case('status-reuniao') {
     <app-status-reuniao></app-status-reuniao>
@@ -73,6 +78,15 @@
     }
    @case ('resultado-votacao') {
     <app-resultado-votacao [dados]="item.dados"></app-resultado-votacao>
+    }
+    @case ('tipo-fala') {
+    <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto>
+    }
+    @case ('nome-cronometro') {
+    <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto>
+    }
+    @case ('mensagem-linha') {
+    <app-campo-texto [dados]="item.dados" [tipo]="item.tipo" [subId]="'linha-' + (item.props?.linha || 1)"></app-campo-texto>
     }
     @case ('autor') {
     <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto>

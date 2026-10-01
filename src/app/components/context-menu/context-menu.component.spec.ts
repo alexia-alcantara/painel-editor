@@ -1,23 +1,28 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ContextMenuComponent } from './context-menu.component';
 
 describe('ContextMenuComponent', () => {
-  let component: ContextMenuComponent;
   let fixture: ComponentFixture<ContextMenuComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ContextMenuComponent]
-    })
-    .compileComponents();
+      imports: [ContextMenuComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        provideNoopAnimations(),
+      ],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(ContextMenuComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
+  it('deve criar', () => {
+    expect(fixture.componentInstance).toBeTruthy();
   });
 });

@@ -1,4 +1,4 @@
-<div class="descricao-container w-full h-full flex items-start justify-center text-center">
+<div class="descricao-container w-full h-full flex items-start" [style.justify-content]="justificar" [style.text-align]="fontConfig?.align || 'center'">
   <p class="text-white leading-snug" [ngStyle]="{
     'font-family': fontConfig?.family,
     'font-size.px': fontConfig?.size,

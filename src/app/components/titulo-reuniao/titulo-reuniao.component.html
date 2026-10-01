@@ -1,4 +1,4 @@
-<div class="w-full h-full flex items-center justify-center text-center">
+<div class="w-full h-full flex items-center" [style.justify-content]="justificar" [style.text-align]="fontConfig?.align || 'center'">
    <h3 class="m-0 leading-tight text-white" [ngStyle]="{
      'font-family': fontConfig?.family || 'Inter, sans-serif',
      'font-size.px': fontConfig?.size || 24,

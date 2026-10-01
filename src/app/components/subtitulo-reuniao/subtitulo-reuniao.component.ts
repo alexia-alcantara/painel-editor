@@ -2,6 +2,7 @@ import { Component, computed, Input, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FontConfig } from '../../models/fontes.model';
 import { FonteService } from '../../services/fonte.service';
+import { alinhamentoFlex } from '../../utils/estilo-texto';
 
 @Component({
   selector: 'app-subtitulo-reuniao',
@@ -25,5 +26,9 @@ export class SubtituloReuniaoComponent {
       )?.font;
       return config;
     });
+  }
+
+  justificar(): string {
+    return alinhamentoFlex(this.fontConfig()?.align);
   }
 }

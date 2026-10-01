@@ -11,6 +11,7 @@ import saveAs from 'file-saver';
 import { Cenario } from '../../models/cenario.model';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs'; 
+import { log } from '../../utils/log';
 
 @Component({
   selector: 'app-cenario-dialog',
@@ -46,7 +47,6 @@ export class CenarioDialogComponent implements OnInit {
 
     // 2. Se inscreve para ouvir futuras atualizações na lista
     this.cenariosSub = this.layoutService.cenarios$.subscribe(cenariosAtualizados => {
-      console.log('Lista de cenários atualizada recebida!', cenariosAtualizados);
       this.cenarios = cenariosAtualizados;
     });
   }
@@ -113,7 +113,7 @@ export class CenarioDialogComponent implements OnInit {
           const jsonDoArquivo = JSON.parse(e.target?.result as string);
           this.dialogRef.close({ action: 'import', data: jsonDoArquivo }); 
         } catch (error) {
-          console.error('Erro ao parsear o JSON:', error);
+          log.erro('Importar', 'Arquivo JSON inválido.', error);
           alert('Arquivo JSON inválido.');
         }
       };

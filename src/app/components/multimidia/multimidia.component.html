@@ -1,0 +1,9 @@
+@if (modoEditor) {
+  <div class="exemplo">
+    <i class="fa-solid fa-video"></i>
+    <span>Multimídia</span>
+    <small>(câmera do PC do painel)</small>
+  </div>
+} @else {
+  <video #video autoplay muted playsinline></video>
+}

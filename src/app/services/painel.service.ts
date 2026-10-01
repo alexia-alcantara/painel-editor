@@ -2,7 +2,8 @@ import { runtimeConfig } from '../config/runtime-config';
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, merge, of, timer } from 'rxjs';
-import { catchError, debounceTime, exhaustMap, filter, map } from 'rxjs/operators';
+import { catchError, debounceTime, exhaustMap, filter, map, throttleTime } from 'rxjs/operators';
+import { log } from '../utils/log';
 
 
 @Injectable({
@@ -26,7 +27,7 @@ export class PainelService {
     return this.http.get(url, { headers, responseType: 'text' }).pipe(
       map((rawResponse) => this.converterResposta(rawResponse, ip)),
       catchError((err) => {
-        console.error(`[PAINEL] Erro ao buscar dados do painel "${ip}" em ${url}:`, err);
+        log.erro('Painel', `Falha ao buscar os dados do painel ${ip}.`, err);
         return of(null);
       })
     );
@@ -51,7 +52,21 @@ export class PainelService {
       filter(() => !socketConectado() || Date.now() - ultimaBusca >= segurancaMs)
     );
 
-    const porAviso$ = avisos$.pipe(debounceTime(150));
+   
+    const ehAvisoDeCronometro = (a: any) =>
+      a?.destino === 'CRONOMETROS' || a?.tipoValor === 'ListCronometroDTO';
+
+    const avisosCronometro$ = avisos$.pipe(
+      filter(ehAvisoDeCronometro),
+      throttleTime(5000, undefined, { leading: true, trailing: true }),
+    );
+
+    const outrosAvisos$ = avisos$.pipe(
+      filter((a) => !ehAvisoDeCronometro(a)),
+      debounceTime(150),
+    );
+
+    const porAviso$ = merge(avisosCronometro$, outrosAvisos$);
 
     return merge(porTempo$, porAviso$).pipe(
       exhaustMap(() => {
@@ -65,7 +80,7 @@ export class PainelService {
     const texto = (rawResponse || '').trim();
 
     if (!texto) {
-      console.warn(`[PAINEL] Resposta vazia para o painel "${ip}".`);
+      log.aviso('Painel', `Resposta vazia para o painel ${ip}.`);
       return null;
     }
 
@@ -80,7 +95,7 @@ export class PainelService {
       const xml = parser.parseFromString(texto, 'text/xml');
 
       if (xml.getElementsByTagName('parsererror').length > 0) {
-        console.error(`[PAINEL] Resposta do painel "${ip}" não é XML nem JSON válido:`, texto.slice(0, 300));
+        log.erro('Painel', `Resposta inválida para o painel ${ip}.`, texto.slice(0, 300));
         return null;
       }
 
@@ -89,7 +104,7 @@ export class PainelService {
       this.avisarSeStatusDeErro(resposta, ip);
       return resposta;
     } catch (e) {
-      console.error(`[PAINEL] Erro ao ler a resposta do painel "${ip}":`, e);
+      log.erro('Painel', `Falha ao ler a resposta do painel ${ip}.`, e);
       return null;
     }
   }
@@ -97,10 +112,7 @@ export class PainelService {
   private avisarSeStatusDeErro(resposta: any, ip: string): void {
     const codigo = resposta?.status?.code;
     if (codigo !== undefined && String(codigo) !== '0') {
-      console.warn(
-        `[PAINEL] Backend respondeu com status ${codigo} para o painel "${ip}":`,
-        resposta?.status?.message
-      );
+      log.aviso('Painel', `Backend respondeu status ${codigo} para o painel ${ip}.`, resposta?.status?.message);
     }
   }
 

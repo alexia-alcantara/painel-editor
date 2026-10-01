@@ -1,28 +1,31 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
-import { CenarioDialogComponent } from './cenario-dialog.component';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { CenarioDialogComponent } from './cenario-dialog.component';
 
 describe('CenarioDialogComponent', () => {
-  let component: CenarioDialogComponent;
   let fixture: ComponentFixture<CenarioDialogComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CenarioDialogComponent],
       providers: [
-        {provide: MatDialogRef, useValue: {}},
-        {provide: MAT_DIALOG_DATA, useValue: {}}
-      ]
-    })
-    .compileComponents();
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        provideNoopAnimations(),
+        { provide: MatDialogRef, useValue: { close: () => {} } },
+        { provide: MAT_DIALOG_DATA, useValue: { layoutAtual: [] } },
+      ],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(CenarioDialogComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
+  it('deve criar', () => {
+    expect(fixture.componentInstance).toBeTruthy();
   });
 });

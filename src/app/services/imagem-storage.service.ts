@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, from, of } from 'rxjs';
 import { map, switchMap, catchError } from 'rxjs/operators';
+import { log } from '../utils/log';
 
 interface ResponseContainer<T> {
   status: { code: number; message: string };
@@ -47,7 +48,7 @@ export class ImagemStorageService {
     return this.http.get<ResponseContainer<ArquivoBackend>>(`${this.API_URL}/buscar/${idBackend}`).pipe(
       map((resp) => (resp.valor?.dados ? `data:image/*;base64,${resp.valor.dados}` : null)),
       catchError((e) => {
-        console.error('Erro ao carregar imagem do backend', e);
+        log.erro('Imagens', 'Falha ao carregar a imagem do backend.', e);
         return of(null);
       })
     );

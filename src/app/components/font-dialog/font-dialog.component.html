@@ -14,12 +14,12 @@
     <div class="flex flex-col">
       <label class="text-xs mb-1">Estilo da fonte:</label>
       <select [(ngModel)]="selectedStyle" size="6" class="border rounded p-1 h-32 focus:ring-2 focus:ring-blue-500">
-        @for (style of styles; track style) {
-          <option [ngStyle]="{
-            'font-weight': style.includes('Bold') ? 'bold' : 'normal',
-            'font-style': style.includes('Italic') ? 'italic' : 'normal'
+        @for (estilo of styles; track estilo.nome) {
+          <option [value]="estilo.nome" [ngStyle]="{
+            'font-weight': estilo.weight,
+            'font-style': estilo.style
           }">
-            {{ style }}
+            {{ estilo.nome }}
           </option>
         }
       </select>
@@ -27,11 +27,29 @@
 
     <div class="flex flex-col">
       <label class="text-xs mb-1">Tamanho:</label>
-      <select [(ngModel)]="selectedSize" size="6" class="border rounded p-1 h-32 focus:ring-2 focus:ring-blue-500">
+      <input type="number" min="6" max="400" step="1" [(ngModel)]="selectedSize"
+        class="border rounded p-1 mb-1 w-full focus:ring-2 focus:ring-blue-500"
+        title="Digite o tamanho ou escolha na lista">
+      <select [(ngModel)]="selectedSize" size="5" class="border rounded p-1 h-28 focus:ring-2 focus:ring-blue-500">
         @for (size of sizes; track size) {
-          <option [value]="size">{{ size }}</option>
+          <option [ngValue]="size">{{ size }}</option>
         }
       </select>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <label class="text-xs block mb-1">Alinhamento:</label>
+    <div class="flex gap-2">
+      @for (a of alinhamentos; track a.valor) {
+        <button type="button" (click)="selectedAlign = a.valor" [title]="a.nome"
+          class="flex-1 border rounded py-1 flex items-center justify-center gap-2 text-sm"
+          [class.bg-blue-600]="selectedAlign === a.valor"
+          [class.text-white]="selectedAlign === a.valor"
+          [class.border-blue-600]="selectedAlign === a.valor">
+          <i class="fa-solid" [ngClass]="a.icone"></i> {{ a.nome }}
+        </button>
+      }
     </div>
   </div>
 
@@ -41,9 +59,10 @@
       [ngStyle]="{
         'font-family': selectedFont,
         'font-size.px': selectedSize,
-        'font-weight': selectedStyle.includes('Bold') ? 'bold' : 'normal',
-        'font-style': selectedStyle.includes('Italic') ? 'italic' : 'normal',
-        'color': '#000000' 
+        'font-weight': estiloSelecionado.weight,
+        'font-style': estiloSelecionado.style,
+        'color': '#000000',
+        'text-align': selectedAlign
       }">
       <span>AaBbYyZz</span>
     </div>

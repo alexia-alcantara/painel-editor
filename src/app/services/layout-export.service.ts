@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ComponenteEditor } from '../models/components.model';
+import { log } from '../utils/log';
 
 @Injectable({
   providedIn: 'root',
@@ -161,7 +162,7 @@ export class LayoutExportService {
           break;
 
         default:
-          console.warn(`Tipo ${item.tipo} ainda não mapeado.`);
+          log.aviso('Exportar', `Bloco "${item.tipo}" não existe no formato antigo e foi ignorado.`);
           break;
       }
     });

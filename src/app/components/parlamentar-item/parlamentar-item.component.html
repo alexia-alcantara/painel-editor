@@ -1,11 +1,11 @@
 @if(parlamentar) {
 
 <div class="flex items-stretch w-full min-h-full text-white rounded overflow-hidden transition-opacity duration-300"
-     [class.bg-slate-700]="mostrarFundo"
+     [style.background-color]="fundo"
      [class.opacity-50]="ausente && !parlamentar.corNome">
 
   <div class="flex-1 min-w-0 px-4 py-2 flex items-center font-medium"
-       [style.border-right]="mostrarFundo ? '4px solid #18262D' : 'none'"
+       [style.border-right]="separador"
        [ngStyle]="{
         'font-family': fontNome?.family,
         'font-size.px': fontNome?.size,
@@ -18,7 +18,7 @@
 
   <div class="w-[25%] flex-shrink-0 px-1 py-2 flex items-center justify-center"
        style="container-type: inline-size"
-       [style.border-right]="mostrarFundo ? '4px solid #18262D' : 'none'"
+       [style.border-right]="separador"
        [ngStyle]="{
         'font-family': fontPartido?.family,
         'font-size.px': fontPartido?.size,

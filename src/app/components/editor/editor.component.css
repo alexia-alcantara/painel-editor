@@ -60,7 +60,34 @@
   background-color: rgba(160, 160, 160, 0.35);
   opacity: 0.6;
 }
-
+/* Bloco sob o mouse fica por cima dos outros: dá para clicar mesmo quando estão sobrepostos */
 .componente-box:hover {
   z-index: 50;
+}
+
+/* Zoom: a área tem o tamanho já reduzido/ampliado; o cenário dentro dela é escalado */
+.zoom-area {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.zoom-area > .editor-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}
+
+.zoom-btn {
+  min-width: 2rem;
+  height: 2rem;
+  border-radius: 0.25rem;
+  background: #374151;
+  border: 1px solid #4b5563;
+  color: #fff;
+}
+
+.zoom-btn:hover {
+  background: #4b5563;
 }

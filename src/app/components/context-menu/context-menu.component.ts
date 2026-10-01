@@ -24,6 +24,7 @@ import {
 } from '../../dialogs/distribuir-parlamentares/distribuir-parlamentares.component';
 import { LayoutService } from '../../services/layout.service';
 import { CenarioDialogComponent } from '../../dialogs/cenario-dialog/cenario-dialog.component';
+import { log } from '../../utils/log';
 
 @Component({
   selector: 'app-context-menu',
@@ -61,7 +62,6 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
 async ngOnInit() {
   document.addEventListener('click', this.onDocumentClick);
   this.grupos = this.fonteService.grupos(); 
-  console.log('GRUPOS CARREGADOS NO MENU:', this.grupos);
 }
 
   onFontChange(grupo: FonteGrupo, subId: string, config: FontConfig) {
@@ -69,7 +69,6 @@ async ngOnInit() {
   }
 
   openFontDialog(tipo: ComponenteTipo, subId: string) {
-    console.log('Abrindo editor de fonte para:', tipo, subId);
 
     if (subId !== 'configurar-tela') {
       const dialogRef = this.dialog.open(FontDialogComponent, {
@@ -84,7 +83,6 @@ async ngOnInit() {
 
       dialogRef.afterClosed().subscribe((result) => {
         if (result) {
-          console.log('Fonte escolhida para', tipo, subId, ':', result);
           this.fonteService.updateFonte(tipo, subId, result);
 
           this.action.emit({

@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import { FonteService } from '../../services/fonte.service';
 import { FontConfig } from '../../models/fontes.model';
+import { corComOpacidade } from '../../utils/estilo-texto';
 
 export interface DadosParlamentar {
   nome: string;
@@ -32,6 +33,18 @@ export class ParlamentarItemComponent {
 
   @Input() nomeNaCorDoVoto = false;
   @Input() mostrarFundo = true;
+  @Input() corFundo = '#334155';
+  @Input() opacidadeFundo = 100;
+
+  get fundo(): string {
+    return this.mostrarFundo ? corComOpacidade(this.corFundo, this.opacidadeFundo) : 'transparent';
+  }
+
+  get separador(): string {
+    return this.mostrarFundo && this.opacidadeFundo > 0
+      ? `4px solid ${corComOpacidade('#18262D', this.opacidadeFundo)}`
+      : 'none';
+  }
 
   private readonly COR_PRESENTE = '#00FF00';
 

@@ -531,6 +531,43 @@ export class FonteService {
         },
       ],
     },
+    {
+      tipo: 'tipo-fala',
+      label: 'Tipo de Fala',
+      subItens: [
+        {
+          subId: 'texto',
+          label: 'Texto',
+          font: { family: this.FAMILIA_PADRAO_VISUAL, size: 24, weight: '600', color: '#FFFFFF', style: 'normal' },
+        },
+      ],
+    },
+    {
+      tipo: 'nome-cronometro',
+      label: 'Nome do Cronômetro',
+      subItens: [
+        {
+          subId: 'texto',
+          label: 'Texto',
+          font: { family: this.FAMILIA_PADRAO_VISUAL, size: 20, weight: '600', color: '#FFFFFF', style: 'normal' },
+        },
+      ],
+    },
+    {
+      tipo: 'mensagem-linha',
+      label: 'Mensagem',
+      subItens: [1, 2, 3, 4].map((n) => ({
+        subId: `linha-${n}`,
+        label: `Linha ${n}`,
+        font: {
+          family: this.FAMILIA_PADRAO_VISUAL,
+          size: n === 1 ? 32 : 26,
+          weight: n === 1 ? 'bold' : 'normal',
+          color: '#FFFFFF',
+          style: 'normal',
+        },
+      })),
+    },
   ];
 
   private _grupos = signal<FonteGrupo[]>(
@@ -577,6 +614,7 @@ export class FonteService {
 
 
    carregarGrupos(fontes?: FonteGrupo[] | null): void {
+    this.ultimaPaletaAplicada = ''; 
     this._grupos.set(
       this.completarGrupos(
         fontes && fontes.length
@@ -589,6 +627,87 @@ export class FonteService {
   private completarGrupos(grupos: FonteGrupo[]): FonteGrupo[] {
     const tiposExistentes = new Set(grupos.map((g) => g.tipo));
     const faltando = this.GRUPOS_EXTRAS.filter((g) => !tiposExistentes.has(g.tipo));
-    return [...grupos, ...structuredClone(faltando)];
+    const completos = [...grupos, ...structuredClone(faltando)];
+    return completos.map((g) => this.completarSubItens(g));
+  }
+
+  private completarSubItens(grupo: FonteGrupo): FonteGrupo {
+    if (grupo.tipo === 'temporizador-item') {
+      const antigo = grupo.subItens.find((s) => s.subId === 'default');
+      const base = antigo?.font || grupo.subItens[0]?.font || {
+        family: this.FAMILIA_PADRAO_VISUAL, size: 48, weight: '600', color: '#FFFFFF', style: 'normal',
+      };
+      const itens = [
+        { subId: 'cronometro-1', label: 'Cronômetro 1' },
+        { subId: 'cronometro-2', label: 'Cronômetro 2' },
+        { subId: 'cronometro-3', label: 'Cronômetro 3' },
+        { subId: 'cronometro-4', label: 'Cronômetro 4' },
+        { subId: 'relogio', label: 'Hora (relógio)' },
+        { subId: 'data', label: 'Data' },
+      ];
+      const subItens = itens.map((item) => {
+        const existente = grupo.subItens.find((s) => s.subId === item.subId);
+        return existente || { ...item, font: structuredClone(base) };
+      });
+      return { ...grupo, label: 'Tempo e Data', subItens };
+    }
+
+    if (grupo.tipo === 'tribuna' && !grupo.subItens.some((s) => s.subId === 'materia')) {
+      const base = grupo.subItens.find((s) => s.subId === 'orador')?.font;
+      return {
+        ...grupo,
+        subItens: [
+          ...grupo.subItens,
+          {
+            subId: 'materia',
+            label: 'Tema em discussão',
+            font: {
+              family: base?.family || this.FAMILIA_PADRAO_VISUAL,
+              size: base?.size || 24,
+              weight: 'normal',
+              color: '#FFFFFF',
+              style: 'normal',
+            },
+          },
+        ],
+      };
+    }
+
+    return grupo;
+  }
+
+
+  private readonly CORES_DA_PALETA: { tipo: ComponenteTipo; subId: string; cor: string }[] = [
+    { tipo: 'titulo', subId: 'titulo-texto', cor: 'Cor_Titulo' },
+    { tipo: 'subtitulo', subId: 'subtitulo-texto', cor: 'Cor_NomeItem' },
+    { tipo: 'descricao', subId: 'descricao-texto', cor: 'Cor_Ementa' },
+    { tipo: 'resultado-votacao', subId: 'resultado-texto', cor: 'Cor_Resultado' },
+    { tipo: 'temporizador-item', subId: 'cronometro-1', cor: 'Cor_Cronometro_1' },
+    { tipo: 'temporizador-item', subId: 'cronometro-2', cor: 'Cor_Cronometro_2' },
+    { tipo: 'temporizador-item', subId: 'cronometro-3', cor: 'Cor_Cronometro_3' },
+    { tipo: 'temporizador-item', subId: 'cronometro-4', cor: 'Cor_Cronometro_4' },
+    { tipo: 'temporizador-item', subId: 'relogio', cor: 'Cor_Relogio' },
+    { tipo: 'temporizador-item', subId: 'data', cor: 'Cor_Relogio' },
+  ];
+
+  private ultimaPaletaAplicada = '';
+
+  aplicarCoresDaPaleta(paleta: Record<string, string>): void {
+    const chave = JSON.stringify(paleta);
+    if (!paleta || chave === this.ultimaPaletaAplicada) return;
+    this.ultimaPaletaAplicada = chave;
+
+    this._grupos.update((grupos) =>
+      grupos.map((grupo) => ({
+        ...grupo,
+        subItens: grupo.subItens.map((sub) => {
+          const regra = this.CORES_DA_PALETA.find(
+            (r) => r.tipo === grupo.tipo && r.subId === sub.subId,
+          );
+          const cor = regra ? paleta[regra.cor] : '';
+          return cor ? { ...sub, font: { ...sub.font, color: cor } } : sub;
+        }),
+      })),
+    );
   }
 }

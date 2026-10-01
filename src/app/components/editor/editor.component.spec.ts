@@ -1,37 +1,28 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { EditorComponent } from './editor.component';
-import { ActivatedRoute } from '@angular/router';
-import { of } from 'rxjs';
-import { LayoutService } from '../../services/layout.service';
-
-const mockLayoutService = {
-  carregarCenario: () => ({ // Simula o retorno de um cenário com a propriedade 'nome'
-    nome: 'Cenário de Teste',
-    componentes: []
-  }),
-};
 
 describe('EditorComponent', () => {
-  let component: EditorComponent;
   let fixture: ComponentFixture<EditorComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [EditorComponent],
       providers: [
-        { provide: LayoutService, useValue: mockLayoutService },
-        { provide: ActivatedRoute, useValue: { paramMap: of({})}}
-      ]
-    })
-    .compileComponents();
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        provideNoopAnimations(),
+      ],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(EditorComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
+  it('deve criar', () => {
+    expect(fixture.componentInstance).toBeTruthy();
   });
 });

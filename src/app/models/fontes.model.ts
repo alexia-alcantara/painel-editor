@@ -17,7 +17,10 @@ export type ComponenteTipo =
   | 'modo-votacao'
   | 'parametro-votacao'
   | 'categoria-reuniao'
-  | 'autor';
+  | 'autor'
+  | 'tipo-fala'
+  | 'nome-cronometro'
+  | 'mensagem-linha';
 
 export interface FontConfig {
   family: string;
@@ -25,12 +28,13 @@ export interface FontConfig {
   weight?: string;
   color?: string;
   style?: string;
+  align?: 'left' | 'center' | 'right';
 }
 
 export interface FonteSubItem {
-  subId: string;       // ex: 'nome', 'partido', 'cronometro1'
-  label: string;    // ex: 'Nome', 'Partido', 'Cronômetro 1'
-  font: FontConfig; // Configuração da fonte
+  subId: string;       
+  label: string;    
+  font: FontConfig;
 }
 
 export interface FonteGrupo {

@@ -5,6 +5,7 @@ import { Observable, Subject, of } from 'rxjs';
 import { map, tap, switchMap, catchError } from 'rxjs/operators';
 import { DistribuirConfig } from '../dialogs/distribuir-parlamentares/distribuir-parlamentares.component';
 import { Cenario } from '../models/cenario.model';
+import { log } from '../utils/log';
 
 interface ResponseContainer<T> {
   status: { code: number; message: string };
@@ -64,7 +65,7 @@ export class LayoutService {
       const cenarioString = localStorage.getItem(this.LAYOUT_ATUAL_KEY);
       return cenarioString ? JSON.parse(cenarioString) : null;
     } catch (e) {
-      console.error('Erro ao carregar cenário atual do localStorage', e);
+      log.erro('Cenários', 'Falha ao ler o rascunho salvo no navegador.', e);
       return null;
     }
   }
@@ -78,7 +79,7 @@ export class LayoutService {
       ),
       tap((cenarios) => this.cenariosAtualizados.next(cenarios)),
       catchError((e) => {
-        console.error('Erro ao listar cenários do backend', e);
+        log.erro('Cenários', 'Falha ao listar os cenários do backend.', e);
         return of([]);
       })
     );
@@ -159,6 +160,10 @@ export class LayoutService {
 
   private converterParaBackend(cenario: Cenario, idTipoPainel: number): PainelCenarioBackend {
     const { idBackend, ...cenarioParaSalvar } = cenario as any;
+    // A imagem de fundo não vai mais em base64 dentro do cenário (deixava o texto grande
+    // demais pro Legis). Fica só o nome do arquivo em "imagemFundo".
+    cenarioParaSalvar.backgroundImage = '';
+    delete cenarioParaSalvar.imagemFundoId;
     return {
       nome: cenario.nome,
       layout: this.escaparNaoAscii(JSON.stringify(cenarioParaSalvar)),

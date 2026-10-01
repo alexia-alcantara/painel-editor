@@ -28,6 +28,9 @@ export interface ComponenteEditor {
     | 'parametro-votacao'
     | 'categoria-reuniao'
     | 'autor'
+    | 'tipo-fala'
+    | 'nome-cronometro'
+    | 'mensagem-linha'
   dados?: any;
   x: number;
   y: number;
@@ -44,6 +47,7 @@ export interface ComponenteEditor {
     valor?: number;
     fontSize?: number;
     cronometro?: number;
+    linha?: number;
   };
   style?: { [key: string]: string | number };
   fontes?: FonteSubItem[]; 

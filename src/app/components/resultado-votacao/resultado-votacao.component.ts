@@ -2,6 +2,7 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FontConfig } from '../../models/fontes.model';
 import { FonteService } from '../../services/fonte.service';
+import { alinhamentoFlex } from '../../utils/estilo-texto';
 
 @Component({
   selector: 'app-resultado-votacao',
@@ -28,5 +29,9 @@ export class ResultadoVotacaoComponent {
         style: 'normal',
       }
     );
+  }
+
+  get justificar(): string {
+    return alinhamentoFlex(this.fontConfig.align);
   }
 }

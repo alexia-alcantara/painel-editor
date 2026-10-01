@@ -11,20 +11,18 @@ import {
   Renderer2,
   HostListener,
 } from '@angular/core';
+import { urlImagemFundo } from '../../config/runtime-config';
 import { ComponenteEditor } from '../../models/components.model';
 import { LayoutService } from '../../services/layout.service';
 import { CommonModule } from '@angular/common';
 import { HeaderReuniaoComponent } from '../header-reuniao/header-reuniao.component';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { ImagemReuniaoComponent } from '../imagem-reuniao/imagem-reuniao.component';
 import { ParlamentarItemComponent } from '../parlamentar-item/parlamentar-item.component';
 import { VotacaoTotalComponent } from '../votacao-total/votacao-total.component';
-import { TimerComponent } from '../timer/timer.component';
 import { StatusReuniaoComponent } from '../status-reuniao/status-reuniao.component';
 import { TemporizadorItemComponent } from '../temporizador-item/temporizador-item.component';
-import { ListaVotacaoComponent } from '../lista-votacao/lista-votacao.component';
 import { DescricaoReuniaoComponent } from '../descricao-reuniao/descricao-reuniao.component';
 import { TituloReuniaoComponent } from '../titulo-reuniao/titulo-reuniao.component';
 import { ContextMenuComponent } from '../context-menu/context-menu.component';
@@ -38,7 +36,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { ControleVisibilidadeComponent } from '../../controle-visibilidade/controle-visibilidade.component';
 import { MatIconModule } from '@angular/material/icon';
-import { Cenario } from '../../models/cenario.model';
+import { Cenario, OpcoesCenario } from '../../models/cenario.model';
 import { FormsModule } from '@angular/forms';
 import { FonteService } from '../../services/fonte.service';
 import { StatusItemComponent } from '../status-reuniao/status-item/status-item.component';
@@ -47,12 +45,14 @@ import { MensagemComponent } from '../mensagem/mensagem.component';
 import { ImagemStorageService } from '../../services/imagem-storage.service';
 import { ResultadoVotacaoComponent } from '../resultado-votacao/resultado-votacao.component';
 import { RelogioComponent } from '../relogio/relogio.component';
+import { MultimidiaComponent } from '../multimidia/multimidia.component';
 import { OradorComponent } from '../orador/orador.component';
 import { MateriaComponent } from '../materia/materia.component';
 import { PartidoComponent } from '../partido/partido.component';
 
 import { PainelService } from '../../services/painel.service';
 import { CampoTextoComponent } from '../campo-texto/campo-texto.component';
+import { log } from '../../utils/log';
 
 @Component({
   selector: 'app-editor',
@@ -61,14 +61,11 @@ import { CampoTextoComponent } from '../campo-texto/campo-texto.component';
     CommonModule,
     FormsModule,
     HeaderReuniaoComponent,
-    DragDropModule,
     ImagemReuniaoComponent,
     ParlamentarItemComponent,
     VotacaoTotalComponent,
-    TimerComponent,
     TemporizadorItemComponent,
     StatusReuniaoComponent,
-    ListaVotacaoComponent,
     DescricaoReuniaoComponent,
     TituloReuniaoComponent,
     SubtituloReuniaoComponent,
@@ -87,20 +84,17 @@ import { CampoTextoComponent } from '../campo-texto/campo-texto.component';
     PartidoComponent,
     ResultadoVotacaoComponent,
     RelogioComponent,
+    MultimidiaComponent,
     CampoTextoComponent
   ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
 })
 export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
-  @ViewChild('editorWrapper', { static: true }) editorWrapperRef!: ElementRef;
   @ViewChild(ContextMenuComponent)
   contextMenu!: ContextMenuComponent;
-  private ultimoEstadoJson: string = '';
 
-  modoEditor = false;
   router = inject(Router);
-  layout: ComponenteEditor[] = [];
 
   isEditingMode = false;
   cenarioId: string | null = null;
@@ -125,12 +119,13 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   componentes = signal<ComponenteEditor[]>([]);
   mostrarControleVisibilidade = false;
   mostrarBlocosOcultos = true;
+
+  zoom = 1;
+  @ViewChild('areaEditor') areaEditorRef?: ElementRef<HTMLElement>;
   private routeSub: Subscription | undefined;
 
   private imagemFundoAtual: File | null = null;
-  scale = 1;
 
-  private atualizacaoSubscription: Subscription | undefined;
    listaPaineis: any[] = [];
 
   constructor(
@@ -143,22 +138,47 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     private painelService: PainelService,
   ) {}
 
+  /** Prévia local da imagem escolhida agora (só aparece no editor, não é salva). */
+  private previaFundo = '';
+
+  /**
+   * Escolher a imagem só guarda o NOME do arquivo no cenário.
+   * O arquivo precisa estar na pasta configurada em "caminhoImagens" (config.json).
+   */
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      const file = input.files[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64Image = reader.result as string;
+    const file = input.files?.[0];
+    if (!file) return;
 
-        this.cenarioAtual.backgroundImage = base64Image;
+    if (this.previaFundo) URL.revokeObjectURL(this.previaFundo);
+    this.previaFundo = URL.createObjectURL(file);
 
-        localStorage.setItem('bg_temporary', base64Image);
+    this.cenarioAtual.imagemFundo = file.name;
+    this.cenarioAtual.backgroundImage = '';
+    input.value = '';
+  }
 
-        input.value = '';
-      };
-      reader.readAsDataURL(file);
+  /** Nome digitado à mão no campo da imagem de fundo. */
+  alterarNomeImagemFundo(nome: string): void {
+    if (this.previaFundo) {
+      URL.revokeObjectURL(this.previaFundo);
+      this.previaFundo = '';
     }
+    this.cenarioAtual.imagemFundo = nome.trim();
+    this.cenarioAtual.backgroundImage = '';
+  }
+
+  removerImagemFundo(): void {
+    this.alterarNomeImagemFundo('');
+  }
+
+  /** Fundo mostrado no editor: prévia local, depois o arquivo do servidor, depois o base64 antigo. */
+  get fundoEditor(): string {
+    const url =
+      this.previaFundo ||
+      urlImagemFundo(this.cenarioAtual.imagemFundo) ||
+      this.cenarioAtual.backgroundImage;
+    return url ? `url("${url}")` : 'none';
   }
 
   onComponentVisibilityChange(event: { ids: string[]; visivel: boolean }) {
@@ -170,14 +190,13 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
   }
   ngOnInit() {
-    this.updateScale();
 
     this.routeSub = this.route.paramMap.subscribe((params) => {
       if (params.has('id')) {
         // MODO DE EDIÇÃO
         this.isEditingMode = true;
         this.cenarioId = params.get('id');
-        console.log(`Modo de Edição. Carregando cenário: ${this.cenarioId}`);
+        log.info('Editor', `Abrindo cenário "${this.cenarioId}".`);
 
         this.layoutService
           .carregarCenario(this.cenarioId!)
@@ -197,34 +216,25 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
             this.onItemChange();
             this.dispararAutosave();
             this.carregarListaPaineis();
+            setTimeout(() => this.zoomInicial());
           });
       } else {
         this.isEditingMode = false;
         this.cenarioId = null;
-        console.log('Modo cenário novo');
         this.cenarioAtual = this.montarLayoutInicial();
         this.fonteService.carregarGrupos(this.cenarioAtual.fontes);
 
         this.onItemChange();
         this.dispararAutosave();
         this.carregarListaPaineis();
+        setTimeout(() => this.zoomInicial());
       }
     });
-  }
-
-  @HostListener('window:resize')
-  onResize() {
-    this.updateScale();
-  }
-
-  onIpChanged(): void {
-    // O editor não busca mais dados ao vivo — isso só acontece no /display.
   }
 
   carregarListaPaineis() {
     this.painelService.listarPaineis().subscribe({
       next: (lista) => {
-        // Se a API responder, atualiza com a lista completa e real.
         if (lista && lista.length > 0) {
           this.listaPaineis = lista.map((item: any) => ({
             nome: item.nome,
@@ -234,181 +244,9 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         }
       },
       error: (err) => {
-        // Se der erro (CORS/Bloqueio), não faz nada.
-        console.warn(
-          'Não foi possível carregar a lista automática. Usando manual.',
-        );
+        log.aviso('Editor', 'Não foi possível carregar a lista de painéis do backend.', err);
       },
     });
-  }
-
-  iniciarAtualizacaoAutomatica(): void {
-    const frequenciaMs = 2000;
-
-    const ipDaUrl = this.route.snapshot.queryParamMap.get('ip');
-
-    const cenario =
-      (this as any).cenario ||
-      (this as any).cenarioParaExibir ||
-      (this as any).cenarioAtual;
-    const ipDoCenario = cenario?.idPainel;
-
-    const ipParaConectar = ipDaUrl || ipDoCenario;
-
-    if (!ipParaConectar) return;
-
-    console.log(`Conectando ao painel modo editor: ${ipParaConectar}...`);
-    if (this.atualizacaoSubscription) {
-      this.atualizacaoSubscription.unsubscribe();
-    }
-
-    console.log(`Conectando ao painel (Modo Editor): ${ipParaConectar}...`);
-
-    this.atualizacaoSubscription = this.painelService
-      .getDadosPainelEmTempoReal(ipParaConectar, frequenciaMs)
-      .subscribe({
-        next: (dadosDaApi) => {
-          if (!dadosDaApi) return;
-
-          const payload = dadosDaApi as any;
-          const dadosReais = payload.valor ? payload.valor : payload;
-
-          const estadoAtualJson = JSON.stringify(dadosReais);
-
-          if (this.ultimoEstadoJson === estadoAtualJson) {
-            return;
-          }
-
-          this.ultimoEstadoJson = estadoAtualJson;
-
-          console.log('Dados mudaram! Recebido no Editor:', dadosReais);
-          this.atualizarDadosNaTela(dadosReais);
-        },
-        error: (err) => console.error('Erro na conexão do Editor:', err),
-      });
-  }
-
-  private atualizarDadosNaTela(dadosApi: any) {
-    if (!dadosApi) return;
-
-    // No editor a API só serve para pré-visualizar textos reais.
-    // A visibilidade (`visible`) é decisão de quem monta o cenário e NÃO é alterada aqui;
-    // quem esconde o que não se aplica em cada momento é o display, em tempo real.
-    const achar = (tipo: string) =>
-      this.cenarioAtual.componentes.find((c) => c.tipo === tipo);
-
-    const componenteTitulo = this.cenarioAtual.componentes.find(
-      (c) => c.tipo === 'titulo' && c.id !== 'data-atual',
-    );
-    if (componenteTitulo) {
-      componenteTitulo.dados = {
-        ...componenteTitulo.dados,
-        texto: dadosApi.nomeReuniao || dadosApi.nomeCliente || 'Sem Título',
-      };
-    }
-
-    const componenteSubtitulo = achar('subtitulo');
-    if (componenteSubtitulo) {
-      componenteSubtitulo.dados = {
-        ...componenteSubtitulo.dados,
-        texto:
-          dadosApi.votacao?.nome ||
-          dadosApi.categoriaReuniao ||
-          componenteSubtitulo.dados?.texto ||
-          '',
-      };
-    }
-
-    const componenteDescricao = achar('descricao');
-    if (componenteDescricao) {
-      const texto = dadosApi.votacao?.ementa || dadosApi.statusReuniao;
-      if (texto) {
-        componenteDescricao.dados = { ...componenteDescricao.dados, texto };
-      }
-    }
-
-    if (dadosApi.tribuna) {
-      const tribuna = dadosApi.tribuna;
-
-      const componenteOrador = achar('orador');
-      if (componenteOrador) {
-        componenteOrador.dados = {
-          ...componenteOrador.dados,
-          orador: tribuna.nomeParlamentar || tribuna.nome || tribuna.orador,
-          partido: tribuna.partido,
-        };
-      }
-
-      const componentePartido = achar('partido');
-      if (componentePartido && tribuna.partido) {
-        componentePartido.dados = {
-          ...componentePartido.dados,
-          partido: tribuna.partido,
-        };
-      }
-
-      const componenteMateria = achar('materia');
-      if (componenteMateria) {
-        componenteMateria.dados = {
-          ...componenteMateria.dados,
-          materia: tribuna.materia || componenteMateria.dados?.materia,
-          ementa: dadosApi.votacao?.ementa || '',
-        };
-      }
-    }
-
-    // Mesma leitura do display: a API pode mandar `presencas` como objeto único (não só lista)
-    const membros = this.extrairMembros(dadosApi);
-    if (membros.length > 0) {
-      const componentesParlamentar = this.cenarioAtual.componentes.filter(
-        (c) => c.tipo === 'parlamentar',
-      );
-
-      componentesParlamentar.forEach((comp, index) => {
-        const membro = membros[index];
-        const dadosReais = membro?.titular || membro;
-
-        // Slots além do total real continuam mostrando o exemplo, para o layout seguir visível
-        if (dadosReais && dadosReais.nome) {
-          comp.dados = {
-            ...comp.dados,
-            nome: dadosReais.nome,
-            partido: dadosReais.partido,
-            voto: dadosReais.voto,
-          };
-        }
-      });
-    }
-
-    // Atualiza a tela
-    this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
-    this.componentes.set(this.cenarioAtual.componentes);
-  }
-
-  /** Lista de membros vinda da API, aceitando as variações de formato que o display já trata. */
-  private extrairMembros(dadosApi: any): any[] {
-    const pData = dadosApi?.parlamentares;
-    if (!pData) return [];
-
-    let cursor = pData.presencas;
-    if (Array.isArray(cursor)) cursor = cursor[0];
-    if (cursor && cursor.presencas) cursor = cursor.presencas;
-    if (!cursor || !cursor.membros) return [];
-
-    let lista = cursor.membros;
-    if (lista.membros) lista = lista.membros;
-    return Array.isArray(lista) ? lista : [lista];
-  }
-
-  updateScale() {
-    const baseWidth = 1660;
-    const baseHeight = 1080;
-
-    const scaleX = window.innerWidth / baseWidth;
-    const scaleY = window.innerHeight / baseHeight;
-
-    // pega o menor para caber na tela inteira
-    this.scale = Math.min(scaleX, scaleY);
   }
 
   ngAfterViewInit(): void {}
@@ -417,6 +255,41 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.routeSub) {
       this.routeSub.unsubscribe();
     }
+  }
+
+
+  get zoomPercentual(): number {
+    return Math.round(this.zoom * 100);
+  }
+
+  aumentarZoom(): void {
+    this.zoom = Math.min(2, Math.round((this.zoom + 0.1) * 10) / 10);
+  }
+
+  diminuirZoom(): void {
+    this.zoom = Math.max(0.1, Math.round((this.zoom - 0.1) * 10) / 10);
+  }
+
+  zoomTamanhoReal(): void {
+    this.zoom = 1;
+  }
+
+  ajustarZoom(): void {
+    const area = this.areaEditorRef?.nativeElement;
+    if (!area || !this.cenarioAtual?.targetWidth || !this.cenarioAtual?.targetHeight) return;
+    const escalaX = (area.clientWidth - 16) / this.cenarioAtual.targetWidth;
+    const escalaY = (area.clientHeight - 16) / this.cenarioAtual.targetHeight;
+    this.zoom = Math.max(0.1, Math.min(1, Math.floor(Math.min(escalaX, escalaY) * 100) / 100));
+  }
+
+  private zoomInicial(): void {
+    const area = this.areaEditorRef?.nativeElement;
+    if (!area) return;
+    const cabe =
+      this.cenarioAtual.targetWidth <= area.clientWidth &&
+      this.cenarioAtual.targetHeight <= area.clientHeight;
+    if (cabe) this.zoom = 1;
+    else this.ajustarZoom();
   }
 
   toggleControleVisibilidade(): void {
@@ -441,7 +314,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         const comp = event.component;
         if (comp) {
           comp.visible = event.data.visible;
-          // Ao mudar a visibilidade final, garante que o bloco continue aparecendo no editor
           comp.ocultoNoEditor = false;
           this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
           this.dispararAutosave();
@@ -484,7 +356,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       (c) => c.tipo !== 'parlamentar',
     );
 
-    // Se a configuração não informar o tamanho do item, mantém o dos parlamentares atuais
     const atual = this.cenarioAtual.componentes.find(
       (c) => c.tipo === 'parlamentar',
     );
@@ -501,24 +372,40 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     this.dispararAutosave();
   }
 
-  onDragEnd(event: CdkDragEnd, itemArrastado: ComponenteEditor) {
-    const novaPosicao = event.source.getFreeDragPosition();
+  private arrastando: {
+    item: ComponenteEditor;
+    x0: number;
+    y0: number;
+    itemX0: number;
+    itemY0: number;
+    moveu: boolean;
+  } | null = null;
 
-    console.log(
-      `Item: ${itemArrastado.id}, Nova Posição: X=${Math.round(
-        novaPosicao.x,
-      )}, Y=${Math.round(novaPosicao.y)}`,
-    );
+  iniciarArraste(event: MouseEvent, item: ComponenteEditor): void {
+    if (event.button !== 0) return; 
+    event.preventDefault(); 
+    this.arrastando = {
+      item,
+      x0: event.clientX,
+      y0: event.clientY,
+      itemX0: item.x,
+      itemY0: item.y,
+      moveu: false,
+    };
+  }
 
-    const index = this.cenarioAtual.componentes.findIndex(
-      (c) => c.id === itemArrastado.id,
-    );
-    if (index !== -1) {
-      this.cenarioAtual.componentes[index].x = Math.round(novaPosicao.x);
-      this.cenarioAtual.componentes[index].y = Math.round(novaPosicao.y);
-      this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
-      this.dispararAutosave();
-    }
+  private moverArraste(event: MouseEvent): void {
+    const a = this.arrastando;
+    if (!a) return;
+    const dx = (event.clientX - a.x0) / this.zoom;
+    const dy = (event.clientY - a.y0) / this.zoom;
+    if (!a.moveu && Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
+    a.moveu = true;
+
+    const maxX = Math.max(0, this.cenarioAtual.targetWidth - a.item.width);
+    const maxY = Math.max(0, this.cenarioAtual.targetHeight - a.item.height);
+    a.item.x = Math.min(Math.max(0, Math.round(a.itemX0 + dx)), maxX);
+    a.item.y = Math.min(Math.max(0, Math.round(a.itemY0 + dy)), maxY);
   }
 
   private redimensionando: {
@@ -530,7 +417,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   } | null = null;
 
   iniciarRedimensionar(event: MouseEvent, item: ComponenteEditor): void {
-    event.stopPropagation(); // não deixa o arrastar (cdkDrag) começar
+    event.stopPropagation(); 
     event.preventDefault();
     this.redimensionando = {
       item,
@@ -543,25 +430,37 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
   @HostListener('document:mousemove', ['$event'])
   aoMoverMouse(event: MouseEvent): void {
+    if (this.arrastando) {
+      this.moverArraste(event);
+      return;
+    }
     const r = this.redimensionando;
     if (!r) return;
 
-    // Não deixa passar da borda do cenário
     const larguraMax = this.cenarioAtual.targetWidth - r.item.x;
     const alturaMax = this.cenarioAtual.targetHeight - r.item.y;
 
     r.item.width = Math.min(
-      Math.max(20, Math.round(r.largura0 + (event.clientX - r.x0))),
+      Math.max(20, Math.round(r.largura0 + (event.clientX - r.x0) / this.zoom)),
       larguraMax,
     );
     r.item.height = Math.min(
-      Math.max(20, Math.round(r.altura0 + (event.clientY - r.y0))),
+      Math.max(20, Math.round(r.altura0 + (event.clientY - r.y0) / this.zoom)),
       alturaMax,
     );
   }
 
   @HostListener('document:mouseup')
   aoSoltarMouse(): void {
+    if (this.arrastando) {
+      const moveu = this.arrastando.moveu;
+      this.arrastando = null;
+      if (moveu) {
+        this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
+        this.dispararAutosave();
+      }
+      return;
+    }
     if (!this.redimensionando) return;
     this.redimensionando = null;
     this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
@@ -804,6 +703,62 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     ];
 
     componentes.push({
+      id: 'tipo-fala-principal',
+      tipo: 'tipo-fala',
+      x: xTexto,
+      y: 540,
+      width: wTexto,
+      height: 50,
+      visible: false,
+      dados: { texto: 'Tipo de Fala' },
+    });
+
+    const posicoesCronometros: Record<number, { x: number; y: number }> = {
+      1: { x: 598, y: 718 },
+      2: { x: 598, y: 816 },
+      3: { x: 340, y: 718 },
+      4: { x: 340, y: 816 },
+    };
+    [1, 2, 3, 4].forEach((n) => {
+      const pos = posicoesCronometros[n];
+      componentes.push({
+        id: `nome-cronometro-${n}`,
+        tipo: 'nome-cronometro',
+        x: pos.x,
+        y: pos.y - 34,
+        width: 250,
+        height: 32,
+        visible: false,
+        props: { cronometro: n },
+        dados: { texto: `Nome C${n}` },
+      });
+    });
+
+    [1, 2, 3, 4].forEach((n) => {
+      componentes.push({
+        id: `mensagem-linha-${n}`,
+        tipo: 'mensagem-linha',
+        x: xTexto,
+        y: 594 + (n - 1) * 60,
+        width: wTexto,
+        height: 56,
+        visible: false,
+        props: { linha: n },
+        dados: { texto: `Mensagem Linha ${n}` },
+      });
+    });
+
+    componentes.push({
+      id: 'multimidia-principal',
+      tipo: 'multimidia',
+      x: 1100,
+      y: 700,
+      width: 480,
+      height: 270,
+      visible: false,
+    });
+
+    componentes.push({
       id: 'autor-principal',
       tipo: 'autor',
       x: xTexto,
@@ -843,7 +798,12 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       idPainel: '',
       slug: this.gerarSlug(nomePadrao),
       fontes: this.fonteService.obterGruposPadraoVisual(),
-      opcoes: { nomeNaCorDoVoto: false, fundoParlamentares: true },
+      opcoes: {
+        nomeNaCorDoVoto: false,
+        fundoParlamentares: true,
+        corFundoParlamentares: '#334155',
+        opacidadeFundoParlamentares: 100,
+      },
     };
   }
 
@@ -862,6 +822,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     cenario.opcoes = {
       nomeNaCorDoVoto: cenario.opcoes?.nomeNaCorDoVoto ?? false,
       fundoParlamentares: cenario.opcoes?.fundoParlamentares ?? true,
+      corFundoParlamentares: cenario.opcoes?.corFundoParlamentares ?? '#334155',
+      opacidadeFundoParlamentares: cenario.opcoes?.opacidadeFundoParlamentares ?? 100,
     };
   }
 
@@ -869,7 +831,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     return TemporizadorItemComponent.numeroDoComponente(item);
   }
 
-  alterarOpcao(chave: 'nomeNaCorDoVoto' | 'fundoParlamentares', valor: boolean): void {
+  alterarOpcao(chave: keyof OpcoesCenario, valor: boolean | string | number): void {
     this.cenarioAtual.opcoes = { ...this.cenarioAtual.opcoes, [chave]: valor };
     this.dispararAutosave();
   }
@@ -929,25 +891,18 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   async salvar() {
-    console.log(
-      '%c[SALVAR] Método iniciado',
-      'color: cyan; font-weight: bold;',
-    );
 
     const nomeCenario = prompt(
       'Digite um nome para o cenário:',
       this.cenarioAtual.nome || 'novo-cenario',
     );
 
-    console.log('[SALVAR] Nome digitado:', nomeCenario);
 
     if (!nomeCenario) {
-      console.log('[SALVAR] Nome vazio, abortando.');
       return;
     }
 
     this.cenarioAtual.nome = nomeCenario;
-    // Guarda as fontes junto do cenário, para o display usar as mesmas do editor
     this.cenarioAtual.fontes = structuredClone(this.fonteService.grupos());
 
     this.cenarioAtual.slug = this.gerarSlug(nomeCenario);
@@ -956,16 +911,9 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       this.cenarioAtual.id = `cenario_${Date.now()}`;
     }
 
-    console.log(
-      '[SALVAR] Prosseguindo, isEditingMode:',
-      this.isEditingMode,
-      'imagemFundoAtual:',
-      this.imagemFundoAtual,
-    );
 
     if (this.imagemFundoAtual) {
       try {
-        console.log(`Salvando imagem de fundo: ${this.imagemFundoAtual.name}`);
         const idImagem = await new Promise<number>((resolve, reject) => {
           this.imagemStorageService
             .salvarImagem(this.imagemFundoAtual!)
@@ -977,7 +925,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         this.cenarioAtual.imagemFundoId = String(idImagem);
         this.imagemFundoAtual = null;
       } catch (err) {
-        console.error('Falha ao salvar a imagem de fundo:', err);
+        log.erro('Editor', 'Falha ao salvar a imagem de fundo.', err);
         alert(
           'Ocorreu um erro grave ao salvar a imagem de fundo. O cenário será salvo sem ela.',
         );
@@ -986,29 +934,27 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     if (this.isEditingMode) {
-      console.log('[SALVAR] Chamando salvarCenario() (modo edição)...');
       this.layoutService.salvarCenario(this.cenarioAtual).subscribe({
         next: (cenarioSalvo) => {
-          console.log('[SALVAR] Sucesso! Cenário retornado:', cenarioSalvo);
+          log.info('Editor', `Cenário "${nomeCenario}" salvo.`);
           this.cenarioAtual = cenarioSalvo;
           alert(`Cenário "${nomeCenario}" atualizado com sucesso!`);
         },
         error: (error) => {
-          console.error('[SALVAR] Erro ao atualizar:', error);
+          log.erro('Editor', 'Falha ao salvar o cenário.', error);
           alert('Ocorreu um erro ao atualizar o cenário.');
         },
       });
     } else {
-      console.log('[SALVAR] Chamando salvarCenario() (novo cenário)...');
       this.layoutService.salvarCenario(this.cenarioAtual).subscribe({
         next: (cenarioSalvo) => {
-          console.log('[SALVAR] Sucesso! Cenário retornado:', cenarioSalvo);
+          log.info('Editor', `Cenário "${nomeCenario}" salvo.`);
           this.cenarioAtual = cenarioSalvo;
           alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
           this.router.navigate(['/editor', this.cenarioAtual.slug]);
         },
         error: (error) => {
-          console.error('[SALVAR] Erro ao salvar:', error);
+          log.erro('Editor', 'Falha ao salvar o cenário.', error);
           alert('Ocorreu um erro ao salvar o cenário.');
         },
       });

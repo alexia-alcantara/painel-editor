@@ -55,7 +55,8 @@ export class StatusItemComponent {
     'font-size.px': config.size,
     'font-weight': config.weight,
     'font-style': config.style,
-    'color': corEfetiva
+    'color': corEfetiva,
+      'text-align': config.align || 'left'
   };
 }
 
@@ -68,7 +69,8 @@ valorStyle() {
     'font-size.px': config.size,
     'font-weight': config.weight,
     'font-style': config.style,
-    'color': corEfetiva
+    'color': corEfetiva,
+      'text-align': config.align || 'center'
   };
 }
 }

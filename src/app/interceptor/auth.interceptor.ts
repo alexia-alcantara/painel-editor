@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { runtimeConfig } from '../config/runtime-config';
+import { log } from '../utils/log';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const backendUrl = runtimeConfig.backendUrl;
@@ -25,7 +26,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(comToken(req)).pipe(
     catchError((err: HttpErrorResponse) => {
       if (err.status === 401) {
-        console.warn('Tentando login automático..');
+        log.info('Auth', 'Sessão expirada (401). Fazendo login novamente.');
         return authService.login().pipe(
           switchMap((ok) => (ok ? next(comToken(req)) : throwError(() => err)))
         );

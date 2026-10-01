@@ -6,7 +6,10 @@ export interface Cenario {
   nome: string;
   targetWidth: number;
   targetHeight: number;
-  backgroundImage: string; // Armazenará a imagem em base64
+  /** Antigo: imagem em base64 dentro do cenário. Não é mais salvo no backend (estourava o tamanho). */
+  backgroundImage: string;
+  /** Nome do arquivo da imagem de fundo, que fica na pasta "caminhoImagens" do config.json. */
+  imagemFundo?: string;
   componentes: ComponenteEditor[];
   imagemFundoId?: string; 
   idPainel: string;
@@ -19,4 +22,6 @@ export interface Cenario {
 export interface OpcoesCenario {
   nomeNaCorDoVoto?: boolean;
   fundoParlamentares?: boolean;
+  corFundoParlamentares?: string;
+  opacidadeFundoParlamentares?: number;
 }

@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FontConfig } from '../../models/fontes.model';
 import { FonteService } from '../../services/fonte.service';
+import { alinhamentoFlex } from '../../utils/estilo-texto';
 
 @Component({
   selector: 'app-relogio',
@@ -16,11 +17,12 @@ export class RelogioComponent implements OnInit, OnDestroy {
 
   constructor(private fonteService: FonteService) {}
 
-  // O relógio usa a mesma fonte dos temporizadores, como no legado.
+  // Fonte própria da hora; cenários antigos usam a fonte única "Tempo".
   get fontConfig(): FontConfig {
-    const fonte = this.fonteService
-      .getFonteByTipo('temporizador-item')
-      .find((f) => f.subId === 'default');
+    const fontes = this.fonteService.getFonteByTipo('temporizador-item');
+    const fonte =
+      fontes.find((f) => f.subId === 'relogio') ||
+      fontes.find((f) => f.subId === 'default');
     return (
       fonte?.font || {
         family: 'Inter, sans-serif',
@@ -30,6 +32,10 @@ export class RelogioComponent implements OnInit, OnDestroy {
         style: 'normal',
       }
     );
+  }
+
+  get justificar(): string {
+    return alinhamentoFlex(this.fontConfig.align);
   }
 
   ngOnInit(): void {

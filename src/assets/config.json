@@ -1,5 +1,7 @@
 {
   "backendUrl": "",
   "authUsername": "",
-  "authPassword": ""
+  "authPassword": "",
+  "caminhoImagens": "",
+  "debug": false
 }

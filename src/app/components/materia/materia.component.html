@@ -1,9 +1,17 @@
-<div class="flex flex-col items-center justify-center h-full w-full text-white">
-    <h3 class="font-semibold text-center" 
-        [style.fontSize.px]="props?.fontSize || 24">
+<div class="flex flex-col justify-center h-full w-full"
+     [style.align-items]="justificar"
+     [style.text-align]="fontConfig.align || 'center'">
+    <h3 class="m-0"
+        [ngStyle]="{
+          'font-family': fontConfig.family,
+          'font-size.px': fontConfig.size,
+          'font-weight': fontConfig.weight,
+          'font-style': fontConfig.style,
+          'color': fontConfig.color
+        }">
         {{ dados?.materia || 'Tema em Discussão' }}
     </h3>
-    <p class="text-sm text-gray-200 text-center mt-1">
-        {{ dados?.ementa }}
-    </p>
+    @if (dados?.ementa) {
+      <p class="text-sm text-gray-200 mt-1">{{ dados?.ementa }}</p>
+    }
 </div>

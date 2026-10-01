@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError, finalize, shareReplay } from 'rxjs/operators';
 import { runtimeConfig } from '../config/runtime-config';
+import { log } from '../utils/log';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -34,7 +35,7 @@ export class AuthService {
     }
 
     if (!runtimeConfig.backendUrl || !runtimeConfig.authUsername || !runtimeConfig.authPassword) {
-      console.warn('[AUTH] backendUrl, usuário ou senha não configurados em assets/config.json.');
+      log.aviso('Auth', 'backendUrl, usuário ou senha não preenchidos no assets/config.json.');
       this.token = null;
       return of(false);
     }
@@ -50,15 +51,15 @@ export class AuthService {
         const token = resp.headers.get('Authorization') || resp.headers.get('authorization');
         if (token) {
           this.token = token;
-          console.log('[AUTH] Login automático concluído.');
+          log.info('Auth', 'Login feito.');
           return true;
         }
-        console.warn('[AUTH] Login retornou sem token no header Authorization.');
+        log.aviso('Auth', 'Login sem token no cabeçalho Authorization.');
         this.token = null;
         return false;
       }),
       catchError((err) => {
-        console.error('[AUTH] Falha no login automático:', err);
+        log.erro('Auth', 'Falha no login.', err);
         this.token = null;
         return of(false);
       }),

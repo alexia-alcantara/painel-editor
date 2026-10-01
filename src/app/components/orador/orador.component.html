@@ -1,6 +1,13 @@
-<div class="flex items-center justify-center h-full w-full">
-    <h2 class="font-bold text-white text-center" 
-        [style.fontSize.px]="props?.fontSize || 32">
+<div class="flex items-center h-full w-full" [style.justify-content]="justificar">
+    <h2 class="m-0"
+        [ngStyle]="{
+          'font-family': fontConfig.family,
+          'font-size.px': fontConfig.size,
+          'font-weight': fontConfig.weight,
+          'font-style': fontConfig.style,
+          'color': fontConfig.color,
+          'text-align': fontConfig.align || 'center'
+        }">
         {{ dados?.orador || 'Nome do Orador' }}
     </h2>
 </div>

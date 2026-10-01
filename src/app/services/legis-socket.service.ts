@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { runtimeConfig } from '../config/runtime-config';
+import { log } from '../utils/log';
 
 @Injectable({ providedIn: 'root' })
 export class LegisSocketService {
@@ -27,14 +28,14 @@ export class LegisSocketService {
     try {
       this.socket = new WebSocket(url);
     } catch (e) {
-      console.warn('[SOCKET] Não foi possível abrir o WebSocket em', url, e);
+      log.aviso('WebSocket', `Não foi possível conectar em ${url}.`, e);
       this.agendarReconexao();
       return;
     }
 
     this.socket.onopen = () => {
       this.tentativasReconexao = 0;
-      console.log('%c[SOCKET] Conectado em ' + url, 'color: #4ade80; font-weight: bold;');
+      log.info('WebSocket', `Conectado em ${url}.`);
     };
 
     this.socket.onmessage = (evento) => {
@@ -44,13 +45,13 @@ export class LegisSocketService {
       } catch {
     
       }
-      console.log('[SOCKET] Aviso recebido:', mensagem);
+      log.info('WebSocket', 'Aviso recebido.', mensagem);
       this.avisosSubject.next(mensagem);
     };
 
     this.socket.onclose = (evento) => {
       if (this.encerradoManualmente) return;
-      console.warn(`[SOCKET] Conexão fechada (código ${evento.code}). Tentando reconectar...`);
+      log.aviso('WebSocket', `Conexão fechada (código ${evento.code}). Reconectando.`);
       this.agendarReconexao();
     };
 

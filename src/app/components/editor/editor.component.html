@@ -18,7 +18,7 @@
   <div class="flex items-center gap-2 border-l border-gray-600 pl-4 ml-2">
     <label class="font-bold text-yellow-400">Painel Alvo:</label>
 
-    <select [(ngModel)]="cenarioAtual.idPainel" (change)="onIpChanged()"
+    <select [(ngModel)]="cenarioAtual.idPainel"
       class="bg-gray-700 text-white p-2 rounded border border-gray-600 focus:border-blue-500 outline-none min-w-[250px]">
 
       <option value="" disabled>Selecione um Painel...</option>
@@ -36,6 +36,13 @@
     </button>
   </div>
 
+  <div class="flex items-center gap-1 border-l border-gray-600 pl-4 ml-2 text-sm" title="Zoom do editor (não muda o painel)">
+    <button type="button" (click)="diminuirZoom()" class="zoom-btn" title="Diminuir zoom">−</button>
+    <button type="button" (click)="zoomTamanhoReal()" class="zoom-btn w-14" title="Tamanho real (100%)">{{ zoomPercentual }}%</button>
+    <button type="button" (click)="aumentarZoom()" class="zoom-btn" title="Aumentar zoom">+</button>
+    <button type="button" (click)="ajustarZoom()" class="zoom-btn px-2" title="Mostrar o cenário inteiro na tela">Ajustar</button>
+  </div>
+
   <div class="flex flex-col gap-1 border-l border-gray-600 pl-4 ml-2 text-sm">
     <label class="flex items-center gap-2 cursor-pointer"
       title="Nome e partido do parlamentar mudam para a cor do voto">
@@ -48,7 +55,17 @@
         (change)="alterarOpcao('fundoParlamentares', $any($event.target).checked)">
       Fundo nos parlamentares
     </label>
-
+    @if (cenarioAtual.opcoes?.fundoParlamentares ?? true) {
+    <div class="flex items-center gap-2 pl-6" title="Cor e transparência da caixa atrás de cada parlamentar">
+      <input type="color" class="w-6 h-5 p-0 border-0 bg-transparent cursor-pointer"
+        [value]="cenarioAtual.opcoes?.corFundoParlamentares ?? '#334155'"
+        (input)="alterarOpcao('corFundoParlamentares', $any($event.target).value)">
+      <input type="range" min="0" max="100" step="5" class="w-24"
+        [value]="cenarioAtual.opcoes?.opacidadeFundoParlamentares ?? 100"
+        (input)="alterarOpcao('opacidadeFundoParlamentares', +$any($event.target).value)">
+      <span class="w-10 text-right">{{ cenarioAtual.opcoes?.opacidadeFundoParlamentares ?? 100 }}%</span>
+    </div>
+    }
     <label class="flex items-center gap-2 cursor-pointer" title="Mostra no editor os blocos que não vão para o painel">
       <input type="checkbox" [(ngModel)]="mostrarBlocosOcultos">
       Mostrar blocos ocultos
@@ -57,25 +74,41 @@
 
   <div class="flex items-center gap-2 ml-auto">
     <label class="text-sm">Imagem de Fundo:</label>
-    <input type="file" (change)="onFileSelected($event)" class="text-sm text-gray-400">
+    <input type="text" placeholder="nome-do-arquivo.jpg"
+      class="text-sm text-gray-800 rounded px-2 py-1 w-56"
+      title="Nome do arquivo na pasta de imagens do servidor (caminhoImagens no config.json)"
+      [value]="cenarioAtual.imagemFundo || ''"
+      (change)="alterarNomeImagemFundo($any($event.target).value)">
+    <input #arquivoFundo type="file" accept="image/*" hidden (change)="onFileSelected($event)">
+    <button type="button" class="text-sm border rounded px-2 py-1" (click)="arquivoFundo.click()">Escolher...</button>
+    @if (cenarioAtual.imagemFundo) {
+      <button type="button" class="text-sm border rounded px-2 py-1" title="Tirar a imagem de fundo"
+        (click)="removerImagemFundo()">Remover</button>
+    }
   </div>
 </div>
 
-<div class="editor-container">
+<div class="editor-container" #areaEditor>
 
-  <div #editorWrapper class="editor-wrapper" [style.width.px]="cenarioAtual.targetWidth"
+  <!-- Área com o tamanho do cenário já com zoom: é ela que define a rolagem -->
+  <div class="zoom-area"
+    [style.width.px]="cenarioAtual.targetWidth * zoom"
+    [style.height.px]="cenarioAtual.targetHeight * zoom">
+
+  <div #editorWrapper class="editor-wrapper" [style.transform]="'scale(' + zoom + ')'" [style.width.px]="cenarioAtual.targetWidth"
     [style.height.px]="cenarioAtual.targetHeight"
-    [style.background-image]="cenarioAtual.backgroundImage ? 'url(' + cenarioAtual.backgroundImage + ')' : 'none'"
+    [style.background-image]="fundoEditor"
     [style.background-size]="'100% 100%'" [style.background-position]="'center'"
     [style.background-repeat]="'no-repeat'">
 
     @for (item of cenarioAtual.componentes; track item.id) {
     @if (item) {
 
-    <div class="componente-box absolute rounded cursor-grab" cdkDrag [attr.data-testid]="'componente-' + item.tipo"
+    <div class="componente-box absolute rounded cursor-grab" [attr.data-testid]="'componente-' + item.tipo"
       [class.redimensionavel]="item.tipo !== 'parlamentar'" (contextmenu)="onRightClick($event, item)"
-      [cdkDragFreeDragPosition]="{ x: item.x, y: item.y }" (cdkDragEnded)="onDragEnd($event, item)"
-      cdkDragBoundary=".editor-wrapper" [style.display]="!item.ocultoNoEditor && (item.visible || mostrarBlocosOcultos) ? 'block' : 'none'"
+      (mousedown)="iniciarArraste($event, item)"
+      [style.transform]="'translate(' + item.x + 'px, ' + item.y + 'px)'"
+      [style.display]="!item.ocultoNoEditor && (item.visible || mostrarBlocosOcultos) ? 'block' : 'none'"
       [class.hidden-do-cenario]="!item.visible" [style.width.px]="item.width" [style.height.px]="item.height">
 
       @if (!item.ocultoNoEditor) {
@@ -84,12 +117,14 @@
       @case('descricao') { <app-descricao-reuniao [dados]="item.dados"></app-descricao-reuniao> }
       @case('parlamentar') {
       <app-parlamentar-item [parlamentar]="item.dados" [nomeNaCorDoVoto]="cenarioAtual.opcoes?.nomeNaCorDoVoto ?? false"
-        [mostrarFundo]="cenarioAtual.opcoes?.fundoParlamentares ?? true"></app-parlamentar-item>
+        [mostrarFundo]="cenarioAtual.opcoes?.fundoParlamentares ?? true"
+          [corFundo]="cenarioAtual.opcoes?.corFundoParlamentares ?? '#334155'"
+          [opacidadeFundo]="cenarioAtual.opcoes?.opacidadeFundoParlamentares ?? 100"></app-parlamentar-item>
       }
       @case('totalizadores') { <app-votacao-total [dados]="item.dados"></app-votacao-total> }
       @case('imagem') { <app-imagem-reuniao></app-imagem-reuniao> }
       @case('cabecalho') { <app-header-reuniao></app-header-reuniao> }
-      @case('titulo') { <app-titulo-reuniao [dados]="item.dados"></app-titulo-reuniao> }
+      @case('titulo') { <app-titulo-reuniao [dados]="item.dados" [componenteId]="item.id"></app-titulo-reuniao> }
       @case('subtitulo') { <app-subtitulo-reuniao [dados]="item.dados"></app-subtitulo-reuniao> }
       @case('status-reuniao') { <app-status-reuniao></app-status-reuniao> }
       @case('temporizador-item') {
@@ -97,6 +132,7 @@
         [modoEditor]="true"></app-temporizador-item>
       }
       @case('relogio') { <app-relogio></app-relogio> }
+      @case('multimidia') { <app-multimidia [modoEditor]="true"></app-multimidia> }
       @case('votacao-item') {
       <app-voto-item [label]="item.props?.label ?? ''" [valor]="item.props?.valor ?? 0"
         [cor]="item.props?.cor ?? '#FFFFFF'" [height]="item.height" [style.fontSize.px]="item.props?.fontSize">
@@ -112,6 +148,11 @@
       @case('materia') { <app-materia [dados]="item.dados" [props]="item.props"></app-materia> }
       @case ('resultado-votacao') { <app-resultado-votacao [dados]="item.dados"></app-resultado-votacao> }
       @case ('autor') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
+      @case ('tipo-fala') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
+      @case ('nome-cronometro') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
+      @case ('mensagem-linha') {
+        <app-campo-texto [dados]="item.dados" [tipo]="item.tipo" [subId]="'linha-' + (item.props?.linha || 1)"></app-campo-texto>
+      }
       @case ('turno-votacao') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
       @case ('modo-votacao') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
       @case ('parametro-votacao') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
@@ -136,10 +177,12 @@
       (visibilityChanged)="onComponentVisibilityChange($event)">
     </app-controle-visibilidade>
     }
-    <app-context-menu #contextMenu (action)="onMenuAction($event)"></app-context-menu>
-
+  </div>
   </div>
 </div>
+
+<!-- Fora da área com zoom, para o menu abrir exatamente onde o mouse clicou -->
+<app-context-menu #contextMenu (action)="onMenuAction($event)"></app-context-menu>
 
 <button mat-fab color="primary" (click)="salvar()" title="Salvar Cenário"
   style="position: fixed; right: 20px; bottom: 20px; z-index: 1000;">

@@ -1,16 +1,16 @@
 import { TestBed } from '@angular/core/testing';
-
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ImagemStorageService } from './imagem-storage.service';
 
 describe('ImagemStorageService', () => {
-  let service: ImagemStorageService;
-
   beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(ImagemStorageService);
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
   });
 
-  it('should be created', () => {
-    expect(service).toBeTruthy();
+  it('deve criar', () => {
+    expect(TestBed.inject(ImagemStorageService)).toBeTruthy();
   });
 });

@@ -27,25 +27,28 @@ export class VotoItemComponent {
     return fonte?.font || { family: 'Inter, sans-serif', size: 18, weight: '600', color: '#FFFFFF', style: 'normal' };
   });
 
-    labelStyle = computed(() => {
+  // Método comum (e não computed): assim a cor que chega pelo @Input "cor" é lida a cada atualização
+  labelStyle() {
     const config = this.fontLabel();
     return {
       'font-family': config.family,
       'font-size.px': config.size,
       'font-weight': config.weight,
       'font-style': config.style,
-      'color': this.cor || config.color 
+      'color': this.cor || config.color,
+      'text-align': config.align || 'left' 
     };
-  });
+  }
 
-    valorStyle = computed(() => {
+  valorStyle() {
     const config = this.fontValor();
     return {
       'font-family': config.family,
       'font-size.px': config.size,
       'font-weight': config.weight,
       'font-style': config.style,
-      'color': this.cor || config.color 
+      'color': this.cor || config.color,
+      'text-align': config.align || 'center' 
     };
-  });
+  }
 }

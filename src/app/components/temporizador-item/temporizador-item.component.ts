@@ -2,6 +2,7 @@ import { Component, Input, SimpleChanges } from '@angular/core';
 import { FonteService } from '../../services/fonte.service';
 import { FontConfig } from '../../models/fontes.model';
 import { CommonModule } from '@angular/common';
+import { alinhamentoFlex, converterCorLegis } from '../../utils/estilo-texto';
 
 export interface CronometroData {
   cronometro: number;
@@ -67,7 +68,6 @@ export class TemporizadorItemComponent {
   }
 
   private atualizarCronometro(): void {
-    // Limpa qualquer contador anterior
     clearInterval(this.intervalId);
 
     if (!this.dados) return;
@@ -86,7 +86,7 @@ export class TemporizadorItemComponent {
         if (totalSegundos > 0) {
           totalSegundos--;
         } else {
-          clearInterval(this.intervalId); // Para a contagem quando chega a zero
+          clearInterval(this.intervalId); 
         }
       }
     };
@@ -99,16 +99,16 @@ export class TemporizadorItemComponent {
   }
 
   ngOnDestroy(): void {
-    // Garante que o intervalo seja limpo ao sair da tela
     clearInterval(this.intervalId);
   }
 
   constructor(private fonteService: FonteService) {}
 
   get fontConfig(): FontConfig {
-    const fonte = this.fonteService
-      .getFonteByTipo('temporizador-item')
-      .find((f) => f.subId === 'default');
+    const fontes = this.fonteService.getFonteByTipo('temporizador-item');
+    const fonte =
+      fontes.find((f) => f.subId === `cronometro-${this.numero || 1}`) ||
+      fontes.find((f) => f.subId === 'default');
     return (
       fonte?.font || {
         family: 'Inter, sans-serif',
@@ -117,5 +117,13 @@ export class TemporizadorItemComponent {
         color: '#FFFFFF',
       }
     );
+  }
+
+  get corExibida(): string {
+    return converterCorLegis(this.dados?.cor) || this.fontConfig.color || '#FFFFFF';
+  }
+
+  get justificar(): string {
+    return alinhamentoFlex(this.fontConfig.align);
   }
 }

@@ -29,16 +29,18 @@ import { ComponenteEditor } from '../../models/components.model';
 import { VotoItemComponent } from '../votacao-total/voto-item/voto-item.component';
 import { StatusItemComponent } from '../status-reuniao/status-item/status-item.component';
 import { MensagemComponent } from '../mensagem/mensagem.component';
-import { TribunaComponent } from '../tribuna/tribuna.component';
 import { ImagemStorageService } from '../../services/imagem-storage.service';
 import { FonteService } from '../../services/fonte.service';
 import { ResultadoVotacaoComponent } from '../resultado-votacao/resultado-votacao.component';
 import { RelogioComponent } from '../relogio/relogio.component';
+import { MultimidiaComponent } from '../multimidia/multimidia.component';
 import { OradorComponent } from '../orador/orador.component';
 import { PartidoComponent } from '../partido/partido.component';
 import { MateriaComponent } from '../materia/materia.component';
 import { CampoTextoComponent } from '../campo-texto/campo-texto.component';
 import { LegisSocketService } from '../../services/legis-socket.service';
+import { log } from '../../utils/log';
+import { urlImagemFundo } from '../../config/runtime-config';
 
 @Component({
   selector: 'app-display',
@@ -57,9 +59,9 @@ import { LegisSocketService } from '../../services/legis-socket.service';
     VotoItemComponent,
     StatusItemComponent,
     MensagemComponent,
-    TribunaComponent,
     ResultadoVotacaoComponent,
     RelogioComponent,
+    MultimidiaComponent,
     OradorComponent,
     PartidoComponent,
     MateriaComponent,
@@ -123,14 +125,10 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const ipDoPainel = ipDaUrl || ipDoCenario;
 
-    console.log(
-      `IP Detectado -> URL: ${ipDaUrl}, Salvo: ${ipDoCenario}. Usando: ${ipDoPainel}`,
-    );
+    log.info('Display', `Painel: ${ipDoPainel} (endereço: ${ipDaUrl ?? '-'}, cenário: ${ipDoCenario ?? '-'}).`);
 
     if (!ipDoPainel) {
-      console.error(
-        'ERRO: Nenhum ID de Painel foi encontrado no cenário ou na URL!',
-      );
+      log.erro('Display', 'Nenhum painel definido: escolha o Painel Alvo no cenário ou use ?ip= no endereço.');
       return;
     }
 
@@ -140,10 +138,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       this.atualizacaoSubscription.unsubscribe();
     }
 
-    console.log(
-      `%cIniciando busca de dados para o painel: ${ipDoPainel}`,
-      'color: yellow; font-weight: bold;',
-    );
 
     this.legisSocket.conectar(String(ipDoPainel));
 
@@ -178,9 +172,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
             novoIdCenario !== this.ultimoIdCenarioTentado
           ) {
             this.ultimoIdCenarioTentado = novoIdCenario;
-            console.log(
-              `Trocando layout automaticamente para o cenário ID: ${novoIdCenario}`,
-            );
+            log.info('Display', `Trocando para o cenário ${novoIdCenario} (Controle Cenários).`);
 
             const novoCenario = await firstValueFrom(
               this.layoutService.carregarCenario(novoIdCenario),
@@ -224,7 +216,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.cenarioBase) return;
 
     const dadosApiValor = dados.valor || dados;
-    console.log('Processando dados para o cenário...');
 
     let parlamentaresApi: any[] = [];
     let dadosPresencaResumo: any = {};
@@ -245,7 +236,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }
     } catch (e) {
-      console.error('Erro ao extrair parlamentares:', e);
+      log.erro('Display', 'Falha ao ler a lista de parlamentares.', e);
     }
 
     const mostrarPlacar =
@@ -261,6 +252,11 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const cenarioAtualizado = structuredClone(this.cenarioBase);
     const paleta = this.lerPaleta(dadosApiValor);
+    // Votação secreta: o Legis pede para esconder os votos no painel
+    const votosMascarados =
+      String(dadosApiValor.configuracaoExibicao?.exibir?.MASCARAR_VOTOS) === 'true';
+    // Títulos, ementa, resultado, cronômetros e relógio passam a usar as cores da paleta
+    this.fonteService.aplicarCoresDaPaleta(paleta);
 
     const parlamentaresLayout = cenarioAtualizado.componentes.filter(
       (c) => c.tipo === 'parlamentar',
@@ -301,8 +297,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
               typeof dadosP.voto === 'string' ? dadosP.voto.trim() : '';
             const votou = votoString !== '' && votoString !== '-';
 
-            const cargo = String(dadosP.cargo || '').trim().toUpperCase();
-            const ehPresidente = cargo === 'PRESIDENTE';
+            const cargo = String(dadosP.cargo || membro.cargo || '').trim().toUpperCase();
+            const ehPresidente = cargo.startsWith('PRESID');
 
             const corNome = this.converterCor(dadosP.cor);
 
@@ -323,8 +319,20 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
               } else if (voto.startsWith('BRANC')) {
                 letra = 'B';
                 corVoto = paleta['Cor_Voto_Branco'] || '#FFFFFF';
+              } else if (voto === 'SECRETO') {
+                letra = 'V'; // votou, mas o voto não pode ser mostrado
               }
-            } else if (ehPresidente) {
+
+              // Votação secreta/mascarada: mostra só que votou (V), sem revelar o voto nem a cor
+              if (votosMascarados && letra) {
+                letra = 'V';
+                corVoto = '';
+              }
+            }
+
+            // Presidente: se não ficou nenhuma letra de voto (não votou, ou a API mandou
+            // um valor que não é Sim/Não/Abstenção/Branco/Secreto), mostra "P" como no legado
+            if (!letra && (ehPresidente || votoString.toUpperCase().startsWith('PRESID'))) {
               letra = 'P';
             }
 
@@ -493,22 +501,13 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
         case 'status-item':
           const nomes = dadosApiValor.nomesTotalizadores || {};
-          let mapaCores: any = {};
 
-          if (dadosApiValor.paleta && dadosApiValor.paleta.cores) {
-            const listaCores = Array.isArray(dadosApiValor.paleta.cores)
-              ? dadosApiValor.paleta.cores
-              : [dadosApiValor.paleta.cores];
-
-            listaCores.forEach((c: any) => {
-              mapaCores[c.nome] = c.valor;
-            });
-          }
-
-          const corPresente = mapaCores['Cor_Presente'] || '#00FF00';
-          const corAusente = mapaCores['Cor_Ausente'] || '#FF0000';
-          const corObstrucao = mapaCores['Cor_Obstrucao'] || '#AA00FF';
-          const corLicenciado = mapaCores['Cor_Licenciado'] || '#00FFFF';
+          // Cores da paleta do Legis (já convertidas do formato "$" do Delphi)
+          const corPresente = paleta['Cor_Presente'] || '#00FF00';
+          const corAusente = paleta['Cor_Ausente'] || '#FF0000';
+          const corObstrucao = paleta['Cor_Obstrucao'] || '#AA00FF';
+          const corLicenciado = paleta['Cor_Licenciado'] || '#00FFFF';
+          const corTextos = paleta['Cor_TextosTela'] || '#FFFFFF';
 
           const votosSim = Number(dadosApiValor.votacao?.sim) || 0;
           const votosNao = Number(dadosApiValor.votacao?.nao) || 0;
@@ -545,9 +544,9 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
             componente.id === 'status-total-votos'
           ) {
             componente.props = {
-              label: 'VOTOS',
+              label: nomes.VOTOS || 'VOTOS',
               valor: totalVotosComputados,
-              cor: '#FFFFFF',
+              cor: paleta['Cor_Voto_Total'] || '#FFFFFF',
             };
           }
           if (componente.id === 'status-licenciados') {
@@ -574,28 +573,28 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
             componente.props = {
               label: nomes.PARLAMENTARES || 'PARLAMENTARES',
               valor: totalParlamentares,
-              cor: '#FFFFFF',
+              cor: corTextos,
             };
           }
           if (componente.id === 'status-extras') {
             componente.props = {
               label: nomes.PRESENCA_EXTRA || 'EXTRA',
               valor: dadosPresencaResumo.presentesExtra || 0,
-              cor: '#389cc7',
+              cor: paleta['Cor_Presente_Extra'] || '#389cc7',
             };
           }
           if (componente.id === 'status-presencas-locais') {
             componente.props = {
               label: nomes.PRESENCA_LOCAL || 'PLENÁRIO',
               valor: dadosPresencaResumo.presencasLocais || 0,
-              cor: '#FFFFFF',
+              cor: paleta['Cor_Presente_Local'] || '#FFFFFF',
             };
           }
           if (componente.id === 'status-presencas-web') {
             componente.props = {
               label: nomes.PRESENCA_REMOTA || 'VIRTUAL',
               valor: dadosPresencaResumo.presencasWeb || 0,
-              cor: '#FFFFFF',
+              cor: paleta['Cor_Presente_Web'] || '#FFFFFF',
             };
           }
           break;
@@ -622,6 +621,44 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           componente.dados = { texto: dadosApiValor.categoriaReuniao || '' };
           break;
           
+        case 'tipo-fala':
+          // Tipo da fala de quem está na tribuna (ex.: DISCUSSÃO, APARTE)
+          componente.dados = { texto: this.textoSimples(dadosApiValor.tribuna?.tipo) };
+          break;
+
+        case 'nome-cronometro': {
+          // Nome do cronômetro N enviado pelo Legis (ex.: DISCUSSÃO); some quando parado
+          const numero = TemporizadorItemComponent.numeroDoComponente(componente);
+          const crono = this.listaCronometros(dadosApiValor).find(
+            (c: any) => Number(c.cronometro) === numero,
+          );
+          componente.dados = {
+            texto: this.textoSimples(crono?.nome),
+            cor: this.converterCor(crono?.cor) || undefined,
+          };
+          break;
+        }
+
+        case 'mensagem-linha': {
+          // Uma linha da mensagem do Legis, com cor/negrito/alinhamento definidos pelo operador
+          const numeroLinha = Number(componente.props?.linha) || 1;
+          const linha = this.linhasMensagem(dadosApiValor).find(
+            (l: any) => Number(l?.linha) === numeroLinha - 1,
+          );
+          const alinhamento = ['left', 'center', 'right'].includes(linha?.align)
+            ? linha.align
+            : undefined;
+          componente.dados = {
+            texto: typeof linha?.texto === 'string' ? linha.texto : '',
+            cor: this.converterCor(linha?.cor) || undefined,
+            negrito: typeof linha?.bold === 'boolean' ? linha.bold : undefined,
+            italico: typeof linha?.italic === 'boolean' ? linha.italic : undefined,
+            sublinhado: linha?.underline === true,
+            alinhamento,
+          };
+          break;
+        }
+
         case 'autor':
           componente.dados = { texto: this.textoSimples(dadosApiValor.votacao?.autoria) };
           break;
@@ -660,7 +697,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         mostrarPlacar;
       if (compAbstencao.visible) {
         const val = dadosApiValor.votacao?.abstencao || 0;
-        compAbstencao.props = { ...compAbstencao.props, valor: val };
+        const cor = paleta['Cor_Voto_Abstencao'] || compAbstencao.props?.cor;
+        compAbstencao.props = { ...compAbstencao.props, valor: val, cor };
         compAbstencao.dados = { ...compAbstencao.dados, valor: val };
       }
     }
@@ -675,7 +713,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         mostrarPlacar;
       if (compBranco.visible) {
         const val = dadosApiValor.votacao?.brancos || 0;
-        compBranco.props = { ...compBranco.props, valor: val };
+        const cor = paleta['Cor_Voto_Branco'] || compBranco.props?.cor;
+        compBranco.props = { ...compBranco.props, valor: val, cor };
         compBranco.dados = { ...compBranco.dados, valor: val };
       }
     }
@@ -689,6 +728,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           const val = dadosApiValor.votacao?.[key] || 0;
           if (!c.props) c.props = {};
           c.props.valor = val;
+          const corPaleta = paleta[key === 'sim' ? 'Cor_Voto_Sim' : 'Cor_Voto_Nao'];
+          if (corPaleta) c.props.cor = corPaleta;
           c.dados = { ...c.dados, valor: val };
         }
       }
@@ -714,6 +755,14 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @HostListener('window:resize') onResize(): void {
     this.ajustarEscala();
+  }
+
+  /** Imagem de fundo: arquivo da pasta do servidor (novo) ou base64 antigo, se ainda existir. */
+  get fundoDisplay(): string {
+    const c = this.cenarioParaExibir;
+    if (!c) return 'none';
+    const url = urlImagemFundo(c.imagemFundo) || c.backgroundImage;
+    return url ? `url("${url}")` : 'none';
   }
 
   numeroCronometro(item: ComponenteEditor): number {
@@ -747,6 +796,25 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     return '';
   }
 
+  /** Lista de cronômetros da resposta (o XML pode trazer um só ou vários). */
+  private listaCronometros(dadosApiValor: any): any[] {
+    const lista = dadosApiValor?.cronometro?.cronometro ?? dadosApiValor?.cronometro;
+    if (!lista || typeof lista !== 'object') return [];
+    return Array.isArray(lista) ? lista : [lista];
+  }
+
+  /** Linhas da mensagem que o operador mandou pelo Legis (vêm como texto JSON). */
+  private linhasMensagem(dadosApiValor: any): any[] {
+    const conteudo = dadosApiValor?.telaMensagem?.conteudo;
+    if (typeof conteudo !== 'string' || !conteudo.trim()) return [];
+    try {
+      const linhas = JSON.parse(conteudo);
+      return Array.isArray(linhas) ? linhas : [];
+    } catch {
+      return [];
+    }
+  }
+
   private textoSimples(valor: any): string {
     return typeof valor === 'string' || typeof valor === 'number' ? String(valor).trim() : '';
   }
@@ -756,9 +824,17 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const target = this.wrapper.nativeElement;
 
-    const scaleX = window.innerWidth / this.cenarioParaExibir.targetWidth;
-    const scaleY = window.innerHeight / this.cenarioParaExibir.targetHeight;
-    const scale = Math.min(scaleX, scaleY);
+    // O cenário é exibido sempre na resolução fixa que foi salva no editor (escala 1).
+    // Antes ele era esticado até encostar na borda da tela, e por isso crescia ao dar F11.
+    // Para voltar a ajustar à tela, abra o display com ?ajustar=1 na URL.
+    const ajustarATela = this.route.snapshot.queryParamMap.get('ajustar') === '1';
+
+    let scale = 1;
+    if (ajustarATela) {
+      const scaleX = window.innerWidth / this.cenarioParaExibir.targetWidth;
+      const scaleY = window.innerHeight / this.cenarioParaExibir.targetHeight;
+      scale = Math.min(scaleX, scaleY);
+    }
 
    const centralizar = this.route.snapshot.queryParamMap.get('centralizar') === '1';
 
@@ -792,10 +868,9 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         if (this.cenarioBase) this.cenarioBase.backgroundImage = dataUrl;
 
         this.cdRef.detectChanges();
-        console.log(`Imagem de fundo vinculada com sucesso!`);
       }
     } catch (err) {
-      console.error('Erro ao carregar imagem de fundo:', err);
+      log.erro('Display', 'Falha ao carregar a imagem de fundo.', err);
     }
   }
 }

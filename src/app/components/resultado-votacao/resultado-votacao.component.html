@@ -1,4 +1,5 @@
-<div class="resultado-texto w-full h-full flex items-center justify-center text-center leading-tight"
+<div class="resultado-texto w-full h-full flex items-center leading-tight"
+  [style.justify-content]="justificar" [style.text-align]="fontConfig.align || 'center'"
   [ngStyle]="{
     'font-family': fontConfig.family,
     'font-size.px': fontConfig.size,
