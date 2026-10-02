@@ -42,6 +42,9 @@ import { LegisSocketService } from '../../services/legis-socket.service';
 import { log } from '../../utils/log';
 import { urlImagemFundo } from '../../config/runtime-config';
 
+/** Onde fica guardado, neste navegador, o painel que este computador representa. */
+const CHAVE_PAINEL_FIXO = 'legiswall.painelFixo';
+
 @Component({
   selector: 'app-display',
   standalone: true,
@@ -86,6 +89,14 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   paletaDeCores: any = {};
   private painelSubscription: Subscription | undefined;
 
+  /** Tela de escolher o painel (aparece em /display quando este computador ainda não tem painel fixado). */
+  escolhendoPainel = false;
+  listaPaineis: { nome: string; identificador: string }[] = [];
+  /** Texto mostrado enquanto não há cenário na tela. */
+  mensagemEspera = 'Carregando...';
+  /** Painel escolhido sem marcar "lembrar" (vale só até fechar a página). */
+  private painelSessao = '';
+
   constructor(
     private el: ElementRef,
     private route: ActivatedRoute,
@@ -100,6 +111,22 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     const idCenario = this.route.snapshot.paramMap.get('id');
+
+    // ?trocarPainel=1 apaga o painel fixado e mostra a tela de escolha de novo
+    if (this.route.snapshot.queryParamMap.get('trocarPainel') === '1') {
+      this.salvarPainelFixo('');
+    }
+
+    if (!idCenario) {
+      // Sem cenário no endereço: usa o painel fixado e o Legis diz qual cenário mostrar
+      if (this.painelDoDisplay()) {
+        this.mensagemEspera = 'Aguardando o cenário do painel...';
+        this.iniciarAtualizacaoAutomatica();
+      } else {
+        this.abrirEscolhaPainel();
+      }
+      return;
+    }
 
     if (idCenario) {
       this.layoutService.carregarCenario(idCenario).subscribe((cenario) => {
@@ -122,13 +149,17 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   private iniciarAtualizacaoAutomatica(): void {
     const ipDaUrl = this.route.snapshot.queryParamMap.get('ip');
     const ipDoCenario = this.cenarioBase?.idPainel;
+    const ipFixo = this.lerPainelFixo();
 
-    const ipDoPainel = ipDaUrl || ipDoCenario;
+    const ipDoPainel = this.painelDoDisplay();
 
-    log.info('Display', `Painel: ${ipDoPainel} (endereço: ${ipDaUrl ?? '-'}, cenário: ${ipDoCenario ?? '-'}).`);
+    log.info(
+      'Display',
+      `Painel: ${ipDoPainel} (endereço: ${ipDaUrl ?? '-'}, cenário: ${ipDoCenario ?? '-'}, fixado neste computador: ${ipFixo || '-'}).`,
+    );
 
     if (!ipDoPainel) {
-      log.erro('Display', 'Nenhum painel definido: escolha o Painel Alvo no cenário ou use ?ip= no endereço.');
+      log.erro('Display', 'Nenhum painel definido: escolha o Painel Alvo no cenário, use ?ip= no endereço ou fixe o painel em /display.');
       return;
     }
 
@@ -165,9 +196,13 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
               novoIdCenario,
             );
 
+          if (!base && !novoIdCenario) {
+            this.mensagemEspera = `Painel ${ipDoPainel} sem cenário ativo. Escolha um no Controle Cenários do Legis.`;
+            this.cdRef.detectChanges();
+          }
+
           if (
             novoIdCenario &&
-            base &&
             !ehOMesmo &&
             novoIdCenario !== this.ultimoIdCenarioTentado
           ) {
@@ -197,6 +232,9 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
               // Reajusta proporções
               setTimeout(() => this.ajustarEscala(), 0);
+            } else if (!this.cenarioBase) {
+              this.mensagemEspera = `Cenário ${novoIdCenario} não encontrado.`;
+              this.cdRef.detectChanges();
             }
           }
 
@@ -252,10 +290,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const cenarioAtualizado = structuredClone(this.cenarioBase);
     const paleta = this.lerPaleta(dadosApiValor);
-    // Votação secreta: o Legis pede para esconder os votos no painel
     const votosMascarados =
       String(dadosApiValor.configuracaoExibicao?.exibir?.MASCARAR_VOTOS) === 'true';
-    // Títulos, ementa, resultado, cronômetros e relógio passam a usar as cores da paleta
     this.fonteService.aplicarCoresDaPaleta(paleta);
 
     const parlamentaresLayout = cenarioAtualizado.componentes.filter(
@@ -323,15 +359,12 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
                 letra = 'V'; // votou, mas o voto não pode ser mostrado
               }
 
-              // Votação secreta/mascarada: mostra só que votou (V), sem revelar o voto nem a cor
               if (votosMascarados && letra) {
                 letra = 'V';
                 corVoto = '';
               }
             }
 
-            // Presidente: se não ficou nenhuma letra de voto (não votou, ou a API mandou
-            // um valor que não é Sim/Não/Abstenção/Branco/Secreto), mostra "P" como no legado
             if (!letra && (ehPresidente || votoString.toUpperCase().startsWith('PRESID'))) {
               letra = 'P';
             }
@@ -502,7 +535,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         case 'status-item':
           const nomes = dadosApiValor.nomesTotalizadores || {};
 
-          // Cores da paleta do Legis (já convertidas do formato "$" do Delphi)
           const corPresente = paleta['Cor_Presente'] || '#00FF00';
           const corAusente = paleta['Cor_Ausente'] || '#FF0000';
           const corObstrucao = paleta['Cor_Obstrucao'] || '#AA00FF';
@@ -640,7 +672,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         }
 
         case 'mensagem-linha': {
-          // Uma linha da mensagem do Legis, com cor/negrito/alinhamento definidos pelo operador
           const numeroLinha = Number(componente.props?.linha) || 1;
           const linha = this.linhasMensagem(dadosApiValor).find(
             (l: any) => Number(l?.linha) === numeroLinha - 1,
@@ -757,12 +788,73 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     this.ajustarEscala();
   }
 
-  /** Imagem de fundo: arquivo da pasta do servidor (novo) ou base64 antigo, se ainda existir. */
   get fundoDisplay(): string {
     const c = this.cenarioParaExibir;
     if (!c) return 'none';
     const url = urlImagemFundo(c.imagemFundo) || c.backgroundImage;
     return url ? `url("${url}")` : 'none';
+  }
+
+
+  private painelDoDisplay(): string {
+    const daUrl = this.route.snapshot.queryParamMap.get('ip');
+    return (
+      daUrl ||
+      this.cenarioBase?.idPainel ||
+      this.painelSessao ||
+      this.lerPainelFixo() ||
+      ''
+    ).trim();
+  }
+
+  private lerPainelFixo(): string {
+    try {
+      return localStorage.getItem(CHAVE_PAINEL_FIXO) || '';
+    } catch {
+      return '';
+    }
+  }
+
+  private salvarPainelFixo(identificador: string): void {
+    try {
+      if (identificador) localStorage.setItem(CHAVE_PAINEL_FIXO, identificador);
+      else localStorage.removeItem(CHAVE_PAINEL_FIXO);
+    } catch {
+      log.aviso('Display', 'Não foi possível guardar o painel neste navegador.');
+    }
+  }
+
+  private abrirEscolhaPainel(): void {
+    this.escolhendoPainel = true;
+    this.mensagemEspera = 'Carregando a lista de painéis...';
+    this.painelService.listarPaineis().subscribe({
+      next: (lista) => {
+        this.listaPaineis = (lista || [])
+          .map((item: any) => ({
+            nome: item.nome || '',
+            identificador: String(item.periferico?.endereco ?? '').trim(),
+          }))
+          .filter((p) => p.identificador);
+        this.mensagemEspera = this.listaPaineis.length
+          ? ''
+          : 'Nenhum painel cadastrado no Legis.';
+        this.cdRef.detectChanges();
+      },
+      error: (err) => {
+        this.mensagemEspera = 'Não foi possível carregar a lista de painéis.';
+        log.erro('Display', 'Falha ao listar os painéis.', err);
+        this.cdRef.detectChanges();
+      },
+    });
+  }
+
+  confirmarPainel(identificador: string, lembrar: boolean): void {
+    if (!identificador) return;
+    if (lembrar) this.salvarPainelFixo(identificador);
+    else this.painelSessao = identificador;
+    this.escolhendoPainel = false;
+    this.mensagemEspera = 'Aguardando o cenário do painel...';
+    this.iniciarAtualizacaoAutomatica();
   }
 
   numeroCronometro(item: ComponenteEditor): number {
@@ -796,14 +888,12 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     return '';
   }
 
-  /** Lista de cronômetros da resposta (o XML pode trazer um só ou vários). */
   private listaCronometros(dadosApiValor: any): any[] {
     const lista = dadosApiValor?.cronometro?.cronometro ?? dadosApiValor?.cronometro;
     if (!lista || typeof lista !== 'object') return [];
     return Array.isArray(lista) ? lista : [lista];
   }
 
-  /** Linhas da mensagem que o operador mandou pelo Legis (vêm como texto JSON). */
   private linhasMensagem(dadosApiValor: any): any[] {
     const conteudo = dadosApiValor?.telaMensagem?.conteudo;
     if (typeof conteudo !== 'string' || !conteudo.trim()) return [];
@@ -824,9 +914,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const target = this.wrapper.nativeElement;
 
-    // O cenário é exibido sempre na resolução fixa que foi salva no editor (escala 1).
-    // Antes ele era esticado até encostar na borda da tela, e por isso crescia ao dar F11.
-    // Para voltar a ajustar à tela, abra o display com ?ajustar=1 na URL.
     const ajustarATela = this.route.snapshot.queryParamMap.get('ajustar') === '1';
 
     let scale = 1;

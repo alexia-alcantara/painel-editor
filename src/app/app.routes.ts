@@ -8,6 +8,9 @@ export const routes: Routes = [
   { path: 'editor', component: EditorComponent },
   // Editar um cenário salvo
   { path: 'editor/:id', component: EditorComponent },
-  // Tela do painel (TV / LED)
+  // Tela do painel (TV / LED) sem cenário: usa o painel fixado neste computador
+  // e mostra o cenário que o Legis mandar (Controle Cenários)
+  { path: 'display', component: DisplayComponent },
+  // Tela do painel com um cenário específico
   { path: 'display/:id', component: DisplayComponent },
 ];

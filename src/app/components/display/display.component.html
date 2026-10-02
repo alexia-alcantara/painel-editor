@@ -1,3 +1,25 @@
+@if (!cenarioParaExibir) {
+<div class="tela-espera">
+  @if (escolhendoPainel && listaPaineis.length) {
+  <div class="caixa-painel">
+    <h2>Qual painel é este computador?</h2>
+    <select #painelSel>
+      @for (painel of listaPaineis; track painel.identificador) {
+      <option [value]="painel.identificador">{{ painel.nome }} ({{ painel.identificador }})</option>
+      }
+    </select>
+    <label class="lembrar">
+      <input #lembrar type="checkbox" checked> Lembrar neste computador
+    </label>
+    <button type="button" (click)="confirmarPainel(painelSel.value, lembrar.checked)">Usar este painel</button>
+    <small>Para trocar depois, abra o display com ?trocarPainel=1 no endereço.</small>
+  </div>
+  } @else {
+  <p>{{ mensagemEspera }}</p>
+  }
+</div>
+}
+
 @if (cenarioParaExibir) {
 <div #wrapper class="display-wrapper" 
   [style.width.px]="cenarioParaExibir.targetWidth" 
