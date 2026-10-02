@@ -28,7 +28,7 @@ export class MultimidiaComponent implements AfterViewInit, OnDestroy {
     if (this.modoEditor) return;
 
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-      log.aviso('Multimídia', 'Câmera bloqueada pelo navegador: o display precisa ser aberto por https ou localhost.');
+      log.aviso('Multimídia', 'Câmera bloqueada: o navegador só libera em https ou localhost');
       return;
     }
 
@@ -42,9 +42,9 @@ export class MultimidiaComponent implements AfterViewInit, OnDestroy {
       if (this.videoRef) {
         this.videoRef.nativeElement.srcObject = stream;
       }
-      log.info('Multimídia', 'Câmera ligada.');
+      log.info('Multimídia', 'Câmera ligada');
     } catch (erro) {
-      log.aviso('Multimídia', 'Não foi possível ligar a câmera.', erro);
+      log.aviso('Multimídia', 'Erro ao ligar a câmera:', erro);
     }
   }
 

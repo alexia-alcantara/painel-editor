@@ -28,14 +28,14 @@ export class LegisSocketService {
     try {
       this.socket = new WebSocket(url);
     } catch (e) {
-      log.aviso('WebSocket', `Não foi possível conectar em ${url}.`, e);
+      log.aviso('WebSocket', `Erro ao conectar em ${url}:`, e);
       this.agendarReconexao();
       return;
     }
 
     this.socket.onopen = () => {
       this.tentativasReconexao = 0;
-      log.info('WebSocket', `Conectado em ${url}.`);
+      log.info('WebSocket', `Conectado em ${url}`);
     };
 
     this.socket.onmessage = (evento) => {
@@ -45,13 +45,13 @@ export class LegisSocketService {
       } catch {
     
       }
-      log.info('WebSocket', 'Aviso recebido.', mensagem);
+      log.info('WebSocket', 'Mensagem recebida:', mensagem);
       this.avisosSubject.next(mensagem);
     };
 
     this.socket.onclose = (evento) => {
       if (this.encerradoManualmente) return;
-      log.aviso('WebSocket', `Conexão fechada (código ${evento.code}). Reconectando.`);
+      log.aviso('WebSocket', `Conexão fechada (código ${evento.code})`);
       this.agendarReconexao();
     };
 
@@ -88,6 +88,7 @@ export class LegisSocketService {
 
     const atraso = Math.min(1000 * 2 ** this.tentativasReconexao, 60000);
     this.tentativasReconexao++;
+    log.info('WebSocket', `Agendando reconexão em ${atraso}ms (tentativa ${this.tentativasReconexao})`);
 
     this.timerReconexao = setTimeout(() => {
       this.timerReconexao = null;

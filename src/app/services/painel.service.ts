@@ -27,7 +27,7 @@ export class PainelService {
     return this.http.get(url, { headers, responseType: 'text' }).pipe(
       map((rawResponse) => this.converterResposta(rawResponse, ip)),
       catchError((err) => {
-        log.erro('Painel', `Falha ao buscar os dados do painel ${ip}.`, err);
+        log.erro('Painel', `Erro ao buscar dados do painel ${ip}:`, err);
         return of(null);
       })
     );
@@ -80,7 +80,7 @@ export class PainelService {
     const texto = (rawResponse || '').trim();
 
     if (!texto) {
-      log.aviso('Painel', `Resposta vazia para o painel ${ip}.`);
+      log.aviso('Painel', `Painel ${ip} sem dados na resposta`);
       return null;
     }
 
@@ -95,7 +95,7 @@ export class PainelService {
       const xml = parser.parseFromString(texto, 'text/xml');
 
       if (xml.getElementsByTagName('parsererror').length > 0) {
-        log.erro('Painel', `Resposta inválida para o painel ${ip}.`, texto.slice(0, 300));
+        log.erro('Painel', `Resposta do painel ${ip} fora do formato esperado:`, texto.slice(0, 300));
         return null;
       }
 
@@ -104,7 +104,7 @@ export class PainelService {
       this.avisarSeStatusDeErro(resposta, ip);
       return resposta;
     } catch (e) {
-      log.erro('Painel', `Falha ao ler a resposta do painel ${ip}.`, e);
+      log.erro('Painel', `Erro ao ler a resposta do painel ${ip}:`, e);
       return null;
     }
   }
@@ -112,7 +112,7 @@ export class PainelService {
   private avisarSeStatusDeErro(resposta: any, ip: string): void {
     const codigo = resposta?.status?.code;
     if (codigo !== undefined && String(codigo) !== '0') {
-      log.aviso('Painel', `Backend respondeu status ${codigo} para o painel ${ip}.`, resposta?.status?.message);
+      log.aviso('Painel', `Painel ${ip} retornou status ${codigo}:`, resposta?.status?.message);
     }
   }
 

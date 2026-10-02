@@ -53,6 +53,7 @@ import { PartidoComponent } from '../partido/partido.component';
 import { PainelService } from '../../services/painel.service';
 import { CampoTextoComponent } from '../campo-texto/campo-texto.component';
 import { log } from '../../utils/log';
+import { AvisoService } from '../../services/aviso.service';
 
 @Component({
   selector: 'app-editor',
@@ -95,6 +96,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   contextMenu!: ContextMenuComponent;
 
   router = inject(Router);
+  private aviso = inject(AvisoService);
 
   isEditingMode = false;
   cenarioId: string | null = null;
@@ -108,12 +110,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     idPainel: '',
     slug: '',
     imagemFundoId: undefined,
-  };
-
-  votacaoMock = {
-    sim: 10,
-    nao: 5,
-    absten: 2,
   };
 
   componentes = signal<ComponenteEditor[]>([]);
@@ -138,13 +134,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     private painelService: PainelService,
   ) {}
 
-  /** Prévia local da imagem escolhida agora (só aparece no editor, não é salva). */
   private previaFundo = '';
 
-  /**
-   * Escolher a imagem só guarda o NOME do arquivo no cenário.
-   * O arquivo precisa estar na pasta configurada em "caminhoImagens" (config.json).
-   */
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -158,7 +149,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     input.value = '';
   }
 
-  /** Nome digitado à mão no campo da imagem de fundo. */
   alterarNomeImagemFundo(nome: string): void {
     if (this.previaFundo) {
       URL.revokeObjectURL(this.previaFundo);
@@ -172,7 +162,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     this.alterarNomeImagemFundo('');
   }
 
-  /** Fundo mostrado no editor: prévia local, depois o arquivo do servidor, depois o base64 antigo. */
   get fundoEditor(): string {
     const url =
       this.previaFundo ||
@@ -196,7 +185,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         // MODO DE EDIÇÃO
         this.isEditingMode = true;
         this.cenarioId = params.get('id');
-        log.info('Editor', `Abrindo cenário "${this.cenarioId}".`);
+        log.info('Editor', `Abrindo o cenário "${this.cenarioId}"`);
 
         this.layoutService
           .carregarCenario(this.cenarioId!)
@@ -206,9 +195,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
               this.prepararCenarioParaEdicao(this.cenarioAtual);
               this.fonteService.carregarGrupos(cenarioCarregado.fontes);
             } else {
-              alert(
-                'Cenário não encontrado! Redirecionando para um novo cenário.',
-              );
+              this.aviso.erro(`Cenário "${this.cenarioId}" não encontrado.`);
               this.router.navigate(['/editor']);
               return;
             }
@@ -244,7 +231,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         }
       },
       error: (err) => {
-        log.aviso('Editor', 'Não foi possível carregar a lista de painéis do backend.', err);
+        log.aviso('Editor', 'Erro ao carregar a lista de painéis:', err);
       },
     });
   }
@@ -321,24 +308,14 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         break;
       }
 
-      case 'loadLayout':
-        let layoutFinal: ComponenteEditor[];
-        if (Array.isArray(event.data)) {
-          layoutFinal = event.data;
-        } else {
-          const tempParlamentaresMock = Array.from({ length: 24 }, (_, i) => ({
-            nome: `Parlamentar ${i + 1}`,
-            partido: 'PART',
-            voto: '-',
-          }));
-          layoutFinal = this.layoutExport.converterDoFormatoOriginal(
-            event.data,
-            tempParlamentaresMock,
-            this.votacaoMock,
-          );
-        }
-        this.cenarioAtual.componentes = layoutFinal;
-        this.layoutService.salvarLayoutAtual(this.cenarioAtual);
+      case 'importCenario':
+        this.importarCenario(event.data);
+        break;
+
+      case 'importDelphi':
+        this.importarCenario(
+          this.layoutExport.deFormatoDelphi(event.data.json, this.montarLayoutInicial(), event.data.nome),
+        );
         break;
     }
   }
@@ -364,6 +341,13 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       larguraItem: config.larguraItem ?? atual?.width,
       alturaItem: config.alturaItem ?? atual?.height,
     });
+
+    // Guarda no cenário (vai junto pro Legis) para o display aplicar
+    this.cenarioAtual.distribuicao = {
+      exibirDe: Math.max(0, Number(config.exibirDe) || 0),
+      exibirAte: Math.max(0, Number(config.exibirAte) || 0),
+      offsetInicial: Math.max(0, Number(config.offsetInicial) || 0),
+    };
 
     this.cenarioAtual.componentes = [
       ...componentesSemParlamentares,
@@ -471,6 +455,11 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     event.preventDefault();
 
     if (this.contextMenu) {
+      this.contextMenu.distribuicaoDoCenario = this.cenarioAtual.distribuicao ?? null;
+      this.contextMenu.cenarioDoEditor = {
+        ...this.cenarioAtual,
+        fontes: structuredClone(this.fonteService.grupos()),
+      };
       this.contextMenu.open(event, component, this.componentes());
     }
   }
@@ -861,6 +850,19 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     const larguraItem = config.larguraItem ?? 608;
     const alturaItem = config.alturaItem ?? 20;
 
+    const offset = Math.max(0, Number(config.offsetInicial) || 0);
+    const primeiro = Math.max(1, Number(config.exibirDe) || 1);
+    const ultimo = Number(config.exibirAte) || 0;
+    parlamentaresDeExemplo.forEach((parlamentar, i) => {
+      const numero = primeiro + (i - offset);
+      const vazio = i < offset || (ultimo > 0 && numero > ultimo);
+      parlamentar.nome = vazio ? '(vazio)' : `Parlamentar ${numero}`;
+      if (vazio) {
+        parlamentar.partido = '';
+        parlamentar.letra = '';
+      }
+    });
+
     return parlamentaresDeExemplo.map((parlamentar, i) => {
       const colunaAtual = Math.floor(i / itensPorColuna);
       const linhaAtual = i % itensPorColuna;
@@ -892,10 +894,12 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
   async salvar() {
 
-    const nomeCenario = prompt(
-      'Digite um nome para o cenário:',
-      this.cenarioAtual.nome || 'novo-cenario',
-    );
+    const nomeCenario = await this.aviso.pedirTexto({
+      titulo: 'Salvar cenário',
+      rotulo: 'Nome do cenário',
+      valor: this.cenarioAtual.nome || 'novo-cenario',
+      textoConfirmar: 'Salvar',
+    });
 
 
     if (!nomeCenario) {
@@ -925,10 +929,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         this.cenarioAtual.imagemFundoId = String(idImagem);
         this.imagemFundoAtual = null;
       } catch (err) {
-        log.erro('Editor', 'Falha ao salvar a imagem de fundo.', err);
-        alert(
-          'Ocorreu um erro grave ao salvar a imagem de fundo. O cenário será salvo sem ela.',
-        );
+        log.erro('Editor', 'Erro ao salvar a imagem de fundo, salvando o cenário sem ela:', err);
+        this.aviso.toast('Erro ao salvar a imagem de fundo.', 'aviso');
         delete this.cenarioAtual.imagemFundoId;
       }
     }
@@ -936,29 +938,52 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.isEditingMode) {
       this.layoutService.salvarCenario(this.cenarioAtual).subscribe({
         next: (cenarioSalvo) => {
-          log.info('Editor', `Cenário "${nomeCenario}" salvo.`);
+          log.info('Editor', `Cenário "${nomeCenario}" (id ${cenarioSalvo.idBackend}) atualizado`);
           this.cenarioAtual = cenarioSalvo;
-          alert(`Cenário "${nomeCenario}" atualizado com sucesso!`);
+          this.aviso.sucesso(`Cenário "${nomeCenario}" atualizado.`);
         },
         error: (error) => {
-          log.erro('Editor', 'Falha ao salvar o cenário.', error);
-          alert('Ocorreu um erro ao atualizar o cenário.');
+          log.erro('Editor', `Erro ao atualizar o cenário "${nomeCenario}":`, error);
+          this.aviso.erro(`Erro ao atualizar o cenário "${nomeCenario}".`);
         },
       });
     } else {
       this.layoutService.salvarCenario(this.cenarioAtual).subscribe({
         next: (cenarioSalvo) => {
-          log.info('Editor', `Cenário "${nomeCenario}" salvo.`);
+          log.info('Editor', `Cenário "${nomeCenario}" criado (id ${cenarioSalvo.idBackend})`);
           this.cenarioAtual = cenarioSalvo;
-          alert(`Cenário "${nomeCenario}" salvo com sucesso!`);
+          this.aviso.sucesso(`Cenário "${nomeCenario}" salvo.`);
           this.router.navigate(['/editor', this.cenarioAtual.slug]);
         },
         error: (error) => {
-          log.erro('Editor', 'Falha ao salvar o cenário.', error);
-          alert('Ocorreu um erro ao salvar o cenário.');
+          log.erro('Editor', `Erro ao criar o cenário "${nomeCenario}":`, error);
+          this.aviso.erro(`Erro ao salvar o cenário "${nomeCenario}".`);
         },
       });
     }
+  }
+
+  private importarCenario(importado: Cenario): void {
+    const atual = this.cenarioAtual;
+    const manterIdentidade = this.isEditingMode && !!atual?.idBackend;
+
+    const cenario: Cenario = {
+      ...importado,
+      id: manterIdentidade ? atual.id : `cenario_${Date.now()}`,
+      idBackend: manterIdentidade ? atual.idBackend : undefined,
+      nome: manterIdentidade ? atual.nome : importado.nome || 'cenario-importado',
+      slug: manterIdentidade ? atual.slug : this.gerarSlug(importado.nome || 'cenario-importado'),
+      backgroundImage: importado.backgroundImage || '',
+    };
+
+    this.cenarioAtual = cenario;
+    this.prepararCenarioParaEdicao(this.cenarioAtual);
+    this.fonteService.carregarGrupos(this.cenarioAtual.fontes);
+    this.dispararAutosave();
+    setTimeout(() => this.zoomInicial());
+
+    log.info('Importar', `Cenário "${cenario.nome}" importado (${cenario.componentes.length} blocos)`);
+    this.aviso.toast(`Cenário "${cenario.nome}" importado.`, 'sucesso');
   }
 
   private dispararAutosave(): void {

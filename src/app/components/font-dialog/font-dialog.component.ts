@@ -80,7 +80,7 @@ export class FontDialogComponent implements OnInit {
 
       this.selectedStyle = this.estiloDaConfig(config.weight, config.style);
     } else {
-        log.aviso('Fontes', `Fonte não encontrada (${this.data.tipo}/${this.data.subId}). Usando a padrão.`);
+        log.aviso('Fontes', `Fonte "${this.data.tipo}/${this.data.subId}" não encontrada, usando a padrão`);
         this.originalFontConfig = { family: 'Arial', size: 16, color: '#FFFFFF', weight: 'normal', style: 'normal' };
     }
   }

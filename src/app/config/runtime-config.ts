@@ -56,7 +56,7 @@ export async function carregarRuntimeConfig(): Promise<void> {
     const resp = await fetch(`assets/config.json?v=${Date.now()}`, { cache: 'no-store' });
 
     if (!resp.ok) {
-      console.warn(`[Config] assets/config.json não encontrado (${resp.status}). Usando o environment.`);
+      console.warn(`[Config] config.json não encontrado (${resp.status}), usando o environment`);
     } else {
       const json = await resp.json();
       for (const campo of CAMPOS_TEXTO) {
@@ -68,7 +68,7 @@ export async function carregarRuntimeConfig(): Promise<void> {
       runtimeConfig.debug = json?.debug === true;
     }
   } catch (err) {
-    console.warn('[Config] Não foi possível ler assets/config.json. Usando o environment.', err);
+    console.warn('[Config] Erro ao ler o config.json, usando o environment:', err);
   }
 
   // ?debug=1 no endereço liga as mensagens de detalhe sem mexer no config.json

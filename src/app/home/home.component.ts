@@ -7,6 +7,8 @@ import { Cenario } from '../models/cenario.model';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { Subscription } from 'rxjs';
+import { AvisoService } from '../services/aviso.service';
+import { log } from '../utils/log';
 
 @Component({
   selector: 'app-home',
@@ -27,6 +29,7 @@ export class HomeComponent {
   constructor(
     private layoutService: LayoutService,
     private router: Router,
+    private aviso: AvisoService,
   ) {}
 
   ngOnInit() {
@@ -54,11 +57,25 @@ export class HomeComponent {
     this.router.navigate(['/editor', novoId]);
   }
 
-  deletarCenario(idBackend: number, nome: string): void {
-    if (confirm(`Tem certeza que deseja deletar o cenário "${nome}"?`)) {
-      this.layoutService.removerCenario(idBackend).subscribe(() => {
+  async deletarCenario(idBackend: number, nome: string): Promise<void> {
+    const confirmou = await this.aviso.confirmar({
+      titulo: 'Deletar cenário',
+      mensagem: `Tem certeza que deseja deletar o cenário "${nome}"? Essa ação não pode ser desfeita.`,
+      textoConfirmar: 'Deletar',
+      perigo: true,
+    });
+    if (!confirmou) return;
+
+    this.layoutService.removerCenario(idBackend).subscribe({
+      next: () => {
+        log.info('Cenários', `Cenário "${nome}" (id ${idBackend}) deletado`);
+        this.aviso.sucesso(`Cenário "${nome}" deletado.`);
         this.recarregarLista();
-      });
-    }
+      },
+      error: (err) => {
+        log.erro('Cenários', `Erro ao deletar o cenário "${nome}" (id ${idBackend}):`, err);
+        this.aviso.erro(`Erro ao deletar o cenário "${nome}".`);
+      },
+    });
   }
 }

@@ -6,9 +6,7 @@ export interface Cenario {
   nome: string;
   targetWidth: number;
   targetHeight: number;
-  /** Antigo: imagem em base64 dentro do cenário. Não é mais salvo no backend (estourava o tamanho). */
   backgroundImage: string;
-  /** Nome do arquivo da imagem de fundo, que fica na pasta "caminhoImagens" do config.json. */
   imagemFundo?: string;
   componentes: ComponenteEditor[];
   imagemFundoId?: string; 
@@ -17,6 +15,14 @@ export interface Cenario {
   fontes?: FonteGrupo[];
   idBackend?: number;
   opcoes?: OpcoesCenario;
+  distribuicao?: DistribuicaoParlamentares;
+  legadoDelphi?: Record<string, any>;
+}
+
+export interface DistribuicaoParlamentares {
+  exibirDe: number;
+  exibirAte: number;
+  offsetInicial: number;
 }
 
 export interface OpcoesCenario {

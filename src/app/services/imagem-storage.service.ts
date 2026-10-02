@@ -48,7 +48,7 @@ export class ImagemStorageService {
     return this.http.get<ResponseContainer<ArquivoBackend>>(`${this.API_URL}/buscar/${idBackend}`).pipe(
       map((resp) => (resp.valor?.dados ? `data:image/*;base64,${resp.valor.dados}` : null)),
       catchError((e) => {
-        log.erro('Imagens', 'Falha ao carregar a imagem do backend.', e);
+        log.erro('Imagens', 'Erro ao carregar a imagem de fundo:', e);
         return of(null);
       })
     );

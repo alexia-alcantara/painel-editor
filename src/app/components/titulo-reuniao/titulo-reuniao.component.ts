@@ -13,7 +13,6 @@ import { alinhamentoFlex } from '../../utils/estilo-texto';
 })
 export class TituloReuniaoComponent {
   @Input() dados: { texto: string } | undefined;
-  /** Id do bloco: o bloco da data ("data-atual") usa a fonte "Data" de Tempo e Data. */
   @Input() componenteId = '';
 
   constructor(private fonteService: FonteService) {}

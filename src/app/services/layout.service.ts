@@ -65,7 +65,7 @@ export class LayoutService {
       const cenarioString = localStorage.getItem(this.LAYOUT_ATUAL_KEY);
       return cenarioString ? JSON.parse(cenarioString) : null;
     } catch (e) {
-      log.erro('Cenários', 'Falha ao ler o rascunho salvo no navegador.', e);
+      log.erro('Cenários', 'Erro ao ler o rascunho do localStorage, ignorando:', e);
       return null;
     }
   }
@@ -79,7 +79,7 @@ export class LayoutService {
       ),
       tap((cenarios) => this.cenariosAtualizados.next(cenarios)),
       catchError((e) => {
-        log.erro('Cenários', 'Falha ao listar os cenários do backend.', e);
+        log.erro('Cenários', 'Erro ao listar cenários:', e);
         return of([]);
       })
     );
@@ -115,6 +115,7 @@ export class LayoutService {
 
         return req$.pipe(
           map((resp) => {
+            this.verificarStatus(resp);
             const cenarioSalvo = this.converterParaCenario(resp.valor);
             if (!cenarioSalvo) {
               throw new Error('Backend devolveu um cenário em formato inesperado ao salvar.');
@@ -128,10 +129,23 @@ export class LayoutService {
   }
 
   removerCenario(idBackend: number): Observable<void> {
-    return this.http.post<ResponseContainer<any>>(`${this.API_URL}/deletar`, { id: idBackend }).pipe(
-      map(() => void 0),
-      tap(() => this.listarCenarios().subscribe())
+    return this.http.post<ResponseContainer<any>>(`${this.API_URL}/deletar`, {
+      id: idBackend,
+      class: this.CLASS_PAINEL_CENARIO,
+    }).pipe(
+      map((resp) => this.verificarStatus(resp)),
+      switchMap(() => this.listarCenarios()),
+      map(() => void 0)
     );
+  }
+
+
+  private verificarStatus<T>(resp: ResponseContainer<T>): ResponseContainer<T> {
+    const codigo = resp?.status?.code;
+    if (codigo !== undefined && codigo !== null && String(codigo) !== '0') {
+      throw new Error(resp?.status?.message || `código ${codigo}`);
+    }
+    return resp;
   }
 
   private readonly CLASS_PAINEL_CENARIO = 'br.com.visual.legis.pojo.comunicacao.PainelCenario';
@@ -160,8 +174,7 @@ export class LayoutService {
 
   private converterParaBackend(cenario: Cenario, idTipoPainel: number): PainelCenarioBackend {
     const { idBackend, ...cenarioParaSalvar } = cenario as any;
-    // A imagem de fundo não vai mais em base64 dentro do cenário (deixava o texto grande
-    // demais pro Legis). Fica só o nome do arquivo em "imagemFundo".
+
     cenarioParaSalvar.backgroundImage = '';
     delete cenarioParaSalvar.imagemFundoId;
     return {
@@ -240,6 +253,14 @@ export class LayoutService {
     } catch {
       return texto;
     }
+  }
+
+  lerCenarioImportado(json: any): Cenario | null {
+    const cenario = json?.cenario ?? json;
+    if (!cenario || Array.isArray(cenario) || !Array.isArray(cenario.componentes)) {
+      return null;
+    }
+    return this.repararAcentosEmTudo(structuredClone(cenario)) as Cenario;
   }
 
   salvarConfigDistribuicao(config: DistribuirConfig): void {

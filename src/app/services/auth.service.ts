@@ -35,7 +35,7 @@ export class AuthService {
     }
 
     if (!runtimeConfig.backendUrl || !runtimeConfig.authUsername || !runtimeConfig.authPassword) {
-      log.aviso('Auth', 'backendUrl, usuário ou senha não preenchidos no assets/config.json.');
+      log.aviso('Auth', 'Login automático desativado, faltam backendUrl/authUsername/authPassword no config.json');
       this.token = null;
       return of(false);
     }
@@ -51,15 +51,15 @@ export class AuthService {
         const token = resp.headers.get('Authorization') || resp.headers.get('authorization');
         if (token) {
           this.token = token;
-          log.info('Auth', 'Login feito.');
+          log.info('Auth', `Login feito como "${runtimeConfig.authUsername}"`);
           return true;
         }
-        log.aviso('Auth', 'Login sem token no cabeçalho Authorization.');
+        log.aviso('Auth', 'Login sem token no header Authorization');
         this.token = null;
         return false;
       }),
       catchError((err) => {
-        log.erro('Auth', 'Falha no login.', err);
+        log.erro('Auth', `Erro no login automático ("${runtimeConfig.authUsername}"):`, err);
         this.token = null;
         return of(false);
       }),

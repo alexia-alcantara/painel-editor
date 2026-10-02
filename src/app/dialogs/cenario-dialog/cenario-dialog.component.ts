@@ -12,6 +12,7 @@ import { Cenario } from '../../models/cenario.model';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs'; 
 import { log } from '../../utils/log';
+import { AvisoService } from '../../services/aviso.service';
 
 @Component({
   selector: 'app-cenario-dialog',
@@ -32,20 +33,20 @@ export class CenarioDialogComponent implements OnInit {
 
   constructor(
     public dialogRef: MatDialogRef<CenarioDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { layoutAtual: ComponenteEditor[] },
+    @Inject(MAT_DIALOG_DATA)
+    public data: { layoutAtual: ComponenteEditor[]; cenarioAtual?: Cenario | null },
     private layoutService: LayoutService,
     private layoutExportService: LayoutExportService,
     private router: Router,
-    private location: Location
+    private location: Location,
+    private aviso: AvisoService,
   ) {}
 
   ngOnInit(): void {
-    // 1. Carrega a lista inicial de cenários
     this.layoutService.listarCenarios().subscribe((cenarios) => {
       this.cenarios = cenarios;
     });
 
-    // 2. Se inscreve para ouvir futuras atualizações na lista
     this.cenariosSub = this.layoutService.cenarios$.subscribe(cenariosAtualizados => {
       this.cenarios = cenariosAtualizados;
     });
@@ -67,58 +68,110 @@ export class CenarioDialogComponent implements OnInit {
             window.open(this.location.prepareExternalUrl(url), '_blank');
       this.dialogRef.close();
     } else {
-      alert('Não foi possível carregar o cenário pois o slug/id não foi encontrado.');
+      this.aviso.erro(`Cenário "${cenario.nome}" sem identificador.`);
     }
   }
 
-    editarCenario(cenario: Cenario): void {
+  async editarCenario(cenario: Cenario): Promise<void> {
     const identificadorUrl = cenario.slug || cenario.id;
 
     if (!identificadorUrl) {
-      alert('Não foi possível abrir o cenário pois o slug/id não foi encontrado.');
+      this.aviso.erro(`Cenário "${cenario.nome}" sem identificador.`);
       return;
     }
 
-    if (!confirm(`Abrir "${cenario.nome}" no editor? O que não foi salvo no cenário atual será perdido.`)) {
-      return;
-    }
+    const confirmou = await this.aviso.confirmar({
+      titulo: 'Abrir no editor',
+      mensagem: `Abrir "${cenario.nome}" no editor? O que não foi salvo no cenário atual será perdido.`,
+      textoConfirmar: 'Abrir',
+    });
+    if (!confirmou) return;
 
     this.dialogRef.close();
     this.router.navigate(['/editor', identificadorUrl]);
   }
   
-  removerCenario(idBackend: number, nome: string): void {
-    if (confirm(`Tem certeza que deseja remover o cenário "${nome}"?`)) {
-      this.layoutService.removerCenario(idBackend).subscribe();
-    }
+  async removerCenario(idBackend: number, nome: string): Promise<void> {
+    const confirmou = await this.aviso.confirmar({
+      titulo: 'Deletar cenário',
+      mensagem: `Tem certeza que deseja deletar o cenário "${nome}"? Essa ação não pode ser desfeita.`,
+      textoConfirmar: 'Deletar',
+      perigo: true,
+    });
+    if (!confirmou) return;
+
+    this.layoutService.removerCenario(idBackend).subscribe({
+      next: () => {
+        log.info('Cenários', `Cenário "${nome}" (id ${idBackend}) deletado`);
+        this.aviso.sucesso(`Cenário "${nome}" deletado.`);
+      },
+      error: (err) => {
+        log.erro('Cenários', `Erro ao deletar o cenário "${nome}" (id ${idBackend}):`, err);
+        this.aviso.erro(`Erro ao deletar o cenário "${nome}".`);
+      },
+    });
   }
+
+  exportarCenario(cenario: Cenario): void {
+    this.baixarJson(this.layoutExportService.paraFormatoDelphi(cenario), cenario.slug || cenario.nome);
+  }
+
   exportarLayout(): void {
-    const json = this.layoutExportService.converterParaFormatoOriginal(
-      this.data.layoutAtual
-    );
-    const blob = new Blob([JSON.stringify(json, null, 2)], {
+    const atual = this.data.cenarioAtual;
+    if (!atual) {
+      this.aviso.erro('Nenhum cenário aberto para exportar.');
+      return;
+    }
+    this.baixarJson(this.layoutExportService.paraFormatoDelphi(atual), atual.slug || atual.nome);
+  }
+
+  private baixarJson(conteudo: any, nome: string): void {
+    const nomeArquivo = `${(nome || 'cenario').replace(/[^\w\-]+/g, '_')}.json`;
+    const blob = new Blob([JSON.stringify(conteudo, null, 2)], {
       type: 'application/json',
     });
-    saveAs(blob, 'layout-exportado.json');
+    saveAs(blob, nomeArquivo);
+    log.info('Exportar', `Cenário exportado: ${nomeArquivo}`);
+    this.aviso.sucesso(`Cenário exportado: ${nomeArquivo}`);
   }
 
   importarLayout(event: Event) {
     const element = event.currentTarget as HTMLInputElement;
     const file = element.files?.[0];
+    element.value = ''; // permite importar o mesmo arquivo de novo
 
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const jsonDoArquivo = JSON.parse(e.target?.result as string);
-          this.dialogRef.close({ action: 'import', data: jsonDoArquivo }); 
-        } catch (error) {
-          log.erro('Importar', 'Arquivo JSON inválido.', error);
-          alert('Arquivo JSON inválido.');
-        }
-      };
-      reader.readAsText(file);
-    }
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      let jsonDoArquivo: any;
+      try {
+        jsonDoArquivo = JSON.parse(e.target?.result as string);
+      } catch (error) {
+        log.erro('Importar', `Erro ao ler o arquivo "${file.name}":`, error);
+        this.aviso.erro(`Arquivo "${file.name}" inválido.`);
+        return;
+      }
+
+      const nome = file.name.replace(/\.json$/i, '');
+
+      if (this.layoutExportService.ehFormatoDelphi(jsonDoArquivo)) {
+        log.info('Importar', `Importando ${file.name} (formato do Delphi)`);
+        this.dialogRef.close({ action: 'importarDelphi', json: jsonDoArquivo, nome });
+        return;
+      }
+
+      const cenario = this.layoutService.lerCenarioImportado(jsonDoArquivo);
+      if (cenario) {
+        log.info('Importar', `Importando o cenário "${cenario.nome}" de ${file.name}`);
+        this.dialogRef.close({ action: 'importarCenario', cenario });
+        return;
+      }
+
+      log.erro('Importar', `${file.name} não está em nenhum formato de cenário conhecido`);
+      this.aviso.erro(`Arquivo "${file.name}" inválido.`);
+    };
+    reader.readAsText(file);
   }
   
 }

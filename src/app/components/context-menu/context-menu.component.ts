@@ -25,6 +25,7 @@ import {
 import { LayoutService } from '../../services/layout.service';
 import { CenarioDialogComponent } from '../../dialogs/cenario-dialog/cenario-dialog.component';
 import { log } from '../../utils/log';
+import { Cenario } from '../../models/cenario.model';
 
 @Component({
   selector: 'app-context-menu',
@@ -50,6 +51,8 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
 
   grupos: FonteGrupo[] = [];
   layoutCompleto: ComponenteEditor[] = [];
+  cenarioDoEditor: Cenario | null = null;
+  distribuicaoDoCenario: { exibirDe: number; exibirAte: number; offsetInicial: number } | null = null;
   public isEditorMode: boolean = true;
 
   constructor(
@@ -159,6 +162,7 @@ async ngOnInit() {
       ...padrao,
       ...(configSalva || {}),
       ...this.lerDistribuicaoAtual(),
+      ...(this.distribuicaoDoCenario || {}),
     };
 
     const dialogRef = this.dialog.open(DistribuirParlamentaresComponent, {
@@ -265,16 +269,14 @@ async ngOnInit() {
   abrirModalConfiguracaoTela() {
   const dialogRef = this.dialog.open(CenarioDialogComponent, {
     width: '500px',
-    data: { layoutAtual: this.layoutCompleto } 
+    data: { layoutAtual: this.layoutCompleto, cenarioAtual: this.cenarioDoEditor } 
   });
 
   dialogRef.afterClosed().subscribe(resultado => {
-    if (resultado && resultado.action === 'carregar') {
-      // Emite a ação para o editor carregar o novo layout
-      this.action.emit({ action: 'loadLayout', data: resultado.layout });
-    }
-     else if (resultado && resultado.action === 'importar') {
-      this.action.emit({ action: 'loadLayout', data: resultado.layout });
+    if (resultado?.action === 'importarDelphi') {
+      this.action.emit({ action: 'importDelphi', data: { json: resultado.json, nome: resultado.nome } });
+    } else if (resultado?.action === 'importarCenario') {
+      this.action.emit({ action: 'importCenario', data: resultado.cenario });
     }
   });
   this.close();

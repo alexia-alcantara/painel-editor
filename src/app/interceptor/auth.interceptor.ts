@@ -26,7 +26,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(comToken(req)).pipe(
     catchError((err: HttpErrorResponse) => {
       if (err.status === 401) {
-        log.info('Auth', 'Sessão expirada (401). Fazendo login novamente.');
+        log.info('Auth', 'Sessão expirada (401), refazendo login');
         return authService.login().pipe(
           switchMap((ok) => (ok ? next(comToken(req)) : throwError(() => err)))
         );

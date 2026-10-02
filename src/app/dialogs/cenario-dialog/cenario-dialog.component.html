@@ -14,6 +14,7 @@
             <div class="flex items-center gap-2">
               <button (click)="editarCenario(cenario)" mat-button>Editar</button>
               <button (click)="abrirDisplay(cenario)" mat-button color="primary">Carregar</button>
+              <button (click)="exportarCenario(cenario)" mat-button title="Baixar este cenário em arquivo .json">Exportar</button>
               <button (click)="removerCenario(cenario.idBackend!, cenario.nome)" mat-button color="warn">Deletar</button>
             </div>
 
@@ -29,10 +30,10 @@
 
   <div mat-dialog-actions class="flex justify-between items-center p-2">
     <div class="flex gap-2">
-      <button (click)="exportarLayout()" mat-stroked-button>Exportar Layout Atual</button>
+      <button (click)="exportarLayout()" mat-stroked-button title="Baixa o cenário aberto no editor, inclusive o que ainda não foi salvo">Exportar cenário atual</button>
       
       <input type="file" hidden #fileInput (change)="importarLayout($event)" accept=".json">
-      <button (click)="fileInput.click()" mat-stroked-button>Importar de Arquivo</button>
+      <button (click)="fileInput.click()" mat-stroked-button title="Abre um cenário exportado (.json) no editor">Importar de arquivo</button>
     </div>
     
     <button mat-flat-button color="primary" [mat-dialog-close]>Fechar</button>

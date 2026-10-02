@@ -89,12 +89,9 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   paletaDeCores: any = {};
   private painelSubscription: Subscription | undefined;
 
-  /** Tela de escolher o painel (aparece em /display quando este computador ainda não tem painel fixado). */
   escolhendoPainel = false;
   listaPaineis: { nome: string; identificador: string }[] = [];
-  /** Texto mostrado enquanto não há cenário na tela. */
   mensagemEspera = 'Carregando...';
-  /** Painel escolhido sem marcar "lembrar" (vale só até fechar a página). */
   private painelSessao = '';
 
   constructor(
@@ -112,13 +109,11 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     const idCenario = this.route.snapshot.paramMap.get('id');
 
-    // ?trocarPainel=1 apaga o painel fixado e mostra a tela de escolha de novo
     if (this.route.snapshot.queryParamMap.get('trocarPainel') === '1') {
       this.salvarPainelFixo('');
     }
 
     if (!idCenario) {
-      // Sem cenário no endereço: usa o painel fixado e o Legis diz qual cenário mostrar
       if (this.painelDoDisplay()) {
         this.mensagemEspera = 'Aguardando o cenário do painel...';
         this.iniciarAtualizacaoAutomatica();
@@ -155,11 +150,11 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     log.info(
       'Display',
-      `Painel: ${ipDoPainel} (endereço: ${ipDaUrl ?? '-'}, cenário: ${ipDoCenario ?? '-'}, fixado neste computador: ${ipFixo || '-'}).`,
+      `Painel ${ipDoPainel || '-'} (endereço: ${ipDaUrl ?? '-'}, cenário: ${ipDoCenario || '-'}, fixado: ${ipFixo || '-'})`,
     );
 
     if (!ipDoPainel) {
-      log.erro('Display', 'Nenhum painel definido: escolha o Painel Alvo no cenário, use ?ip= no endereço ou fixe o painel em /display.');
+      log.erro('Display', 'Nenhum painel definido (sem Painel Alvo, sem ?ip= e sem painel fixado)');
       return;
     }
 
@@ -207,7 +202,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
             novoIdCenario !== this.ultimoIdCenarioTentado
           ) {
             this.ultimoIdCenarioTentado = novoIdCenario;
-            log.info('Display', `Trocando para o cenário ${novoIdCenario} (Controle Cenários).`);
+            log.info('Display', `Controle Cenários: trocando para o cenário ${novoIdCenario}`);
 
             const novoCenario = await firstValueFrom(
               this.layoutService.carregarCenario(novoIdCenario),
@@ -274,7 +269,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }
     } catch (e) {
-      log.erro('Display', 'Falha ao ler a lista de parlamentares.', e);
+      log.erro('Display', 'Erro ao ler a lista de parlamentares:', e);
     }
 
     const mostrarPlacar =
@@ -294,9 +289,26 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       String(dadosApiValor.configuracaoExibicao?.exibir?.MASCARAR_VOTOS) === 'true';
     this.fonteService.aplicarCoresDaPaleta(paleta);
 
-    const parlamentaresLayout = cenarioAtualizado.componentes.filter(
+    const todosEspacos = cenarioAtualizado.componentes.filter(
       (c) => c.tipo === 'parlamentar',
     );
+
+   
+    const distribuicao = this.cenarioBase.distribuicao;
+    const exibirDe = Math.max(1, Number(distribuicao?.exibirDe) || 1);
+    const exibirAte = Number(distribuicao?.exibirAte) || 0;
+    const offset = Math.min(
+      Math.max(0, Number(distribuicao?.offsetInicial) || 0),
+      todosEspacos.length,
+    );
+
+    parlamentaresApi =
+      exibirAte > 0
+        ? parlamentaresApi.slice(exibirDe - 1, exibirAte)
+        : parlamentaresApi.slice(exibirDe - 1);
+
+    todosEspacos.slice(0, offset).forEach((comp) => (comp.visible = false));
+    const parlamentaresLayout = todosEspacos.slice(offset);
 
     const tamanhoPagina = parlamentaresLayout.length;
 
@@ -820,7 +832,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       if (identificador) localStorage.setItem(CHAVE_PAINEL_FIXO, identificador);
       else localStorage.removeItem(CHAVE_PAINEL_FIXO);
     } catch {
-      log.aviso('Display', 'Não foi possível guardar o painel neste navegador.');
+      log.aviso('Display', 'Erro ao gravar o painel no localStorage, vale só nesta sessão');
     }
   }
 
@@ -842,7 +854,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       error: (err) => {
         this.mensagemEspera = 'Não foi possível carregar a lista de painéis.';
-        log.erro('Display', 'Falha ao listar os painéis.', err);
+        log.erro('Display', 'Erro ao listar painéis:', err);
         this.cdRef.detectChanges();
       },
     });
@@ -957,7 +969,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         this.cdRef.detectChanges();
       }
     } catch (err) {
-      log.erro('Display', 'Falha ao carregar a imagem de fundo.', err);
+      log.erro('Display', 'Erro ao carregar a imagem de fundo:', err);
     }
   }
 }

@@ -21,3 +21,38 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
   margin: 0 !important; /* remove deslocamento */
   inset: auto !important;
 }
+
+
+/* ===== Paleta dos modais e toasts do editor (mude aqui para trocar as cores) ===== */
+:root {
+  --painel-fundo: #0f172a;
+  --painel-superficie: #1e293b;
+  --painel-borda: #475569;
+  --painel-texto: #e2e8f0;
+  --painel-texto-suave: #94a3b8;
+  --painel-primaria: #3b82f6;
+  --painel-primaria-suave: rgba(59, 130, 246, 0.3);
+  --painel-sucesso: #16a34a;
+  --painel-perigo: #ef4444;
+  --painel-aviso: #f59e0b;
+}
+
+/* Modal (AvisoDialogComponent) */
+.modal-painel .mat-mdc-dialog-surface,
+.modal-painel .mdc-dialog__surface {
+  background: var(--painel-superficie) !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--painel-borda);
+  overflow: hidden;
+}
+
+/* Toasts (AvisoService.toast) */
+.toast-painel {
+  --mdc-snackbar-supporting-text-color: #ffffff;
+  --mat-snack-bar-button-color: #ffffff;
+  --mdc-snackbar-supporting-text-font: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+.toast-painel.toast-sucesso { --mdc-snackbar-container-color: var(--painel-sucesso); }
+.toast-painel.toast-erro { --mdc-snackbar-container-color: var(--painel-perigo); }
+.toast-painel.toast-aviso { --mdc-snackbar-container-color: var(--painel-aviso); }
+.toast-painel.toast-info { --mdc-snackbar-container-color: var(--painel-superficie); }
