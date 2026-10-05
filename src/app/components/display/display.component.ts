@@ -40,7 +40,7 @@ import { MateriaComponent } from '../materia/materia.component';
 import { CampoTextoComponent } from '../campo-texto/campo-texto.component';
 import { LegisSocketService } from '../../services/legis-socket.service';
 import { log } from '../../utils/log';
-import { urlImagemFundo } from '../../config/runtime-config';
+import { urlImagemFundo, verificarImagemFundo  } from '../../config/runtime-config';
 
 /** Onde fica guardado, neste navegador, o painel que este computador representa. */
 const CHAVE_PAINEL_FIXO = 'legiswall.painelFixo';
@@ -285,9 +285,10 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const cenarioAtualizado = structuredClone(this.cenarioBase);
     const paleta = this.lerPaleta(dadosApiValor);
+    const resultadoLiberado = String(dadosApiValor.votacao?.exibirresultado) === 'true';
     const votosMascarados =
-      String(dadosApiValor.configuracaoExibicao?.exibir?.MASCARAR_VOTOS) === 'true';
-    this.fonteService.aplicarCoresDaPaleta(paleta);
+      String(dadosApiValor.configuracaoExibicao?.exibir?.MASCARAR_VOTOS) === 'true' &&
+      !resultadoLiberado;
 
     const todosEspacos = cenarioAtualizado.componentes.filter(
       (c) => c.tipo === 'parlamentar',
@@ -800,10 +801,16 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     this.ajustarEscala();
   }
 
-  get fundoDisplay(): string {
+    get fundoDisplay(): string {
     const c = this.cenarioParaExibir;
     if (!c) return 'none';
-    const url = urlImagemFundo(c.imagemFundo) || c.backgroundImage;
+    const daPasta = urlImagemFundo(c.imagemFundo);
+    if (daPasta) {
+      verificarImagemFundo(daPasta, (endereco) =>
+        log.aviso('Display', `Imagem de fundo "${c.imagemFundo}" não encontrada em ${endereco}`),
+      );
+    }
+    const url = daPasta || c.backgroundImage;
     return url ? `url("${url}")` : 'none';
   }
 

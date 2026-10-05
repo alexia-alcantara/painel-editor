@@ -1,5 +1,9 @@
 @if (cenarioAtual) {
 <div class="config-panel bg-gray-800 text-white p-4 flex gap-4 items-center">
+  <button type="button" (click)="novoCenario()" title="Criar um cenário novo"
+    class="bg-gray-700 px-3 py-2 rounded border border-gray-600 hover:border-blue-500 text-sm whitespace-nowrap">
+   + Novo
+  </button>
   <input type="text" [(ngModel)]="cenarioAtual.nome" placeholder="Nome do Cenário"
     class="bg-gray-700 p-2 rounded border border-gray-600 focus:border-blue-500 outline-none">
 
@@ -75,7 +79,7 @@
   <div class="flex items-center gap-2 ml-auto">
     <label class="text-sm">Imagem de Fundo:</label>
     <input type="text" placeholder="nome-do-arquivo.jpg"
-      class="text-sm text-gray-800 rounded px-2 py-1 w-56"
+      class="bg-gray-700 text-white text-sm p-2 rounded border border-gray-600 focus:border-blue-500 outline-none w-56"
       title="Nome do arquivo na pasta de imagens do servidor (caminhoImagens no config.json)"
       [value]="cenarioAtual.imagemFundo || ''"
       (change)="alterarNomeImagemFundo($any($event.target).value)">

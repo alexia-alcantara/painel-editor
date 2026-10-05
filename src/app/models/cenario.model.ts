@@ -11,6 +11,7 @@ export interface Cenario {
   componentes: ComponenteEditor[];
   imagemFundoId?: string; 
   idPainel: string;
+  idTipoPainel?: number;
   slug: string;
   fontes?: FonteGrupo[];
   idBackend?: number;

@@ -11,7 +11,11 @@ import {
   Renderer2,
   HostListener,
 } from '@angular/core';
-import { urlImagemFundo } from '../../config/runtime-config';
+import {
+  previasDeFundo,
+  urlImagemFundo,
+  verificarImagemFundo,
+} from '../../config/runtime-config';
 import { ComponenteEditor } from '../../models/components.model';
 import { LayoutService } from '../../services/layout.service';
 import { CommonModule } from '@angular/common';
@@ -86,7 +90,7 @@ import { AvisoService } from '../../services/aviso.service';
     ResultadoVotacaoComponent,
     RelogioComponent,
     MultimidiaComponent,
-    CampoTextoComponent
+    CampoTextoComponent,
   ],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
@@ -122,7 +126,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private imagemFundoAtual: File | null = null;
 
-   listaPaineis: any[] = [];
+  listaPaineis: any[] = [];
 
   constructor(
     private layoutService: LayoutService,
@@ -134,15 +138,14 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     private painelService: PainelService,
   ) {}
 
-  private previaFundo = '';
-
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
 
-    if (this.previaFundo) URL.revokeObjectURL(this.previaFundo);
-    this.previaFundo = URL.createObjectURL(file);
+    const anterior = previasDeFundo.get(file.name);
+    if (anterior) URL.revokeObjectURL(anterior);
+    previasDeFundo.set(file.name, URL.createObjectURL(file));
 
     this.cenarioAtual.imagemFundo = file.name;
     this.cenarioAtual.backgroundImage = '';
@@ -150,23 +153,31 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   alterarNomeImagemFundo(nome: string): void {
-    if (this.previaFundo) {
-      URL.revokeObjectURL(this.previaFundo);
-      this.previaFundo = '';
-    }
     this.cenarioAtual.imagemFundo = nome.trim();
     this.cenarioAtual.backgroundImage = '';
   }
-
   removerImagemFundo(): void {
     this.alterarNomeImagemFundo('');
   }
 
   get fundoEditor(): string {
+    const nome = this.cenarioAtual.imagemFundo || '';
+    const daPasta = urlImagemFundo(nome);
     const url =
-      this.previaFundo ||
-      urlImagemFundo(this.cenarioAtual.imagemFundo) ||
-      this.cenarioAtual.backgroundImage;
+      previasDeFundo.get(nome) || daPasta || this.cenarioAtual.backgroundImage;
+
+    if (url === daPasta) {
+      verificarImagemFundo(daPasta, (endereco) => {
+        log.aviso(
+          'Editor',
+          `Imagem de fundo "${nome}" não encontrada em ${endereco}`,
+        );
+        this.aviso.toast(
+          `Imagem de fundo "${nome}" não encontrada no servidor.`,
+          'aviso',
+        );
+      });
+    }
     return url ? `url("${url}")` : 'none';
   }
 
@@ -179,7 +190,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
   }
   ngOnInit() {
-
     this.routeSub = this.route.paramMap.subscribe((params) => {
       if (params.has('id')) {
         // MODO DE EDIÇÃO
@@ -219,6 +229,27 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
+   async novoCenario(): Promise<void> {
+    const confirmou = await this.aviso.confirmar({
+      titulo: 'Novo cenário',
+      mensagem: 'Abrir um cenário novo? O que não foi salvo no cenário atual será perdido.',
+      textoConfirmar: 'Criar novo',
+    });
+    if (!confirmou) return;
+
+    log.info('Editor', 'Abrindo um cenário novo');
+
+    if (this.isEditingMode) {
+      this.router.navigate(['/editor']);
+      return;
+    }
+
+    this.cenarioAtual = this.montarLayoutInicial();
+    this.fonteService.carregarGrupos(this.cenarioAtual.fontes);
+    this.dispararAutosave();
+    setTimeout(() => this.zoomInicial());
+  }
+
   carregarListaPaineis() {
     this.painelService.listarPaineis().subscribe({
       next: (lista) => {
@@ -244,7 +275,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-
   get zoomPercentual(): number {
     return Math.round(this.zoom * 100);
   }
@@ -263,10 +293,18 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ajustarZoom(): void {
     const area = this.areaEditorRef?.nativeElement;
-    if (!area || !this.cenarioAtual?.targetWidth || !this.cenarioAtual?.targetHeight) return;
+    if (
+      !area ||
+      !this.cenarioAtual?.targetWidth ||
+      !this.cenarioAtual?.targetHeight
+    )
+      return;
     const escalaX = (area.clientWidth - 16) / this.cenarioAtual.targetWidth;
     const escalaY = (area.clientHeight - 16) / this.cenarioAtual.targetHeight;
-    this.zoom = Math.max(0.1, Math.min(1, Math.floor(Math.min(escalaX, escalaY) * 100) / 100));
+    this.zoom = Math.max(
+      0.1,
+      Math.min(1, Math.floor(Math.min(escalaX, escalaY) * 100) / 100),
+    );
   }
 
   private zoomInicial(): void {
@@ -314,7 +352,11 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
       case 'importDelphi':
         this.importarCenario(
-          this.layoutExport.deFormatoDelphi(event.data.json, this.montarLayoutInicial(), event.data.nome),
+          this.layoutExport.deFormatoDelphi(
+            event.data.json,
+            this.montarLayoutInicial(),
+            event.data.nome,
+          ),
         );
         break;
     }
@@ -366,8 +408,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   } | null = null;
 
   iniciarArraste(event: MouseEvent, item: ComponenteEditor): void {
-    if (event.button !== 0) return; 
-    event.preventDefault(); 
+    if (event.button !== 0) return;
+    event.preventDefault();
     this.arrastando = {
       item,
       x0: event.clientX,
@@ -401,7 +443,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   } | null = null;
 
   iniciarRedimensionar(event: MouseEvent, item: ComponenteEditor): void {
-    event.stopPropagation(); 
+    event.stopPropagation();
     event.preventDefault();
     this.redimensionando = {
       item,
@@ -455,7 +497,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     event.preventDefault();
 
     if (this.contextMenu) {
-      this.contextMenu.distribuicaoDoCenario = this.cenarioAtual.distribuicao ?? null;
+      this.contextMenu.distribuicaoDoCenario =
+        this.cenarioAtual.distribuicao ?? null;
       this.contextMenu.cenarioDoEditor = {
         ...this.cenarioAtual,
         fontes: structuredClone(this.fonteService.grupos()),
@@ -578,7 +621,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         props: { cronometro: 2 },
         visible: true,
       },
-            {
+      {
         id: 'temporizador-3',
         tipo: 'temporizador-item',
         x: 340,
@@ -607,7 +650,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         height: 86,
         visible: true,
       },
-
 
       linhaTabela('status-votos', 'status-item', 0, 'VOTOS', '#FFFFFF', false),
       linhaTabela(
@@ -642,19 +684,72 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         '#FFFFFF',
         false,
       ),
-      linhaTabela('status-parlamentares', 'status-item', 0, 'PARLAMENTARES', '#FFFFFF', false),
+      linhaTabela(
+        'status-parlamentares',
+        'status-item',
+        0,
+        'PARLAMENTARES',
+        '#FFFFFF',
+        false,
+      ),
       linhaTabela('status-extras', 'status-item', 1, 'EXTRA', '#389cc7', false),
-      linhaTabela('status-presencas-locais', 'status-item', 2, 'PLENÁRIO', '#FFFFFF', false),
-      linhaTabela('status-presencas-web', 'status-item', 3, 'VIRTUAL', '#FFFFFF', false),
+      linhaTabela(
+        'status-presencas-locais',
+        'status-item',
+        2,
+        'PLENÁRIO',
+        '#FFFFFF',
+        false,
+      ),
+      linhaTabela(
+        'status-presencas-web',
+        'status-item',
+        3,
+        'VIRTUAL',
+        '#FFFFFF',
+        false,
+      ),
       linhaTabela('voto-branco', 'votacao-item', 2, 'BRANCO', '#FFFFFF', false),
-      { id: 'turno-votacao-principal', tipo: 'turno-votacao', x: xTexto, y: 675, width: wTexto,
-        height: 50, visible: false, dados: { texto: '1º Turno' } },
-      { id: 'modo-votacao-principal', tipo: 'modo-votacao', x: xTexto, y: 735, width: wTexto,
-        height: 50, visible: false, dados: { texto: 'Modo de Votação' } },
-      { id: 'parametro-votacao-principal', tipo: 'parametro-votacao', x: xTexto, y: 795, width: wTexto,
-        height: 50, visible: false, dados: { texto: 'Parâmetro de Votação' } },
-      { id: 'categoria-reuniao-principal', tipo: 'categoria-reuniao', x: xTexto, y: 855, width: wTexto,
-        height: 50, visible: false, dados: { texto: 'Categoria da Reunião' } },
+      {
+        id: 'turno-votacao-principal',
+        tipo: 'turno-votacao',
+        x: xTexto,
+        y: 675,
+        width: wTexto,
+        height: 50,
+        visible: false,
+        dados: { texto: '1º Turno' },
+      },
+      {
+        id: 'modo-votacao-principal',
+        tipo: 'modo-votacao',
+        x: xTexto,
+        y: 735,
+        width: wTexto,
+        height: 50,
+        visible: false,
+        dados: { texto: 'Modo de Votação' },
+      },
+      {
+        id: 'parametro-votacao-principal',
+        tipo: 'parametro-votacao',
+        x: xTexto,
+        y: 795,
+        width: wTexto,
+        height: 50,
+        visible: false,
+        dados: { texto: 'Parâmetro de Votação' },
+      },
+      {
+        id: 'categoria-reuniao-principal',
+        tipo: 'categoria-reuniao',
+        x: xTexto,
+        y: 855,
+        width: wTexto,
+        height: 50,
+        visible: false,
+        dados: { texto: 'Categoria da Reunião' },
+      },
 
       texto('orador-principal', 'orador', 331, 64, false, {
         orador: 'Nome do Orador',
@@ -758,8 +853,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       dados: { texto: 'Autor' },
     });
 
-
-  
     const parlamentares = this.montarComponentesParlamentares({
       qtdePorColuna: 14,
       qntTotal: 14,
@@ -812,7 +905,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       nomeNaCorDoVoto: cenario.opcoes?.nomeNaCorDoVoto ?? false,
       fundoParlamentares: cenario.opcoes?.fundoParlamentares ?? true,
       corFundoParlamentares: cenario.opcoes?.corFundoParlamentares ?? '#334155',
-      opacidadeFundoParlamentares: cenario.opcoes?.opacidadeFundoParlamentares ?? 100,
+      opacidadeFundoParlamentares:
+        cenario.opcoes?.opacidadeFundoParlamentares ?? 100,
     };
   }
 
@@ -820,7 +914,10 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     return TemporizadorItemComponent.numeroDoComponente(item);
   }
 
-  alterarOpcao(chave: keyof OpcoesCenario, valor: boolean | string | number): void {
+  alterarOpcao(
+    chave: keyof OpcoesCenario,
+    valor: boolean | string | number,
+  ): void {
     this.cenarioAtual.opcoes = { ...this.cenarioAtual.opcoes, [chave]: valor };
     this.dispararAutosave();
   }
@@ -893,14 +990,12 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   async salvar() {
-
     const nomeCenario = await this.aviso.pedirTexto({
       titulo: 'Salvar cenário',
       rotulo: 'Nome do cenário',
       valor: this.cenarioAtual.nome || 'novo-cenario',
       textoConfirmar: 'Salvar',
     });
-
 
     if (!nomeCenario) {
       return;
@@ -915,7 +1010,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       this.cenarioAtual.id = `cenario_${Date.now()}`;
     }
 
-
     if (this.imagemFundoAtual) {
       try {
         const idImagem = await new Promise<number>((resolve, reject) => {
@@ -929,7 +1023,11 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         this.cenarioAtual.imagemFundoId = String(idImagem);
         this.imagemFundoAtual = null;
       } catch (err) {
-        log.erro('Editor', 'Erro ao salvar a imagem de fundo, salvando o cenário sem ela:', err);
+        log.erro(
+          'Editor',
+          'Erro ao salvar a imagem de fundo, salvando o cenário sem ela:',
+          err,
+        );
         this.aviso.toast('Erro ao salvar a imagem de fundo.', 'aviso');
         delete this.cenarioAtual.imagemFundoId;
       }
@@ -938,26 +1036,48 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.isEditingMode) {
       this.layoutService.salvarCenario(this.cenarioAtual).subscribe({
         next: (cenarioSalvo) => {
-          log.info('Editor', `Cenário "${nomeCenario}" (id ${cenarioSalvo.idBackend}) atualizado`);
+          log.info(
+            'Editor',
+            `Cenário "${nomeCenario}" (id ${cenarioSalvo.idBackend}) atualizado`,
+          );
           this.cenarioAtual = cenarioSalvo;
           this.aviso.sucesso(`Cenário "${nomeCenario}" atualizado.`);
         },
         error: (error) => {
-          log.erro('Editor', `Erro ao atualizar o cenário "${nomeCenario}":`, error);
-          this.aviso.erro(`Erro ao atualizar o cenário "${nomeCenario}".`);
+          log.erro(
+            'Editor',
+            `Erro ao atualizar o cenário "${nomeCenario}":`,
+            error,
+          );
+          this.aviso.erro(
+            /painel/i.test(error?.message)
+              ? `${error.message}.`
+              : `Erro ao atualizar o cenário "${nomeCenario}".`,
+          );
         },
       });
     } else {
       this.layoutService.salvarCenario(this.cenarioAtual).subscribe({
         next: (cenarioSalvo) => {
-          log.info('Editor', `Cenário "${nomeCenario}" criado (id ${cenarioSalvo.idBackend})`);
+          log.info(
+            'Editor',
+            `Cenário "${nomeCenario}" criado (id ${cenarioSalvo.idBackend})`,
+          );
           this.cenarioAtual = cenarioSalvo;
           this.aviso.sucesso(`Cenário "${nomeCenario}" salvo.`);
           this.router.navigate(['/editor', this.cenarioAtual.slug]);
         },
         error: (error) => {
-          log.erro('Editor', `Erro ao criar o cenário "${nomeCenario}":`, error);
-          this.aviso.erro(`Erro ao salvar o cenário "${nomeCenario}".`);
+          log.erro(
+            'Editor',
+            `Erro ao criar o cenário "${nomeCenario}":`,
+            error,
+          );
+          this.aviso.erro(
+            /painel/i.test(error?.message)
+              ? `${error.message}.`
+              : `Erro ao salvar o cenário "${nomeCenario}".`,
+          );
         },
       });
     }
@@ -971,8 +1091,12 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       ...importado,
       id: manterIdentidade ? atual.id : `cenario_${Date.now()}`,
       idBackend: manterIdentidade ? atual.idBackend : undefined,
-      nome: manterIdentidade ? atual.nome : importado.nome || 'cenario-importado',
-      slug: manterIdentidade ? atual.slug : this.gerarSlug(importado.nome || 'cenario-importado'),
+      nome: manterIdentidade
+        ? atual.nome
+        : importado.nome || 'cenario-importado',
+      slug: manterIdentidade
+        ? atual.slug
+        : this.gerarSlug(importado.nome || 'cenario-importado'),
       backgroundImage: importado.backgroundImage || '',
     };
 
@@ -982,7 +1106,10 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     this.dispararAutosave();
     setTimeout(() => this.zoomInicial());
 
-    log.info('Importar', `Cenário "${cenario.nome}" importado (${cenario.componentes.length} blocos)`);
+    log.info(
+      'Importar',
+      `Cenário "${cenario.nome}" importado (${cenario.componentes.length} blocos)`,
+    );
     this.aviso.toast(`Cenário "${cenario.nome}" importado.`, 'sucesso');
   }
 

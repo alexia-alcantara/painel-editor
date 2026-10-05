@@ -112,17 +112,19 @@ export class CenarioDialogComponent implements OnInit {
     });
   }
 
+   /** Exporta um cenário da lista no formato do editor novo (leva tudo, inclusive alinhamento e cores). */
   exportarCenario(cenario: Cenario): void {
-    this.baixarJson(this.layoutExportService.paraFormatoDelphi(cenario), cenario.slug || cenario.nome);
+    this.baixarJson(this.layoutService.paraExportacaoCompleta(cenario), cenario.slug || cenario.nome);
   }
 
+  /** Exporta o cenário aberto no editor (com o que ainda não foi salvo). */
   exportarLayout(): void {
     const atual = this.data.cenarioAtual;
     if (!atual) {
       this.aviso.erro('Nenhum cenário aberto para exportar.');
       return;
     }
-    this.baixarJson(this.layoutExportService.paraFormatoDelphi(atual), atual.slug || atual.nome);
+    this.baixarJson(this.layoutService.paraExportacaoCompleta(atual), atual.slug || atual.nome);
   }
 
   private baixarJson(conteudo: any, nome: string): void {
