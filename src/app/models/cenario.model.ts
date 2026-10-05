@@ -17,7 +17,13 @@ export interface Cenario {
   idBackend?: number;
   opcoes?: OpcoesCenario;
   distribuicao?: DistribuicaoParlamentares;
+  videowall?: VideowallConfig;
   legadoDelphi?: Record<string, any>;
+}
+
+export interface VideowallConfig {
+  colunas: number;
+  linhas: number;
 }
 
 export interface DistribuicaoParlamentares {

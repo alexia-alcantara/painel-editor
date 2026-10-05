@@ -40,7 +40,10 @@ import { MateriaComponent } from '../materia/materia.component';
 import { CampoTextoComponent } from '../campo-texto/campo-texto.component';
 import { LegisSocketService } from '../../services/legis-socket.service';
 import { log } from '../../utils/log';
-import { urlImagemFundo, verificarImagemFundo  } from '../../config/runtime-config';
+import {
+  urlImagemFundo,
+  verificarImagemFundo,
+} from '../../config/runtime-config';
 
 /** Onde fica guardado, neste navegador, o painel que este computador representa. */
 const CHAVE_PAINEL_FIXO = 'legiswall.painelFixo';
@@ -154,7 +157,10 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     );
 
     if (!ipDoPainel) {
-      log.erro('Display', 'Nenhum painel definido (sem Painel Alvo, sem ?ip= e sem painel fixado)');
+      log.erro(
+        'Display',
+        'Nenhum painel definido (sem Painel Alvo, sem ?ip= e sem painel fixado)',
+      );
       return;
     }
 
@@ -163,7 +169,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.atualizacaoSubscription) {
       this.atualizacaoSubscription.unsubscribe();
     }
-
 
     this.legisSocket.conectar(String(ipDoPainel));
 
@@ -202,7 +207,10 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
             novoIdCenario !== this.ultimoIdCenarioTentado
           ) {
             this.ultimoIdCenarioTentado = novoIdCenario;
-            log.info('Display', `Controle Cenários: trocando para o cenário ${novoIdCenario}`);
+            log.info(
+              'Display',
+              `Controle Cenários: trocando para o cenário ${novoIdCenario}`,
+            );
 
             const novoCenario = await firstValueFrom(
               this.layoutService.carregarCenario(novoIdCenario),
@@ -236,7 +244,7 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           const dadosBrutos = dadosDaApi.valor || dadosDaApi;
           const dadosJson = JSON.stringify(dadosBrutos);
           if (dadosJson === this.ultimoDadosJson) {
-            return; 
+            return;
           }
           this.ultimoDadosJson = dadosJson;
 
@@ -285,16 +293,16 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const cenarioAtualizado = structuredClone(this.cenarioBase);
     const paleta = this.lerPaleta(dadosApiValor);
-    const resultadoLiberado = String(dadosApiValor.votacao?.exibirresultado) === 'true';
+    const resultadoLiberado =
+      String(dadosApiValor.votacao?.exibirresultado) === 'true';
     const votosMascarados =
-      String(dadosApiValor.configuracaoExibicao?.exibir?.MASCARAR_VOTOS) === 'true' &&
-      !resultadoLiberado;
+      String(dadosApiValor.configuracaoExibicao?.exibir?.MASCARAR_VOTOS) ===
+        'true' && !resultadoLiberado;
 
     const todosEspacos = cenarioAtualizado.componentes.filter(
       (c) => c.tipo === 'parlamentar',
     );
 
-   
     const distribuicao = this.cenarioBase.distribuicao;
     const exibirDe = Math.max(1, Number(distribuicao?.exibirDe) || 1);
     const exibirAte = Number(distribuicao?.exibirAte) || 0;
@@ -346,7 +354,9 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
               typeof dadosP.voto === 'string' ? dadosP.voto.trim() : '';
             const votou = votoString !== '' && votoString !== '-';
 
-            const cargo = String(dadosP.cargo || membro.cargo || '').trim().toUpperCase();
+            const cargo = String(dadosP.cargo || membro.cargo || '')
+              .trim()
+              .toUpperCase();
             const ehPresidente = cargo.startsWith('PRESID');
 
             const corNome = this.converterCor(dadosP.cor);
@@ -378,7 +388,10 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
               }
             }
 
-            if (!letra && (ehPresidente || votoString.toUpperCase().startsWith('PRESID'))) {
+            if (
+              !letra &&
+              (ehPresidente || votoString.toUpperCase().startsWith('PRESID'))
+            ) {
               letra = 'P';
             }
 
@@ -409,7 +422,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         componente.visible = visibilidadeOriginal[componente.id] ?? false;
       }
 
-
       if (componente.id === 'data-atual') {
         componente.dados = { texto: new Date().toLocaleDateString('pt-BR') };
         return;
@@ -421,15 +433,11 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           break;
 
         case 'subtitulo':
-          const nomeVotacao = dadosApiValor.votacao?.nome;
-          const categoria = dadosApiValor.categoriaReuniao;
-          componente.dados = { texto: nomeVotacao || categoria || '' };
+          componente.dados = { texto: dadosApiValor.votacao?.nome || '' };
           break;
 
         case 'descricao':
-          const ementa = dadosApiValor.votacao?.ementa;
-          const statusR = dadosApiValor.statusReuniao;
-          componente.dados = { texto: ementa || statusR || '' };
+          componente.dados = { texto: dadosApiValor.votacao?.ementa || '' };
           break;
 
         case 'orador':
@@ -500,7 +508,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           if (!listaCrono || typeof listaCrono !== 'object') listaCrono = [];
           else if (!Array.isArray(listaCrono)) listaCrono = [listaCrono];
 
-          const idBusca = TemporizadorItemComponent.numeroDoComponente(componente);
+          const idBusca =
+            TemporizadorItemComponent.numeroDoComponente(componente);
 
           const dadosC = listaCrono.find(
             (c: any) => Number(c.cronometro) === idBusca,
@@ -665,15 +674,18 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         case 'categoria-reuniao':
           componente.dados = { texto: dadosApiValor.categoriaReuniao || '' };
           break;
-          
+
         case 'tipo-fala':
           // Tipo da fala de quem está na tribuna (ex.: DISCUSSÃO, APARTE)
-          componente.dados = { texto: this.textoSimples(dadosApiValor.tribuna?.tipo) };
+          componente.dados = {
+            texto: this.textoSimples(dadosApiValor.tribuna?.tipo),
+          };
           break;
 
         case 'nome-cronometro': {
           // Nome do cronômetro N enviado pelo Legis (ex.: DISCUSSÃO); some quando parado
-          const numero = TemporizadorItemComponent.numeroDoComponente(componente);
+          const numero =
+            TemporizadorItemComponent.numeroDoComponente(componente);
           const crono = this.listaCronometros(dadosApiValor).find(
             (c: any) => Number(c.cronometro) === numero,
           );
@@ -696,7 +708,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
             texto: typeof linha?.texto === 'string' ? linha.texto : '',
             cor: this.converterCor(linha?.cor) || undefined,
             negrito: typeof linha?.bold === 'boolean' ? linha.bold : undefined,
-            italico: typeof linha?.italic === 'boolean' ? linha.italic : undefined,
+            italico:
+              typeof linha?.italic === 'boolean' ? linha.italic : undefined,
             sublinhado: linha?.underline === true,
             alinhamento,
           };
@@ -704,7 +717,9 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
         }
 
         case 'autor':
-          componente.dados = { texto: this.textoSimples(dadosApiValor.votacao?.autoria) };
+          componente.dados = {
+            texto: this.textoSimples(dadosApiValor.votacao?.autoria),
+          };
           break;
 
         case 'resultado-votacao':
@@ -772,7 +787,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
           const val = dadosApiValor.votacao?.[key] || 0;
           if (!c.props) c.props = {};
           c.props.valor = val;
-          const corPaleta = paleta[key === 'sim' ? 'Cor_Voto_Sim' : 'Cor_Voto_Nao'];
+          const corPaleta =
+            paleta[key === 'sim' ? 'Cor_Voto_Sim' : 'Cor_Voto_Nao'];
           if (corPaleta) c.props.cor = corPaleta;
           c.dados = { ...c.dados, valor: val };
         }
@@ -801,19 +817,21 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     this.ajustarEscala();
   }
 
-    get fundoDisplay(): string {
+  get fundoDisplay(): string {
     const c = this.cenarioParaExibir;
     if (!c) return 'none';
     const daPasta = urlImagemFundo(c.imagemFundo);
     if (daPasta) {
       verificarImagemFundo(daPasta, (endereco) =>
-        log.aviso('Display', `Imagem de fundo "${c.imagemFundo}" não encontrada em ${endereco}`),
+        log.aviso(
+          'Display',
+          `Imagem de fundo "${c.imagemFundo}" não encontrada em ${endereco}`,
+        ),
       );
     }
     const url = daPasta || c.backgroundImage;
     return url ? `url("${url}")` : 'none';
   }
-
 
   private painelDoDisplay(): string {
     const daUrl = this.route.snapshot.queryParamMap.get('ip');
@@ -839,7 +857,10 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       if (identificador) localStorage.setItem(CHAVE_PAINEL_FIXO, identificador);
       else localStorage.removeItem(CHAVE_PAINEL_FIXO);
     } catch {
-      log.aviso('Display', 'Erro ao gravar o painel no localStorage, vale só nesta sessão');
+      log.aviso(
+        'Display',
+        'Erro ao gravar o painel no localStorage, vale só nesta sessão',
+      );
     }
   }
 
@@ -892,7 +913,6 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     return mapa;
   }
 
-
   private converterCor(valor: any): string {
     if (typeof valor !== 'string') return '';
     const v = valor.trim();
@@ -908,7 +928,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private listaCronometros(dadosApiValor: any): any[] {
-    const lista = dadosApiValor?.cronometro?.cronometro ?? dadosApiValor?.cronometro;
+    const lista =
+      dadosApiValor?.cronometro?.cronometro ?? dadosApiValor?.cronometro;
     if (!lista || typeof lista !== 'object') return [];
     return Array.isArray(lista) ? lista : [lista];
   }
@@ -925,7 +946,9 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private textoSimples(valor: any): string {
-    return typeof valor === 'string' || typeof valor === 'number' ? String(valor).trim() : '';
+    return typeof valor === 'string' || typeof valor === 'number'
+      ? String(valor).trim()
+      : '';
   }
 
   private ajustarEscala(): void {
@@ -933,7 +956,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const target = this.wrapper.nativeElement;
 
-    const ajustarATela = this.route.snapshot.queryParamMap.get('ajustar') === '1';
+    const ajustarATela =
+      this.route.snapshot.queryParamMap.get('ajustar') === '1';
 
     let scale = 1;
     if (ajustarATela) {
@@ -942,7 +966,8 @@ export class DisplayComponent implements OnInit, AfterViewInit, OnDestroy {
       scale = Math.min(scaleX, scaleY);
     }
 
-   const centralizar = this.route.snapshot.queryParamMap.get('centralizar') === '1';
+    const centralizar =
+      this.route.snapshot.queryParamMap.get('centralizar') === '1';
 
     let margemEsquerda = 0;
     let margemTopo = 0;

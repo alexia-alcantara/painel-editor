@@ -60,6 +60,60 @@
   background-color: rgba(160, 160, 160, 0.35);
   opacity: 0.6;
 }
+.btn-remover {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 11;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: rgba(220, 38, 38, 0.9);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transform-origin: top right;
+  transition: opacity 0.15s;
+}
+
+.componente-box:hover .btn-remover {
+  opacity: 1;
+}
+
+.btn-remover:hover {
+  background: rgb(185, 28, 28);
+}
+
+.componente-box.cruza-divisao {
+  outline: 2px solid rgba(249, 115, 22, 0.95);
+}
+
+.divisao-videowall {
+  position: absolute;
+  z-index: 40;
+  pointer-events: none;
+  background: rgba(250, 204, 21, 0.85);
+}
+
+.divisao-videowall.vertical {
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+}
+
+.divisao-videowall.horizontal {
+  left: 0;
+  right: 0;
+  height: 2px;
+  margin-top: -1px;
+}
+
 /* Bloco sob o mouse fica por cima dos outros: dá para clicar mesmo quando estão sobrepostos */
 .componente-box:hover {
   z-index: 50;

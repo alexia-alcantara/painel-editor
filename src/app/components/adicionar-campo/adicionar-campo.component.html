@@ -1,0 +1,26 @@
+<button mat-mini-fab color="primary" type="button" class="botao-adicionar"
+  [title]="aberto ? 'Fechar' : 'Adicionar campo'" (click)="alternar()">
+  <mat-icon>{{ aberto ? 'close' : 'add' }}</mat-icon>
+</button>
+
+@if (aberto) {
+<div class="painel-campos">
+  <h4>Adicionar campo</h4>
+
+  <input #campoBusca type="text" class="busca" placeholder="Buscar campo..."
+    [(ngModel)]="busca" (keydown.enter)="adicionarPrimeiro()">
+
+  <div class="lista">
+    @for (campo of camposFiltrados; track campo.id) {
+    <button type="button" class="item" (click)="escolher(campo)">
+      <i class="fa-solid fa-plus"></i>
+      <span>{{ campo.rotulo }}</span>
+    </button>
+    } @empty {
+    <p class="vazio">
+      {{ campos.length ? 'Nenhum campo com esse nome.' : 'Todos os campos já estão no cenário.' }}
+    </p>
+    }
+  </div>
+</div>
+}

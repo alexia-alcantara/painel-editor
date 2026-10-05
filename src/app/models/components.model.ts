@@ -37,7 +37,6 @@ export interface ComponenteEditor {
   width: number;
   height: number;
   visible: boolean;
-  ocultoNoEditor?: boolean;
   props?: {
     fontFamily?: string;
     tempo?: string;

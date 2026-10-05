@@ -38,9 +38,12 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { ControleVisibilidadeComponent } from '../../controle-visibilidade/controle-visibilidade.component';
 import { MatIconModule } from '@angular/material/icon';
-import { Cenario, OpcoesCenario } from '../../models/cenario.model';
+import {
+  Cenario,
+  OpcoesCenario,
+  VideowallConfig,
+} from '../../models/cenario.model';
 import { FormsModule } from '@angular/forms';
 import { FonteService } from '../../services/fonte.service';
 import { StatusItemComponent } from '../status-reuniao/status-item/status-item.component';
@@ -58,6 +61,28 @@ import { PainelService } from '../../services/painel.service';
 import { CampoTextoComponent } from '../campo-texto/campo-texto.component';
 import { log } from '../../utils/log';
 import { AvisoService } from '../../services/aviso.service';
+import { AdicionarCampoComponent } from '../adicionar-campo/adicionar-campo.component';
+import {
+  CampoDisponivel,
+  ID_PARLAMENTARES,
+  rotuloCampo,
+} from '../../models/campos';
+
+const DISTRIBUICAO_PADRAO: DistribuirConfig = {
+  qtdePorColuna: 14,
+  qntTotal: 14,
+  espacamentoVertical: 10,
+  espacamentoHorizontal: 10,
+  margemSuperior: 0,
+  margemEsquerda: 0,
+  exibirDe: 0,
+  exibirAte: 0,
+  offsetInicial: 0,
+  posicaoX: 920,
+  posicaoY: 20,
+  larguraItem: 940,
+  alturaItem: 65,
+};
 
 @Component({
   selector: 'app-editor',
@@ -81,7 +106,7 @@ import { AvisoService } from '../../services/aviso.service';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    ControleVisibilidadeComponent,
+    AdicionarCampoComponent,
     StatusItemComponent,
     MensagemComponent,
     OradorComponent,
@@ -117,8 +142,9 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   };
 
   componentes = signal<ComponenteEditor[]>([]);
-  mostrarControleVisibilidade = false;
   mostrarBlocosOcultos = true;
+
+  private catalogo: ComponenteEditor[] | null = null;
 
   zoom = 1;
   @ViewChild('areaEditor') areaEditorRef?: ElementRef<HTMLElement>;
@@ -181,14 +207,163 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     return url ? `url("${url}")` : 'none';
   }
 
-  onComponentVisibilityChange(event: { ids: string[]; visivel: boolean }) {
-    const idsParaMudar = new Set(event.ids);
-
-    this.cenarioAtual.componentes.forEach((c) => {
-      if (idsParaMudar.has(c.id)) c.ocultoNoEditor = !event.visivel;
-    });
-    this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
+  private get catalogoCampos(): ComponenteEditor[] {
+    if (!this.catalogo) {
+      this.catalogo = this.montarLayoutInicial().componentes.filter(
+        (c) => c.tipo !== 'parlamentar',
+      );
+    }
+    return this.catalogo;
   }
+
+  get camposDisponiveis(): CampoDisponivel[] {
+    const idsNoCenario = new Set(this.cenarioAtual.componentes.map((c) => c.id));
+    const lista: CampoDisponivel[] = this.catalogoCampos
+      .filter((c) => !idsNoCenario.has(c.id))
+      .map((c) => ({ id: c.id, rotulo: rotuloCampo(c) }));
+
+    const temParlamentares = this.cenarioAtual.componentes.some(
+      (c) => c.tipo === 'parlamentar',
+    );
+    if (!temParlamentares) {
+      lista.push({ id: ID_PARLAMENTARES, rotulo: rotuloCampo({ id: ID_PARLAMENTARES }) });
+    }
+
+    return lista.sort((a, b) => a.rotulo.localeCompare(b.rotulo, 'pt-BR'));
+  }
+
+  rotulo(item: ComponenteEditor): string {
+    return rotuloCampo(item);
+  }
+
+  alternarVideowall(ativo: boolean): void {
+    this.cenarioAtual.videowall = ativo ? { colunas: 2, linhas: 2 } : undefined;
+    this.dispararAutosave();
+  }
+
+  alterarVideowall(campo: keyof VideowallConfig, valor: number): void {
+    if (!this.cenarioAtual.videowall) return;
+    this.cenarioAtual.videowall = {
+      ...this.cenarioAtual.videowall,
+      [campo]: Math.max(1, Math.round(valor) || 1),
+    };
+    this.dispararAutosave();
+  }
+
+  get tamanhoTelaVideowall(): string {
+    const videowall = this.cenarioAtual.videowall;
+    if (!videowall) return '';
+    const largura = Math.round(this.cenarioAtual.targetWidth / videowall.colunas);
+    const altura = Math.round(this.cenarioAtual.targetHeight / videowall.linhas);
+    return `${largura} x ${altura}`;
+  }
+
+  get divisoesVideowall(): { verticais: number[]; horizontais: number[] } {
+    const videowall = this.cenarioAtual.videowall;
+    if (!videowall) return { verticais: [], horizontais: [] };
+    return {
+      verticais: this.posicoesDasDivisoes(this.cenarioAtual.targetWidth, videowall.colunas),
+      horizontais: this.posicoesDasDivisoes(this.cenarioAtual.targetHeight, videowall.linhas),
+    };
+  }
+
+  cruzaDivisaoVideowall(item: ComponenteEditor): boolean {
+    const { verticais, horizontais } = this.divisoesVideowall;
+    return (
+      verticais.some((x) => x > item.x && x < item.x + item.width) ||
+      horizontais.some((y) => y > item.y && y < item.y + item.height)
+    );
+  }
+
+  private posicoesDasDivisoes(tamanhoTotal: number, quantidadeTelas: number): number[] {
+    return Array.from({ length: Math.max(0, quantidadeTelas - 1) }, (_, i) =>
+      Math.round((tamanhoTotal * (i + 1)) / quantidadeTelas),
+    );
+  }
+
+  private encaixarNaTelaDoVideowall(item: ComponenteEditor): void {
+    const { verticais, horizontais } = this.divisoesVideowall;
+    item.x = this.encaixarNoEixo(item.x, item.width, verticais, this.cenarioAtual.targetWidth);
+    item.y = this.encaixarNoEixo(item.y, item.height, horizontais, this.cenarioAtual.targetHeight);
+  }
+
+  private encaixarNoEixo(
+    inicio: number,
+    tamanho: number,
+    divisoes: number[],
+    tamanhoTotal: number,
+  ): number {
+    const limites = [0, ...divisoes, tamanhoTotal];
+    const centro = inicio + tamanho / 2;
+    const indiceTela = limites.findIndex(
+      (limite, i) => centro >= limite && centro <= limites[i + 1],
+    );
+    if (indiceTela < 0) return inicio;
+
+    const inicioTela = limites[indiceTela];
+    const fimTela = limites[indiceTela + 1];
+    if (tamanho > fimTela - inicioTela) return inicio;
+
+    return Math.min(Math.max(inicio, inicioTela), fimTela - tamanho);
+  }
+
+  escalaBotaoRemover(item: ComponenteEditor): number {
+    const tamanhoBotao = 22;
+    const escalaMaximaNoBloco = (Math.min(item.width, item.height) - 4) / tamanhoBotao;
+    return Math.max(0.5, Math.min(1 / this.zoom, escalaMaximaNoBloco));
+  }
+
+  adicionarCampo(id: string): void {
+    if (id === ID_PARLAMENTARES) {
+      this.cenarioAtual.distribuicao = undefined;
+      this.cenarioAtual.componentes = [
+        ...this.cenarioAtual.componentes,
+        ...this.montarComponentesParlamentares(DISTRIBUICAO_PADRAO, this.divisoesVideowall),
+      ];
+    } else {
+      const modelo = this.catalogoCampos.find((c) => c.id === id);
+      if (!modelo) {
+        log.aviso('Editor', `Erro ao adicionar campo: "${id}" não existe no catálogo`);
+        return;
+      }
+      const { targetWidth, targetHeight } = this.cenarioAtual;
+      const campo: ComponenteEditor = { ...structuredClone(modelo), visible: true };
+      campo.width = Math.min(campo.width, targetWidth);
+      campo.height = Math.min(campo.height, targetHeight);
+      campo.x = Math.min(campo.x, Math.max(0, targetWidth - campo.width));
+      campo.y = Math.min(campo.y, Math.max(0, targetHeight - campo.height));
+
+      this.cenarioAtual.componentes = [...this.cenarioAtual.componentes, campo];
+    }
+
+    log.info('Editor', `Campo "${rotuloCampo({ id })}" adicionado`);
+    this.dispararAutosave();
+  }
+
+  async removerCampo(item: ComponenteEditor): Promise<void> {
+    if (item.tipo === 'parlamentar') {
+      const confirmou = await this.aviso.confirmar({
+        titulo: 'Remover parlamentares',
+        mensagem: 'Remover todos os parlamentares do cenário?',
+        textoConfirmar: 'Remover',
+        perigo: true,
+      });
+      if (!confirmou) return;
+
+      this.cenarioAtual.componentes = this.cenarioAtual.componentes.filter(
+        (c) => c.tipo !== 'parlamentar',
+      );
+      this.cenarioAtual.distribuicao = undefined;
+    } else {
+      this.cenarioAtual.componentes = this.cenarioAtual.componentes.filter(
+        (c) => c.id !== item.id,
+      );
+    }
+
+    log.info('Editor', `Campo "${rotuloCampo(item)}" removido`);
+    this.dispararAutosave();
+  }
+
   ngOnInit() {
     this.routeSub = this.route.paramMap.subscribe((params) => {
       if (params.has('id')) {
@@ -218,7 +393,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       } else {
         this.isEditingMode = false;
         this.cenarioId = null;
-        this.cenarioAtual = this.montarLayoutInicial();
+        this.cenarioAtual = this.montarCenarioNovo();
         this.fonteService.carregarGrupos(this.cenarioAtual.fontes);
 
         this.onItemChange();
@@ -244,7 +419,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    this.cenarioAtual = this.montarLayoutInicial();
+    this.cenarioAtual = this.montarCenarioNovo();
     this.fonteService.carregarGrupos(this.cenarioAtual.fontes);
     this.dispararAutosave();
     setTimeout(() => this.zoomInicial());
@@ -317,10 +492,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     else this.ajustarZoom();
   }
 
-  toggleControleVisibilidade(): void {
-    this.mostrarControleVisibilidade = !this.mostrarControleVisibilidade;
-  }
-
   onMenuAction(event: {
     action: string;
     data: any;
@@ -339,7 +510,6 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         const comp = event.component;
         if (comp) {
           comp.visible = event.data.visible;
-          comp.ocultoNoEditor = false;
           this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
           this.dispararAutosave();
         }
@@ -350,15 +520,16 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         this.importarCenario(event.data);
         break;
 
-      case 'importDelphi':
-        this.importarCenario(
-          this.layoutExport.deFormatoDelphi(
-            event.data.json,
-            this.montarLayoutInicial(),
-            event.data.nome,
-          ),
+      case 'importDelphi': {
+        const cenarioDelphi = this.layoutExport.deFormatoDelphi(
+          event.data.json,
+          this.montarLayoutInicial(),
+          event.data.nome,
         );
+        cenarioDelphi.componentes = cenarioDelphi.componentes.filter((c) => c.visible);
+        this.importarCenario(cenarioDelphi);
         break;
+      }
     }
   }
 
@@ -378,11 +549,14 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     const atual = this.cenarioAtual.componentes.find(
       (c) => c.tipo === 'parlamentar',
     );
-    const novosParlamentares = this.montarComponentesParlamentares({
-      ...config,
-      larguraItem: config.larguraItem ?? atual?.width,
-      alturaItem: config.alturaItem ?? atual?.height,
-    });
+    const novosParlamentares = this.montarComponentesParlamentares(
+      {
+        ...config,
+        larguraItem: config.larguraItem ?? atual?.width,
+        alturaItem: config.alturaItem ?? atual?.height,
+      },
+      this.divisoesVideowall,
+    );
 
     // Guarda no cenário (vai junto pro Legis) para o display aplicar
     this.cenarioAtual.distribuicao = {
@@ -479,9 +653,10 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   @HostListener('document:mouseup')
   aoSoltarMouse(): void {
     if (this.arrastando) {
-      const moveu = this.arrastando.moveu;
+      const { item, moveu } = this.arrastando;
       this.arrastando = null;
       if (moveu) {
+        this.encaixarNaTelaDoVideowall(item);
         this.cenarioAtual.componentes = [...this.cenarioAtual.componentes];
         this.dispararAutosave();
       }
@@ -853,21 +1028,8 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       dados: { texto: 'Autor' },
     });
 
-    const parlamentares = this.montarComponentesParlamentares({
-      qtdePorColuna: 14,
-      qntTotal: 14,
-      espacamentoVertical: 10,
-      espacamentoHorizontal: 10,
-      margemSuperior: 0,
-      margemEsquerda: 0,
-      exibirDe: 0,
-      exibirAte: 0,
-      offsetInicial: 0,
-      posicaoX: 920,
-      posicaoY: 20,
-      larguraItem: 940,
-      alturaItem: 65,
-    });
+    const parlamentares =
+      this.montarComponentesParlamentares(DISTRIBUICAO_PADRAO);
 
     const nomePadrao = 'Cenário Padrão Visual';
     return {
@@ -889,18 +1051,13 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     };
   }
 
+  private montarCenarioNovo(): Cenario {
+    const cenario = this.montarLayoutInicial();
+    cenario.componentes = cenario.componentes.filter((c) => c.visible);
+    return cenario;
+  }
+
   private prepararCenarioParaEdicao(cenario: Cenario): void {
-    const padrao = this.montarLayoutInicial();
-    const idsExistentes = new Set(cenario.componentes.map((c) => c.id));
-
-    const faltando = padrao.componentes.filter(
-      (c) => c.tipo !== 'parlamentar' && !idsExistentes.has(c.id),
-    );
-    faltando.forEach((c) => (c.visible = false));
-
-    cenario.componentes = [...cenario.componentes, ...faltando];
-    cenario.componentes.forEach((c) => (c.ocultoNoEditor = false));
-
     cenario.opcoes = {
       nomeNaCorDoVoto: cenario.opcoes?.nomeNaCorDoVoto ?? false,
       fundoParlamentares: cenario.opcoes?.fundoParlamentares ?? true,
@@ -924,6 +1081,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private montarComponentesParlamentares(
     config: DistribuirConfig,
+    divisoes: { verticais: number[]; horizontais: number[] } = { verticais: [], horizontais: [] },
   ): ComponenteEditor[] {
     const itensPorColuna = config.qtdePorColuna > 0 ? config.qtdePorColuna : 1;
     const totalDeParlamentares = config.qntTotal;
@@ -960,29 +1118,66 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     });
 
+    const { verticais, horizontais } = divisoes;
+    const quantidadeColunas = Math.ceil(totalDeParlamentares / itensPorColuna);
+    const posicoesX = this.posicoesSemCruzarDivisoes(
+      config.posicaoX,
+      larguraItem,
+      config.espacamentoHorizontal,
+      quantidadeColunas,
+      verticais,
+    );
+    const posicoesY = this.posicoesSemCruzarDivisoes(
+      config.posicaoY,
+      alturaItem,
+      config.espacamentoVertical,
+      itensPorColuna,
+      horizontais,
+    );
+
     return parlamentaresDeExemplo.map((parlamentar, i) => {
       const colunaAtual = Math.floor(i / itensPorColuna);
       const linhaAtual = i % itensPorColuna;
 
-      const posX =
-        config.posicaoX +
-        colunaAtual * (larguraItem + config.espacamentoHorizontal);
-
-      const posY =
-        config.posicaoY +
-        linhaAtual * (alturaItem + config.espacamentoVertical);
-
       return {
         id: `parlamentar-${i}`,
         tipo: 'parlamentar',
-        x: posX,
-        y: posY,
+        x: posicoesX[colunaAtual],
+        y: posicoesY[linhaAtual],
         width: larguraItem,
         height: alturaItem,
         dados: parlamentar,
         visible: true,
       };
     });
+  }
+
+  private posicoesSemCruzarDivisoes(
+    inicio: number,
+    tamanho: number,
+    espacamento: number,
+    quantidade: number,
+    divisoes: number[],
+  ): number[] {
+    const posicoes: number[] = [];
+    let posicaoAtual = inicio;
+
+    for (let i = 0; i < quantidade; i++) {
+      posicaoAtual = this.pularDivisao(posicaoAtual, tamanho, divisoes);
+      posicoes.push(posicaoAtual);
+      posicaoAtual += tamanho + espacamento;
+    }
+    return posicoes;
+  }
+
+  private pularDivisao(inicio: number, tamanho: number, divisoes: number[]): number {
+    const cruza = (posicao: number) =>
+      divisoes.find((divisao) => divisao > posicao && divisao < posicao + tamanho);
+
+    const divisaoCruzada = cruza(inicio);
+    if (divisaoCruzada === undefined) return inicio;
+
+    return cruza(divisaoCruzada) === undefined ? divisaoCruzada : inicio;
   }
 
   onItemChange() {

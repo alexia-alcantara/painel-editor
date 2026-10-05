@@ -19,6 +19,27 @@
       class="bg-gray-700 p-2 rounded w-20 text-center border border-gray-600">
   </div>
 
+  <div class="flex items-center gap-2">
+    <label class="flex items-center gap-2 text-sm cursor-pointer" title="Painel formado por várias telas">
+      <input type="checkbox" [checked]="!!cenarioAtual.videowall"
+        (change)="alternarVideowall($any($event.target).checked)">
+      Videowall
+    </label>
+    @if (cenarioAtual.videowall; as videowall) {
+    <label class="text-sm text-gray-400">Colunas:</label>
+    <input type="number" min="1" [value]="videowall.colunas"
+      (change)="alterarVideowall('colunas', +$any($event.target).value)"
+      class="bg-gray-700 p-2 rounded w-16 text-center border border-gray-600">
+    <label class="text-sm text-gray-400">Linhas:</label>
+    <input type="number" min="1" [value]="videowall.linhas"
+      (change)="alterarVideowall('linhas', +$any($event.target).value)"
+      class="bg-gray-700 p-2 rounded w-16 text-center border border-gray-600">
+    <span class="text-xs text-gray-400" title="Resolução de cada tela do videowall">
+      Cada tela: {{ tamanhoTelaVideowall }}
+    </span>
+    }
+  </div>
+
   <div class="flex items-center gap-2 border-l border-gray-600 pl-4 ml-2">
     <label class="font-bold text-yellow-400">Painel Alvo:</label>
 
@@ -112,10 +133,9 @@
       [class.redimensionavel]="item.tipo !== 'parlamentar'" (contextmenu)="onRightClick($event, item)"
       (mousedown)="iniciarArraste($event, item)"
       [style.transform]="'translate(' + item.x + 'px, ' + item.y + 'px)'"
-      [style.display]="!item.ocultoNoEditor && (item.visible || mostrarBlocosOcultos) ? 'block' : 'none'"
-      [class.hidden-do-cenario]="!item.visible" [style.width.px]="item.width" [style.height.px]="item.height">
+      [style.display]="item.visible || mostrarBlocosOcultos ? 'block' : 'none'"
+      [class.hidden-do-cenario]="!item.visible" [class.cruza-divisao]="cruzaDivisaoVideowall(item)" [style.width.px]="item.width" [style.height.px]="item.height">
 
-      @if (!item.ocultoNoEditor) {
       @switch(item.tipo) {
       @case('mensagem') { <app-mensagem [dados]="item.dados"></app-mensagem> }
       @case('descricao') { <app-descricao-reuniao [dados]="item.dados"></app-descricao-reuniao> }
@@ -162,24 +182,24 @@
       @case ('parametro-votacao') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
       @case ('categoria-reuniao') { <app-campo-texto [dados]="item.dados" [tipo]="item.tipo"></app-campo-texto> }
       }
-      }
       @if (item.tipo !== 'parlamentar') {
       <div class="resize-handle" title="Arraste para redimensionar" (mousedown)="iniciarRedimensionar($event, item)">
       </div>
       }
+      <button type="button" class="btn-remover" [title]="'Remover ' + rotulo(item)"
+        [style.transform]="'scale(' + escalaBotaoRemover(item) + ')'"
+        (mousedown)="$event.stopPropagation()" (click)="removerCampo(item)">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
     }
     }
 
-    <button (click)="toggleControleVisibilidade()" class="text-white absolute top-4 right-4 p-2 rounded 
-        flex items-center gap-2 hover:bg-gray-700 transition-colors">
-      <i class="fa-solid fa-wrench"></i>
-    </button>
-
-    @if (mostrarControleVisibilidade) {
-    <app-controle-visibilidade [componentes]="cenarioAtual.componentes"
-      (visibilityChanged)="onComponentVisibilityChange($event)">
-    </app-controle-visibilidade>
+    @for (x of divisoesVideowall.verticais; track x) {
+    <div class="divisao-videowall vertical" [style.left.px]="x"></div>
+    }
+    @for (y of divisoesVideowall.horizontais; track y) {
+    <div class="divisao-videowall horizontal" [style.top.px]="y"></div>
     }
   </div>
   </div>
@@ -187,6 +207,8 @@
 
 <!-- Fora da área com zoom, para o menu abrir exatamente onde o mouse clicou -->
 <app-context-menu #contextMenu (action)="onMenuAction($event)"></app-context-menu>
+
+<app-adicionar-campo [campos]="camposDisponiveis" (adicionar)="adicionarCampo($event)"></app-adicionar-campo>
 
 <button mat-fab color="primary" (click)="salvar()" title="Salvar Cenário"
   style="position: fixed; right: 20px; bottom: 20px; z-index: 1000;">
